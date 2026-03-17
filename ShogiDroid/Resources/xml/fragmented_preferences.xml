@@ -7,13 +7,10 @@
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/SettingsEngineSettings_Text">
         <shogidroid.controls.SeekBarPreference android:title="@string/SettingsEngineStrength_Text" android:key="Engine.Strength" app:SeekBarMax="100" android:defaultValue="100" />
-        <CheckBoxPreference android:title="@string/SettingsEnginePondering_Text" android:key="Engine.Ponder" android:defaultValue="false" />
-        <shogidroid.controls.ListIntPreference android:entries="@array/SettingsHashTable_Texts" android:title="@string/SettingsEngineHashTable_Text" android:key="Engine.HashSize" android:defaultValue="@string/SettingsHashTable_Default" android:entryValues="@array/SettingsHashTable_Values" />
         <CheckBoxPreference android:title="@string/SettingsEngineOwnBook_Text" android:key="Engine.OwnBook" android:defaultValue="true" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/SettingsAnalyze_Text">
         <shogidroid.controls.ListIntPreference android:entries="@array/SettingsAnalyzeTime_Texts" android:title="@string/SettingsAnalyzeTime_Text" android:key="Analyze.Time" android:defaultValue="@string/SettingsAnalyzeTime_Default" android:entryValues="@array/SettingsAnalyzeTime_Values" />
-        <shogidroid.controls.ListIntPreference android:entries="@array/SettingsAnalyzeMultiPv_Texts" android:title="@string/SettingsAnalyzeMultiPv_Text" android:key="Analyze.MultiPv" android:defaultValue="@string/SettingsAnalyzeMultiPv_Default" android:entryValues="@array/SettingsAnalyzeMultiPv_Values" />
         <CheckBoxPreference android:title="@string/SettingsEngineOwnBook_Text" android:key="Analyze.OwnBook" android:defaultValue="true" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/SettingsAppearance_Text">

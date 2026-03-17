@@ -16,9 +16,9 @@ public class SettingActivity : PreferenceActivity
 {
 	public class SettingsFragment : PreferenceFragment, ISharedPreferencesOnSharedPreferenceChangeListener, IJavaObject, IDisposable, IJavaPeerable
 	{
-		private static readonly string[] SummeryKeys = new string[19]
+		private static readonly string[] SummeryKeys = new string[17]
 		{
-			"Engine.Time", "Engine.Countdown", "Engine.HashSize", "Analyze.Time", "Analyze.MultiPv", "App.AnimationSpeed", "App.MoveStyle", "App.PlayerName", "App.WarsUserName", "App.PlayInterval",
+			"Engine.Time", "Engine.Countdown", "Analyze.Time", "App.AnimationSpeed", "App.MoveStyle", "App.PlayerName", "App.WarsUserName", "App.PlayInterval",
 			"App.CustomMenuButton", "App.ReverseButotn", "App.PVDisplay", "App.ShortcutMenu1", "App.ShortcutMenu2", "App.ShortcutMenu3", "App.ShortcutMenu4", "App.ShortcutMenu5", "App.ShortcutMenu6"
 		};
 
