@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:textAppearance="?android:textAppearanceLarge" android:textColor="@color/title_text" android:gravity="center" android:background="@color/title_background" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/AnalyzeStartDialog_Text" />
+    <Space android:layout_width="fill_parent" android:layout_height="20.0dip" />
+    <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:weightSum="2.0">
+        <TextView android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="@string/AnalyzeTime_Text" android:layout_weight="1.0" />
+        <Spinner android:entries="@array/AnalyzeTime_Texts" android:id="@id/AnalyzeStartDialogTimeSpinner" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" />
+    </LinearLayout>
+    <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:weightSum="2.0">
+        <CheckBox android:id="@id/AnalyzeStartDialogDepthCheckBox" android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="@string/AnalyzeDepth_Text" android:layout_weight="1.0" />
+        <EditText android:id="@id/AnalyzeStartDialogDepthEditText" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" android:inputType="number" />
+    </LinearLayout>
+    <Space android:layout_width="fill_parent" android:layout_height="20.0dip" />
+    <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/AnalyzeRange_Text" />
+    <RadioGroup android:id="@id/AnalyzeStartDialogRange" android:layout_width="wrap_content" android:layout_height="wrap_content">
+        <RadioButton android:id="@id/AnalyzeStartDialogRangeAll" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/AnalyzeRangeAll_Text" />
+        <RadioButton android:id="@id/AnalyzeStartDialogRangeNow" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/AnalyzeRangeNow_Text" />
+    </RadioGroup>
+    <Space android:layout_width="fill_parent" android:layout_height="20.0dip" />
+    <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+        <Button android:id="@id/DialogCancelButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/DialogCancel_Text" android:layout_weight="2.0" />
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+        <Button android:id="@id/DialogOKButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/DialogOK_Text" android:layout_weight="2.0" />
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+    </LinearLayout>
+</LinearLayout>

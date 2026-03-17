@@ -1,0 +1,32 @@
+# .NET / C#
+bin/
+obj/
+*.user
+*.suo
+*.cache
+*.vs/
+*.DotSettings.user
+
+# Build artifacts
+*.apk
+*.aab
+*.ipa
+
+# NuGet
+packages/
+*.nupkg
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Secrets / local config
+*.keystore
+*.jks
+local.properties

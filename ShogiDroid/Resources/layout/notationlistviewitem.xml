@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:textSize="20.0sp" android:gravity="center_vertical" android:id="@id/state_info_text" android:layout_width="0.0dip" android:layout_height="30.0dip" android:layout_weight="0.5" />
+    <TextView android:textSize="20.0sp" android:gravity="center_vertical" android:id="@id/state_comment_text" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="0.5" />
+    <TextView android:textSize="20.0sp" android:ellipsize="end" android:gravity="center_vertical" android:id="@id/move_text" android:layout_width="0.0dip" android:layout_height="fill_parent" android:singleLine="true" android:layout_weight="10.5" />
+    <TextView android:textSize="20.0sp" android:gravity="center_vertical" android:id="@id/branch_text" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" />
+    <LinearLayout android:orientation="vertical" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="3.0">
+        <TextView android:id="@id/time_text" android:layout_width="fill_parent" android:layout_height="wrap_content" />
+        <TextView android:id="@id/eval_text" android:layout_width="fill_parent" android:layout_height="wrap_content" />
+    </LinearLayout>
+</LinearLayout>

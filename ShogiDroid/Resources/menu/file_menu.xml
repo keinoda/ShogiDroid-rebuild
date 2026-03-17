@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@id/file_load" android:title="@string/Menu_FileLoad_Text" />
+    <item android:id="@id/file_load_last" android:title="@string/Menu_FileLoadLast_Text" />
+    <item android:id="@id/file_save" android:title="@string/Menu_FileSave_Text" />
+    <item android:id="@id/file_import" android:title="@string/Menu_FileImport_Text" />
+    <item android:id="@id/file_web_import" android:title="@string/Menu_FileWebExport_Text" />
+    <item android:id="@id/file_send" android:title="@string/Menu_FileSend_Text" />
+    <item android:id="@id/file_open_folder" android:title="@string/Menu_OpenKifuFolder_Text" />
+</menu>

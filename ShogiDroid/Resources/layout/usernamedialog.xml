@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:textAppearance="?android:textAppearanceMedium" android:textColor="@color/title_text" android:gravity="center" android:background="@color/title_background" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/SettingsShogiWarsUserName_Text" />
+    <Space android:layout_width="fill_parent" android:layout_height="20.0dip" />
+    <EditText android:id="@id/UserName" android:layout_width="fill_parent" android:layout_height="wrap_content" />
+    <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+        <Button android:id="@id/DialogCancelButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/DialogCancel_Text" android:layout_weight="2.0" />
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+        <Button android:id="@id/DialogOKButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/DialogOK_Text" android:layout_weight="2.0" />
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+    </LinearLayout>
+</LinearLayout>

@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="androidx_core_ripple_material_light">#1f000000</color>
+    <color name="androidx_core_secondary_text_default_material_light">#8a000000</color>
+    <color name="graph_bg">#ff60b9d2</color>
+    <color name="notation_black_back">#ffe8e8f0</color>
+    <color name="notation_select">#ffadd8e6</color>
+    <color name="notation_select_branch">#ffffff00</color>
+    <color name="notation_white_back">#fff2f2f2</color>
+    <color name="option_change_text_color">#ff0f0f0f</color>
+    <color name="option_normal_text_color">#ff5f5f5f</color>
+    <color name="theme_background">#fff2f2f2</color>
+    <color name="time_text_color">#ff000000</color>
+    <color name="title_background">#ff2196f3</color>
+    <color name="title_text">#ffffffff</color>
+</resources>

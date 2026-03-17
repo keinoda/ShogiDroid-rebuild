@@ -1,0 +1,57 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:textAppearance="?android:textAppearanceLarge" android:textColor="@color/title_text" android:gravity="center" android:background="@color/title_background" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/GameStartDialogTitle_Text" />
+    <Space android:layout_width="fill_parent" android:layout_height="20.0dip" />
+    <ScrollView android:layout_width="fill_parent" android:layout_height="0.0dip" android:layout_weight="1.0">
+        <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="wrap_content">
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/GameStartDialogBlack_Text" />
+            <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                <Space android:layout_width="20.0dip" android:layout_height="0.0dip" />
+                <RadioGroup android:id="@id/GameStartDialogBlackRadio" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                    <RadioButton android:id="@id/GameStartDialogBlackRadioPlayer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/GameStartDialogPlayer_Text" />
+                    <RadioButton android:id="@id/GameStartDialogBlackRadioComputer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/GameStartDialogComputer_Text" />
+                </RadioGroup>
+            </LinearLayout>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/GameStartDialogWhite_Text" />
+            <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                <Space android:layout_width="20.0dip" android:layout_height="0.0dip" />
+                <RadioGroup android:id="@id/GameStartDialogWhiteRadio" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                    <RadioButton android:id="@id/GameStartDialogWhiteRadioPlayer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/GameStartDialogPlayer_Text" />
+                    <RadioButton android:id="@id/GameStartDialogWhiteRadioComputer" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/GameStartDialogComputer_Text" />
+                </RadioGroup>
+            </LinearLayout>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/GameStartDialogHandicap_Text" />
+            <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                <Space android:layout_width="20.0dip" android:layout_height="0.0dip" />
+                <Spinner android:entries="@array/GameStartDialogHandicap_Texts" android:id="@id/GameStartDialogHandicapSpinner" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+            </LinearLayout>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/GameStartDialogStartPosition_Text" />
+            <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                <Space android:layout_width="20.0dip" android:layout_height="0.0dip" />
+                <RadioGroup android:id="@id/GameStartDialogPositionRadio" android:layout_width="wrap_content" android:layout_height="wrap_content">
+                    <RadioButton android:id="@id/GameStartDialogNewGameInitialPositionRadio" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/GameStartDialogNewGameInitialPosition_Text" />
+                    <RadioButton android:id="@id/GameStartDialogNewGameThisPositionRadio" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/GameStartDialogNewGameThisPosition_Text" />
+                </RadioGroup>
+            </LinearLayout>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/SettingsTime_Text" />
+            <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                <Space android:layout_width="20.0dip" android:layout_height="0.0dip" />
+                <Spinner android:entries="@array/SettingsTime_Texts" android:id="@id/GameStartDialogTime" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+            </LinearLayout>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/SettingsCountdown_Text" />
+            <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                <Space android:layout_width="20.0dip" android:layout_height="0.0dip" />
+                <Spinner android:entries="@array/SettingsCountdown_Texts" android:id="@id/GameStartDialogCountdown" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+            </LinearLayout>
+            <Space android:layout_width="20.0dip" android:layout_height="10.0dip" />
+        </LinearLayout>
+    </ScrollView>
+    <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+        <Button android:id="@id/DialogCancelButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/DialogCancel_Text" android:layout_weight="2.0" />
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+        <Button android:id="@id/DialogOKButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/DialogOK_Text" android:layout_weight="2.0" />
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+    </LinearLayout>
+</LinearLayout>

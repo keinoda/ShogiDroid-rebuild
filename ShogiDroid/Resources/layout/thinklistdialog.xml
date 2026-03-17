@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:textAppearance="?android:textAppearanceMedium" android:textColor="@color/title_text" android:gravity="center" android:background="@color/title_background" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/ThinkListDialogTitle_Text" />
+    <Space android:layout_width="fill_parent" android:layout_height="10.0dip" />
+    <ListView android:id="@id/thinklistview" android:background="@color/theme_background" android:layout_width="fill_parent" android:layout_height="0.0dip" android:dividerHeight="1.0dip" android:layout_weight="1.0" />
+    <Space android:layout_width="fill_parent" android:layout_height="10.0dip" />
+    <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="3.0" />
+        <Button android:id="@id/DialogOKButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/Return_Text" android:layout_weight="2.0" />
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+    </LinearLayout>
+</LinearLayout>

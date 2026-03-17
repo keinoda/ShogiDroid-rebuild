@@ -1,0 +1,92 @@
+using System.Collections;
+
+namespace ShogiLib;
+
+public static class HandicapExtention
+{
+	public static readonly Hashtable HandicapHash = new Hashtable
+	{
+		{
+			"平手",
+			Handicap.HIRATE
+		},
+		{
+			"香落ち",
+			Handicap.KYO
+		},
+		{
+			"右香落ち",
+			Handicap.RIGHT_KYO
+		},
+		{
+			"角落ち",
+			Handicap.KAKU
+		},
+		{
+			"飛車落ち",
+			Handicap.HISYA
+		},
+		{
+			"飛香落ち",
+			Handicap.HIKYO
+		},
+		{
+			"二枚落ち",
+			Handicap.H2
+		},
+		{
+			"三枚落ち",
+			Handicap.H3
+		},
+		{
+			"四枚落ち",
+			Handicap.H4
+		},
+		{
+			"五枚落ち",
+			Handicap.H5
+		},
+		{
+			"左五枚落ち",
+			Handicap.LEFT5
+		},
+		{
+			"六枚落ち",
+			Handicap.H6
+		},
+		{
+			"八枚落ち",
+			Handicap.H8
+		},
+		{
+			"十枚落ち",
+			Handicap.H10
+		},
+		{
+			"その他",
+			Handicap.OTHER
+		}
+	};
+
+	public static bool IsSenGo(this Handicap handicap)
+	{
+		bool result = false;
+		if (handicap == Handicap.HIRATE || handicap == Handicap.OTHER)
+		{
+			result = true;
+		}
+		return result;
+	}
+
+	public static string ToKifuString(this Handicap handicap)
+	{
+		foreach (DictionaryEntry item in HandicapHash)
+		{
+			if ((Handicap)item.Value == handicap)
+			{
+				return (string)item.Key;
+			}
+		}
+		return string.Empty;
+	}
+}

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout android:gravity="center" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView android:textAppearance="?android:textAppearanceMedium" android:id="@id/textView" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/PromotionDialogMessage_Text" android:layout_alignParentTop="true" android:layout_centerInParent="true" />
+    <LinearLayout android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginTop="40.0dip">
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+        <Button android:id="@id/button_promotion" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/Promotion_Text" android:layout_weight="2.0" />
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+        <Button android:id="@id/button_unpromotion" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/Unpromotion_Text" android:layout_weight="2.0" />
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+    </LinearLayout>
+</RelativeLayout>
