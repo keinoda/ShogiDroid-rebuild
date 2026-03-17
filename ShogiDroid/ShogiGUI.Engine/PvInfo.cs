@@ -349,14 +349,13 @@ public class PvInfo
 
 	public static string NodesToString(long nodes)
 	{
-		string empty = string.Empty;
-		if (nodes >= 100000000000L)
+		if (nodes >= 1000000000L)
 		{
-			return nodes / 100000000 + "g";
+			return nodes / 1000000000 + "g";
 		}
-		if (nodes >= 100000000)
+		if (nodes >= 1000000)
 		{
-			return nodes / 100000 + "m";
+			return nodes / 1000000 + "m";
 		}
 		if (nodes >= 100000)
 		{
@@ -367,10 +366,9 @@ public class PvInfo
 
 	public static string NpsToString(long nodes)
 	{
-		string empty = string.Empty;
-		if (nodes >= 10000000)
+		if (nodes >= 1000000)
 		{
-			return nodes / 100000 + "m";
+			return nodes / 1000000 + "m";
 		}
 		if (nodes >= 1000)
 		{
