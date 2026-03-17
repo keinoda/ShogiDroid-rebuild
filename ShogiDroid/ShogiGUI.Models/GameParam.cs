@@ -18,8 +18,6 @@ public class GameParam
 
 	public int Strength = 100;
 
-	public bool Ponder;
-
 	public bool OwnBook = true;
 
 	public GameStartPosition StartPosition;
@@ -41,7 +39,6 @@ public class GameParam
 		Time = param.Time;
 		Countdown = param.Countdown;
 		Strength = param.Strength;
-		Ponder = param.Ponder;
 		OwnBook = param.OwnBook;
 		StartPosition = param.StartPosition;
 		StartMode = param.StartMode;

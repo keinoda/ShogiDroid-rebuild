@@ -200,10 +200,6 @@ public class Game
 			gameTimer.SetTime(PlayerColor.White, param.Time, param.Countdown);
 		}
 		bothcomputer = gameParam.BlackNo != 0 && gameParam.WhiteNo != 0;
-		if (bothcomputer)
-		{
-			gameParam.Ponder = false;
-		}
 		if (gameParam.StartMode == GameStartMode.Continued)
 		{
 			gameTimer.SetRestartTime(Notation.TotalTime(PlayerColor.Black), Notation.TotalTime(PlayerColor.White));
@@ -224,10 +220,6 @@ public class Game
 			enginePlayer.SetOption("OwnBook", param.OwnBook, temp: true);
 			enginePlayer.SetOption("USI_OwnBook", param.OwnBook, temp: true);
 			enginePlayer.SetStrength(param.Strength);
-			enginePlayer.SetOption("Ponder", param.Ponder, temp: true);
-			enginePlayer.SetOption("USI_Ponder", param.Ponder, temp: true);
-			enginePlayer.ResetOption("MultiPV");
-			enginePlayer.ResetOption("USI_MultiPV");
 			pvinfos.Clear();
 			hint_info.Clear();
 			OnGameEvent(new GameEventArgs(GameEventId.Info));
@@ -291,10 +283,6 @@ public class Game
 			enginePlayer.SetOption("OwnBook", gameParam.OwnBook, temp: true);
 			enginePlayer.SetOption("USI_OwnBook", gameParam.OwnBook, temp: true);
 			enginePlayer.SetStrength(gameParam.Strength);
-			enginePlayer.SetOption("Ponder", gameParam.Ponder, temp: true);
-			enginePlayer.SetOption("USI_Ponder", gameParam.Ponder, temp: true);
-			enginePlayer.ResetOption("MultiPV");
-			enginePlayer.ResetOption("USI_MultiPV");
 			if (CurrentPlayer == enginePlayer)
 			{
 				comState = ComputerState.Thinking;
@@ -322,8 +310,6 @@ public class Game
 			enginePlayer.SetOption("OwnBook", Settings.AnalyzeSettings.OwnBook, temp: true);
 			enginePlayer.SetOption("USI_OwnBook", Settings.AnalyzeSettings.OwnBook, temp: true);
 			enginePlayer.SetStrength(100);
-			enginePlayer.SetOption("MultiPV", Settings.AnalyzeSettings.MultiPv, temp: true);
-			enginePlayer.SetOption("USI_MultiPV", Settings.AnalyzeSettings.MultiPv, temp: true);
 			busy = true;
 			pvinfos.Clear();
 			hint_info.Clear();
@@ -341,14 +327,6 @@ public class Game
 		hint_info.Clear();
 		OnGameEvent(new GameEventArgs(GameEventId.Info));
 		bool flag = false;
-		if (enginePlayer.SetOption("MultiPV", Settings.AnalyzeSettings.MultiPv, temp: true))
-		{
-			flag = true;
-		}
-		if (enginePlayer.SetOption("USI_MultiPV", Settings.AnalyzeSettings.MultiPv, temp: true))
-		{
-			flag = true;
-		}
 		if (enginePlayer.SetOption("OwnBook", Settings.AnalyzeSettings.OwnBook, temp: true))
 		{
 			flag = true;
@@ -437,10 +415,6 @@ public class Game
 			enginePlayer.ResetOption("OwnBook");
 			enginePlayer.ResetOption("USI_OwnBook");
 			enginePlayer.SetStrength(100);
-			enginePlayer.ResetOption("Ponder");
-			enginePlayer.ResetOption("USI_Ponder");
-			enginePlayer.ResetOption("MultiPV");
-			enginePlayer.ResetOption("USI_MultiPV");
 			busy = true;
 			comState = ComputerState.Analyzing;
 			engineMode = EngineMode.Analyze;
@@ -452,10 +426,6 @@ public class Game
 			enginePlayer.ResetOption("OwnBook");
 			enginePlayer.ResetOption("USI_OwnBook");
 			enginePlayer.SetStrength(100);
-			enginePlayer.ResetOption("Ponder");
-			enginePlayer.ResetOption("USI_Ponder");
-			enginePlayer.ResetOption("MultiPV");
-			enginePlayer.ResetOption("USI_MultiPV");
 			busy = true;
 			comState = ComputerState.Analyzing;
 			engineMode = EngineMode.Analyze;
@@ -493,8 +463,6 @@ public class Game
 			enginePlayer.SetOption("OwnBook", Settings.AnalyzeSettings.OwnBook, temp: true);
 			enginePlayer.SetOption("USI_OwnBook", Settings.AnalyzeSettings.OwnBook, temp: true);
 			enginePlayer.SetStrength(100);
-			enginePlayer.SetOption("MultiPV", Settings.AnalyzeSettings.MultiPv, temp: true);
-			enginePlayer.SetOption("USI_MultiPV", Settings.AnalyzeSettings.MultiPv, temp: true);
 			busy = true;
 			comState = ComputerState.Analyzing;
 			engineMode = EngineMode.Hint;
@@ -503,14 +471,6 @@ public class Game
 			return;
 		}
 		bool flag = false;
-		if (enginePlayer.SetOption("MultiPV", Settings.AnalyzeSettings.MultiPv, temp: true))
-		{
-			flag = true;
-		}
-		if (enginePlayer.SetOption("USI_MultiPV", Settings.AnalyzeSettings.MultiPv, temp: true))
-		{
-			flag = true;
-		}
 		if (enginePlayer.SetOption("OwnBook", Settings.AnalyzeSettings.OwnBook, temp: true))
 		{
 			flag = true;
@@ -611,8 +571,6 @@ public class Game
 				enginePlayer = null;
 				return false;
 			}
-			enginePlayer.SetOption("Hash", Settings.EngineSettings.HashSize);
-			enginePlayer.SetOption("USI_Hash", Settings.EngineSettings.HashSize);
 			AppDebug.Log.Info("initEnginePlayer: engine started successfully");
 		}
 		return true;
@@ -729,7 +687,7 @@ public class Game
 			pvinfos.Clear();
 			OnGameEvent(new GameEventArgs(GameEventId.Info));
 		}
-		if (gameParam.Ponder && CurrentPlayer != enginePlayer)
+		if (!bothcomputer && IsPonderEnabled() && CurrentPlayer != enginePlayer)
 		{
 			num = ((Notation.Position.Turn != PlayerColor.Black) ? blackPlayer.Ponder(Notation, gameTimer) : whitePlayer.Ponder(Notation, gameTimer));
 			if (num >= 0)
@@ -938,6 +896,17 @@ public class Game
 		analyzeInfoList.Total();
 		string comment = string.Format(analysis_comment_Text, (analyzeInfoList.BlackMoveInfo.Count != 0) ? (analyzeInfoList.BlackMoveInfo.Matches * 100 / analyzeInfoList.BlackMoveInfo.Count) : 0, analyzeInfoList.BlackMoveInfo.Matches, analyzeInfoList.BlackMoveInfo.Count, (analyzeInfoList.WhiteMoveInfo.Count != 0) ? (analyzeInfoList.WhiteMoveInfo.Matches * 100 / analyzeInfoList.WhiteMoveInfo.Count) : 0, analyzeInfoList.WhiteMoveInfo.Matches, analyzeInfoList.WhiteMoveInfo.Count);
 		NotationModel.AddComment(comment);
+	}
+
+	private bool IsPonderEnabled()
+	{
+		if (enginePlayer == null) return false;
+		var options = enginePlayer.Options;
+		if (options.ContainsKey("Ponder") && options["Ponder"] is USIOptionCheck ponder)
+			return ponder.Value;
+		if (options.ContainsKey("USI_Ponder") && options["USI_Ponder"] is USIOptionCheck usiPonder)
+			return usiPonder.Value;
+		return false;
 	}
 
 	private bool IsHumanPlayer(PlayerColor color)

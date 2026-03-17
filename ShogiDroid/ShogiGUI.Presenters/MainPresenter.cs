@@ -138,7 +138,6 @@ public class MainPresenter : PresenterBase<IMainView>
 		gameParam.Time = Settings.EngineSettings.Time;
 		gameParam.Countdown = Settings.EngineSettings.Countdown;
 		gameParam.Strength = Settings.EngineSettings.Strength;
-		gameParam.Ponder = Settings.EngineSettings.Ponder;
 		gameParam.OwnBook = Settings.EngineSettings.OwnBook;
 		if (continued)
 		{

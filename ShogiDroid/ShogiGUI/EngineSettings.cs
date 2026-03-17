@@ -10,11 +10,7 @@ public class EngineSettings
 
 	public int Strength = 100;
 
-	public bool Ponder;
-
 	public bool OwnBook = true;
-
-	public int HashSize = 64;
 
 	public int EngineNo = 1;
 

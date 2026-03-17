@@ -81,8 +81,6 @@ public class EngineOptionAdapter : BaseAdapter
 
 	private List<USIOption> optionlist = new List<USIOption>();
 
-	private static readonly string[] IgnoreKeys = new string[4] { "USI_Hash", "Hash", "USI_Ponder", "Ponder" };
-
 	public IList<USIOption> OptionList => optionlist;
 
 	public override int Count => optionlist.Count;
@@ -94,10 +92,7 @@ public class EngineOptionAdapter : BaseAdapter
 		this.activity = activity;
 		foreach (KeyValuePair<string, USIOption> option in options)
 		{
-			if (Array.IndexOf(IgnoreKeys, option.Key) < 0)
-			{
-				optionlist.Add(option.Value.Clone());
-			}
+			optionlist.Add(option.Value.Clone());
 		}
 	}
 
