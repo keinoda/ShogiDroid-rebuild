@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@id/cmd_reverse" android:title="@string/MenuReverse_Text" />
+    <item android:id="@id/cmd_first" android:title="@string/MenuFirst_Text" />
+    <item android:id="@id/cmd_last" android:title="@string/MenuLast_Text" />
+    <item android:id="@id/cmd_auto_play" android:title="@string/MenuAutoPlay_Text" />
+    <item android:id="@id/cmd_joint_board" android:title="@string/MenuJointBoard_Text" />
+    <item android:id="@id/cmd_kyokumen" android:title="@string/MenuKyokumen_Text" />
+</menu>

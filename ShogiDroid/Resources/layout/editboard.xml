@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent" android:weightSum="20.0"
+  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
+    <RelativeLayout android:layout_width="fill_parent" android:layout_height="0.0dip" android:layout_weight="14.0">
+        <shogidroid.controls.shogiboard.ShogiBoard android:id="@id/shogiboard" android:background="@color/theme_background" android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_marginLeft="0.0dip" android:layout_marginRight="0.0dip" app:shogiBoardMode="Edit" />
+        <ImageButton android:id="@id/reverse_button" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@android:drawable/ic_menu_rotate" android:layout_alignParentLeft="true" android:layout_alignParentBottom="true" />
+    </RelativeLayout>
+    <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="0.0dip" android:layout_weight="6.0">
+        <TextView android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/EditBoardInitialPosition_Text" />
+        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+            <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+            <Button android:id="@id/EditBoardEvenButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/EditBoardEvenButton_Text" android:layout_weight="5.0" />
+            <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+            <Button android:id="@id/EditBoardMateButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/EditBoardMateButton_Text" android:layout_weight="5.0" />
+            <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+        </LinearLayout>
+        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+            <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+            <Button android:id="@id/EditBoardMirrorButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/EditBoardMirrorButton_Text" android:layout_weight="5.0" />
+            <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+            <Button android:id="@id/EditBoardChangeTurnButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/EditBoardChangeTurnButton_Text" android:layout_weight="5.0" />
+            <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+        </LinearLayout>
+        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+            <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+            <Button android:id="@id/CancelButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/DialogCancel_Text" android:layout_weight="2.0" />
+            <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+            <Button android:id="@id/OKButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/DialogOK_Text" android:layout_weight="2.0" />
+            <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

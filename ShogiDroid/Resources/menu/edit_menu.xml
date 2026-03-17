@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@id/cmd_input_cancel" android:title="@string/MenuInputCancel_Text" />
+    <item android:id="@id/cmd_pass" android:title="@string/MenuPass_Text" />
+    <item android:id="@id/comment_edit" android:title="@string/CommentMenuEdit_Text" />
+    <item android:id="@id/comment_info_select" android:title="@string/CommentInfoSelect_Text" />
+    <item android:id="@id/notation_copy" android:title="@string/Menu_NotaitonCopy_Text" />
+    <item android:id="@id/notation_paste" android:title="@string/Menu_NotaitonPaste_Text" />
+    <item android:id="@id/menu_board_edit" android:title="@string/Menu_EditBoard_Text" />
+</menu>

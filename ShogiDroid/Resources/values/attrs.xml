@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <declare-styleable name="ShogiBoard">
+        <attr name="DesignMode" format="boolean" />
+        <attr name="SeekBarMax" format="integer" />
+        <attr name="shogiBoardMode" format="integer">
+            <enum name="Edit" value="1" />
+        </attr>
+    </declare-styleable>
+    <declare-styleable name="SeekBar">
+        <attr name="SeekBarMax" />
+        <attr name="SeekBarDefault" format="integer" />
+    </declare-styleable>
+</resources>

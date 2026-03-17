@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:id="@id/engine_select" android:title="@string/Menu_EngineSelect_Text" />
+    <item android:id="@id/engine_options" android:title="@string/Menu_EngineOptions_Text" />
+    <item android:id="@id/engine_install" android:title="@string/Menu_EngineInstall_Text" />
+    <item android:id="@id/engine_folder" android:title="@string/Menu_EngineFolder_Text" />
+</menu>

@@ -1,0 +1,263 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string-array name="AnalyzeTime_Texts">
+        <item>1 second</item>
+        <item>2 seconds</item>
+        <item>3 seconds</item>
+        <item>5 seconds</item>
+        <item>10 seconds</item>
+        <item>15 seconds</item>
+        <item>20 seconds</item>
+        <item>30 seconds</item>
+    </string-array>
+    <string-array name="GameStartDialogHandicap_Texts">
+        <item>Even</item>
+        <item>Lance</item>
+        <item>Right lance</item>
+        <item>Bishop</item>
+        <item>Rook</item>
+        <item>Rook + Lance</item>
+        <item>2 piece</item>
+        <item>3 piece</item>
+        <item>4 piece</item>
+        <item>5 piece</item>
+        <item>5 piece (left knight)</item>
+        <item>6 piece</item>
+        <item>8 piece</item>
+        <item>10 piece</item>
+    </string-array>
+    <string-array name="SettingsAnalyzeMultiPv_Texts">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+    </string-array>
+    <string-array name="SettingsAnalyzeMultiPv_Values">
+        <item>1</item>
+        <item>2</item>
+        <item>3</item>
+        <item>4</item>
+        <item>5</item>
+    </string-array>
+    <string-array name="SettingsAnalyzeTime_Texts">
+        <item>Infinity</item>
+        <item>10 seconds</item>
+        <item>20 seconds</item>
+        <item>30 seconds</item>
+        <item>1 minute</item>
+        <item>2 minutes</item>
+        <item>5 minutes</item>
+    </string-array>
+    <string-array name="SettingsAnalyzeTime_Values">
+        <item>0</item>
+        <item>10000</item>
+        <item>20000</item>
+        <item>30000</item>
+        <item>60000</item>
+        <item>120000</item>
+        <item>300000</item>
+    </string-array>
+    <string-array name="SettingsAnimateSpeed_Texts">
+        <item>Off</item>
+        <item>Slow</item>
+        <item>Normal</item>
+        <item>Fast</item>
+    </string-array>
+    <string-array name="SettingsAnimateSpeed_Values">
+        <item>Off</item>
+        <item>Slow</item>
+        <item>Normal</item>
+        <item>Fast</item>
+    </string-array>
+    <string-array name="SettingsCountdown_Texts">
+        <item>0</item>
+        <item>1 seconds</item>
+        <item>2 seconds</item>
+        <item>3 seconds</item>
+        <item>5 seconds</item>
+        <item>10 seconds</item>
+        <item>15 seconds</item>
+        <item>20 seconds</item>
+        <item>30 seconds</item>
+    </string-array>
+    <string-array name="SettingsCountdown_Values">
+        <item>0</item>
+        <item>1000</item>
+        <item>2000</item>
+        <item>3000</item>
+        <item>5000</item>
+        <item>10000</item>
+        <item>15000</item>
+        <item>20000</item>
+        <item>30000</item>
+    </string-array>
+    <string-array name="SettingsHashTable_Texts">
+        <item>16MB</item>
+        <item>32MB</item>
+        <item>64MB</item>
+        <item>128MB</item>
+        <item>256MB</item>
+        <item>512MB</item>
+        <item>1024MB</item>
+        <item>2048MB</item>
+        <item>4096MB</item>
+        <item>8192MB</item>
+        <item>16384MB</item>
+        <item>32768MB</item>
+        <item>65536MB</item>
+        <item>131072MB</item>
+        <item>262144MB</item>
+        <item>393216MB</item>
+    </string-array>
+    <string-array name="SettingsHashTable_Values">
+        <item>16</item>
+        <item>32</item>
+        <item>64</item>
+        <item>128</item>
+        <item>256</item>
+        <item>512</item>
+        <item>1024</item>
+        <item>2048</item>
+        <item>4096</item>
+        <item>8192</item>
+        <item>16384</item>
+        <item>32768</item>
+        <item>65536</item>
+        <item>131072</item>
+        <item>262144</item>
+        <item>393216</item>
+    </string-array>
+    <string-array name="SettingsMenuButton_Texts">
+        <item>Main Menu(drawer)</item>
+        <item>Shortcut Menu</item>
+        <item>Popup Menu</item>
+    </string-array>
+    <string-array name="SettingsMenuButton_Values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+    <string-array name="SettingsMoveStyle_Texts">
+        <item>Kif</item>
+        <item>Traditional</item>
+        <item>Universal</item>
+    </string-array>
+    <string-array name="SettingsMoveStyle_Values">
+        <item>Kif</item>
+        <item>Traditional</item>
+        <item>English</item>
+    </string-array>
+    <string-array name="SettingsPVDisplay_Texts">
+        <item>Last only</item>
+        <item>Time series</item>
+        <item>Automatic</item>
+    </string-array>
+    <string-array name="SettingsPVDisplay_Values">
+        <item>0</item>
+        <item>1</item>
+        <item>2</item>
+    </string-array>
+    <string-array name="SettingsPlayInterval_Texts">
+        <item>0.5 seconds</item>
+        <item>1 seconds</item>
+        <item>2 seconds</item>
+        <item>3 seconds</item>
+        <item>5 seconds</item>
+        <item>10 seconds</item>
+        <item>15 seconds</item>
+        <item>20 seconds</item>
+        <item>30 seconds</item>
+    </string-array>
+    <string-array name="SettingsPlayInterval_Values">
+        <item>500</item>
+        <item>1000</item>
+        <item>2000</item>
+        <item>3000</item>
+        <item>5000</item>
+        <item>10000</item>
+        <item>15000</item>
+        <item>20000</item>
+        <item>30000</item>
+    </string-array>
+    <string-array name="SettingsShortcutMenu_Texts">
+        <item>Not set</item>
+        <item>Turn board</item>
+        <item>First position</item>
+        <item>Last position</item>
+        <item>Auto Play</item>
+        <item>2nd board</item>
+        <item>kyokumen pedia</item>
+        <item>New game</item>
+        <item>Load game</item>
+        <item>Load last game</item>
+        <item>Save game</item>
+        <item>Import game</item>
+        <item>Import game from WEB</item>
+        <item>Update game from WEB</item>
+        <item>Send game</item>
+        <item>Input cancel</item>
+        <item>Pass</item>
+        <item>Edit comment</item>
+        <item>Info comment</item>
+        <item>Moves comment</item>
+        <item>Copy to clipboard</item>
+        <item>Paste from clipboard</item>
+        <item>Edit Board</item>
+    </string-array>
+    <string-array name="SettingsShortcutMenu_Values">
+        <item>0</item>
+        <item>50</item>
+        <item>22</item>
+        <item>23</item>
+        <item>24</item>
+        <item>25</item>
+        <item>51</item>
+        <item>30</item>
+        <item>31</item>
+        <item>32</item>
+        <item>33</item>
+        <item>34</item>
+        <item>35</item>
+        <item>37</item>
+        <item>36</item>
+        <item>10</item>
+        <item>11</item>
+        <item>12</item>
+        <item>13</item>
+        <item>16</item>
+        <item>14</item>
+        <item>15</item>
+        <item>52</item>
+    </string-array>
+    <string-array name="SettingsTime_Texts">
+        <item>0</item>
+        <item>1 minute</item>
+        <item>2 minutes</item>
+        <item>3 minutes</item>
+        <item>5 minutes</item>
+        <item>10 minutes</item>
+        <item>15 minutes</item>
+        <item>20 minutes</item>
+        <item>30 minutes</item>
+        <item>45 minutes</item>
+        <item>60 minutes</item>
+        <item>90 minutes</item>
+        <item>120 minutes</item>
+    </string-array>
+    <string-array name="SettingsTime_Values">
+        <item>0</item>
+        <item>60000</item>
+        <item>120000</item>
+        <item>180000</item>
+        <item>300000</item>
+        <item>600000</item>
+        <item>900000</item>
+        <item>1200000</item>
+        <item>1800000</item>
+        <item>2700000</item>
+        <item>3600000</item>
+        <item>5400000</item>
+        <item>7200000</item>
+    </string-array>
+</resources>

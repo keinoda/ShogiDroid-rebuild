@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net9.0-android</TargetFramework>
+    <SupportedOSPlatformVersion>24</SupportedOSPlatformVersion>
+    <OutputType>Exe</OutputType>
+    <Nullable>disable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <ApplicationId>com.siganus.ShogiDroid.rebuild</ApplicationId>
+    <ApplicationVersion>1</ApplicationVersion>
+    <ApplicationDisplayVersion>2.0.0.0</ApplicationDisplayVersion>
+    <ApplicationTitle>将棋ドロイドR</ApplicationTitle>
+    <LangVersion>12.0</LangVersion>
+    <AndroidLinkMode>None</AndroidLinkMode>
+    <TrimMode>partial</TrimMode>
+    <NoWarn>NU1603;NU1605;NU1608</NoWarn>
+    <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Xamarin.AndroidX.AppCompat" Version="1.*" />
+    <PackageReference Include="Xamarin.AndroidX.Core" Version="1.*" />
+    <PackageReference Include="Xamarin.AndroidX.DrawerLayout" Version="1.*" />
+    <PackageReference Include="Xamarin.AndroidX.ViewPager" Version="1.*" />
+    <PackageReference Include="Xamarin.Google.Android.Material" Version="1.*" />
+  </ItemGroup>
+</Project>

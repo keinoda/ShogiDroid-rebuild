@@ -1,0 +1,215 @@
+using System.Collections.Generic;
+using Android.App;
+using Android.Views;
+using Android.Widget;
+using Java.Lang;
+using Object = Java.Lang.Object;
+using ShogiGUI;
+using ShogiGUI.Engine;
+using ShogiLib;
+
+namespace ShogiDroid.Controls;
+
+public class ThinkInfiListViewAdapter : BaseAdapter
+{
+	protected Activity activity;
+
+	protected PvInfo[] pvinfos;
+
+	protected MoveStyle moveStyle;
+
+	protected bool dispInfo = true;
+
+	protected PVDispMode pvdisp;
+
+	protected PVDispMode dispMode;
+
+	protected PvInfos orginfos;
+
+	private static readonly string[] AnalyzeCommentKindString = new string[6]
+	{
+		string.Empty,
+		Application.Context.GetString(Resource.String.Game_Text),
+		Application.Context.GetString(Resource.String.Analysis_Text),
+		Application.Context.GetString(Resource.String.Consider_Text),
+		Application.Context.GetString(Resource.String.Mate_Text),
+		Application.Context.GetString(Resource.String.Candidate_Text)
+	};
+
+	protected virtual int LayoutId
+	{
+		get
+		{
+			if (dispMode == PVDispMode.Last)
+			{
+				return Resource.Layout.thinklistviewitem;
+			}
+			return Resource.Layout.thinklistviewitem2;
+		}
+	}
+
+	public override int Count
+	{
+		get
+		{
+			if (pvinfos == null)
+			{
+				return 0;
+			}
+			return pvinfos.Length;
+		}
+	}
+
+	public MoveStyle MoveStyle
+	{
+		get
+		{
+			return moveStyle;
+		}
+		set
+		{
+			if (moveStyle != value)
+			{
+				moveStyle = value;
+				NotifyDataSetInvalidated();
+			}
+		}
+	}
+
+	public PVDispMode PVDispaly
+	{
+		get
+		{
+			return pvdisp;
+		}
+		set
+		{
+			if (pvdisp != value)
+			{
+				pvdisp = value;
+				if (orginfos != null)
+				{
+					SetPvInfo(orginfos);
+					NotifyDataSetInvalidated();
+				}
+			}
+		}
+	}
+
+	public PVDispMode DispMode => dispMode;
+
+	public ThinkInfiListViewAdapter(Activity activity)
+	{
+		this.activity = activity;
+	}
+
+	public override Object GetItem(int position)
+	{
+		return null;
+	}
+
+	public override long GetItemId(int position)
+	{
+		return position;
+	}
+
+	public override View GetView(int position, View convertView, ViewGroup parent)
+	{
+		View view = convertView;
+		if (view == null || view.Id != LayoutId)
+		{
+			view = activity.LayoutInflater.Inflate(LayoutId, parent, attachToRoot: false);
+			view.Id = LayoutId;
+		}
+		if (pvinfos == null || pvinfos.Length == 0)
+		{
+			SetText(view, Resource.Id.kind, string.Empty);
+			SetText(view, Resource.Id.rank, string.Empty);
+			SetText(view, Resource.Id.time, string.Empty);
+			SetText(view, Resource.Id.depth, string.Empty);
+			SetText(view, Resource.Id.nodes, string.Empty);
+			SetText(view, Resource.Id.nps, string.Empty);
+			TextView textView = view.FindViewById<TextView>(Resource.Id.middle);
+			if (textView != null)
+			{
+				textView.Text = string.Empty;
+			}
+			else
+			{
+				SetText(view, Resource.Id.value, string.Empty);
+				SetText(view, Resource.Id.moves, string.Empty);
+			}
+		}
+		else
+		{
+			PvInfo pvInfo = pvinfos[position];
+			SetText(view, Resource.Id.kind, kindToString(pvInfo.Kind));
+			SetText(view, Resource.Id.rank, PvInfo.RankToString(pvInfo.Rank));
+			SetText(view, Resource.Id.time, PvInfo.TimeToString(pvInfo.TimeMs));
+			SetText(view, Resource.Id.depth, $"{pvInfo.Depth}/{pvInfo.SelDepth}");
+			SetText(view, Resource.Id.nodes, PvInfo.NodesToString(pvInfo.Nodes));
+			SetText(view, Resource.Id.nps, PvInfo.NpsToString(pvInfo.NPS) + "N/s");
+			string moves = pvInfo.GetMoves(moveStyle);
+			TextView textView2 = view.FindViewById<TextView>(Resource.Id.middle);
+			if (textView2 != null)
+			{
+				textView2.Text = activity.GetString(Resource.String.Value_Text) + " " + PvInfo.ValueToString(pvInfo.Mate, pvInfo.Score, pvInfo.Bounds) + " " + moves;
+			}
+			else
+			{
+				SetText(view, Resource.Id.value, PvInfo.ValueToString(pvInfo.Mate, pvInfo.Score, pvInfo.Bounds));
+				SetText(view, Resource.Id.moves, moves);
+			}
+		}
+		return view;
+	}
+
+	private void SetText(View view, int id, string msg)
+	{
+		TextView textView = view.FindViewById<TextView>(id);
+		if (textView != null)
+		{
+			textView.Text = msg;
+		}
+	}
+
+	public void SetPvInfo(PvInfos infos)
+	{
+		dispMode = pvdisp;
+		orginfos = infos;
+		if (dispMode == PVDispMode.Auto)
+		{
+			if (infos.Count >= 2)
+			{
+				dispMode = PVDispMode.Last;
+			}
+			else
+			{
+				dispMode = PVDispMode.TimeSeries;
+			}
+		}
+		if (dispMode == PVDispMode.Last)
+		{
+			pvinfos = new PvInfo[infos.Count];
+			infos.Values.CopyTo(pvinfos, 0);
+		}
+		else
+		{
+			pvinfos = new PvInfo[infos.InfoList.Count];
+			infos.InfoList.CopyTo(pvinfos, 0);
+		}
+		NotifyDataSetChanged();
+	}
+
+	public void SetPvInfo(IList<PvInfo> info)
+	{
+		pvinfos = new PvInfo[info.Count];
+		info.CopyTo(pvinfos, 0);
+		NotifyDataSetChanged();
+	}
+
+	private string kindToString(AnalyzeCommentKind kind)
+	{
+		return AnalyzeCommentKindString[(int)kind];
+	}
+}
