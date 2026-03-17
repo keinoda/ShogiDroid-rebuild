@@ -347,33 +347,33 @@ public class PvInfo
 		return text;
 	}
 
+	private static string FormatWithSuffix(long value, long divisor, string suffix)
+	{
+		long whole = value / divisor;
+		if (whole >= 100)
+			return whole + suffix;
+		if (whole >= 10)
+			return whole + "." + (value / (divisor / 10) % 10) + suffix;
+		return whole + "." + (value / (divisor / 100) % 100).ToString("D2") + suffix;
+	}
+
 	public static string NodesToString(long nodes)
 	{
 		if (nodes >= 1000000000L)
-		{
-			return nodes / 1000000000 + "g";
-		}
+			return FormatWithSuffix(nodes, 1000000000L, "g");
 		if (nodes >= 1000000)
-		{
-			return nodes / 1000000 + "m";
-		}
-		if (nodes >= 100000)
-		{
-			return nodes / 1000 + "k";
-		}
+			return FormatWithSuffix(nodes, 1000000, "m");
+		if (nodes >= 1000)
+			return FormatWithSuffix(nodes, 1000, "k");
 		return nodes.ToString();
 	}
 
 	public static string NpsToString(long nodes)
 	{
 		if (nodes >= 1000000)
-		{
-			return nodes / 1000000 + "m";
-		}
+			return FormatWithSuffix(nodes, 1000000, "m");
 		if (nodes >= 1000)
-		{
-			return nodes / 1000 + "k";
-		}
+			return FormatWithSuffix(nodes, 1000, "k");
 		return nodes.ToString();
 	}
 
