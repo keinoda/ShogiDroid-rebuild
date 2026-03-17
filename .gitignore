@@ -30,3 +30,6 @@ Thumbs.db
 *.keystore
 *.jks
 local.properties
+
+# Source distribution (already in Assets/)
+ShogiDroid/Shinden3-YO9-Android/
