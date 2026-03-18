@@ -13,4 +13,7 @@
     <color name="time_text_color">#ff000000</color>
     <color name="title_background">#ff2196f3</color>
     <color name="title_text">#ffffffff</color>
+    <color name="notation_box_bg">#ff37474f</color>
+    <color name="notation_box_text">#ffffffff</color>
+    <color name="notation_box_sub_text">#ffb0bec5</color>
 </resources>

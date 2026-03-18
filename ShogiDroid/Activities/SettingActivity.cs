@@ -16,9 +16,9 @@ public class SettingActivity : PreferenceActivity
 {
 	public class SettingsFragment : PreferenceFragment, ISharedPreferencesOnSharedPreferenceChangeListener, IJavaObject, IDisposable, IJavaPeerable
 	{
-		private static readonly string[] SummeryKeys = new string[17]
+		private static readonly string[] SummeryKeys = new string[19]
 		{
-			"Engine.Time", "Engine.Countdown", "Analyze.Time", "App.AnimationSpeed", "App.MoveStyle", "App.PlayerName", "App.WarsUserName", "App.PlayInterval",
+			"Engine.Time", "Engine.Countdown", "Engine.RemoteHost", "Engine.RemotePort", "Analyze.Time", "App.AnimationSpeed", "App.MoveStyle", "App.PlayerName", "App.WarsUserName", "App.PlayInterval",
 			"App.CustomMenuButton", "App.ReverseButotn", "App.PVDisplay", "App.ShortcutMenu1", "App.ShortcutMenu2", "App.ShortcutMenu3", "App.ShortcutMenu4", "App.ShortcutMenu5", "App.ShortcutMenu6"
 		};
 
@@ -75,8 +75,6 @@ public class SettingActivity : PreferenceActivity
 		}
 	}
 
-	private SystemUiFlags uiFlags = SystemUiFlags.Fullscreen;
-
 	protected override void OnCreate(Bundle savedInstanceState)
 	{
 		base.OnCreate(savedInstanceState);
@@ -97,20 +95,17 @@ public class SettingActivity : PreferenceActivity
 	{
 		if (Settings.AppSettings.DispToolbar)
 		{
-			uiFlags = SystemUiFlags.ImmersiveSticky;
-		}
-		else
-		{
-			uiFlags = SystemUiFlags.Fullscreen;
-		}
-		if (Settings.AppSettings.DispToolbar)
-		{
+			Window.DecorView.SystemUiVisibility = (StatusBarVisibility)SystemUiFlags.Visible;
 			Window.ClearFlags(WindowManagerFlags.Fullscreen);
 		}
 		else
 		{
+			Window.DecorView.SystemUiVisibility = (StatusBarVisibility)(
+				SystemUiFlags.ImmersiveSticky |
+				SystemUiFlags.HideNavigation |
+				SystemUiFlags.Fullscreen);
 			Window.Attributes.Flags |= WindowManagerFlags.Fullscreen;
 		}
-		Window.DecorView.SystemUiVisibility = (StatusBarVisibility)uiFlags;
+		AndroidX.Core.View.WindowCompat.SetDecorFitsSystemWindows(Window, Settings.AppSettings.DispToolbar);
 	}
 }
