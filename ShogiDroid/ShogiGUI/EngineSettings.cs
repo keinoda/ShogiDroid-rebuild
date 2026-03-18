@@ -29,6 +29,18 @@ public class EngineSettings
 
 	public int VastAiInstanceId = 0;
 
+	// vast.ai search criteria
+	public string VastAiGpuNames = "RTX 4090, RTX 5090";
+	public int VastAiMinCpuCores = 32;
+	public double VastAiMaxDph = 0.5;
+	public int VastAiMinGpuRam = 0;
+	public int VastAiMinDiskSpace = 0;
+	public double VastAiMinReliability = 0;
+	public double VastAiMinInetDown = 0;
+	public int VastAiNumGpus = 0;
+	public string VastAiSortField = "dph_total";
+	public bool VastAiSortAsc = true;
+
 	public string GetExternalEngineFolder()
 	{
 		if (!(EngineFolder == string.Empty))
