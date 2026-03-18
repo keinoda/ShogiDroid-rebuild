@@ -627,34 +627,15 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	public override bool OnPrepareOptionsMenu(IMenu menu)
 	{
-		if (Settings.AppSettings.CustomMenuButton == 0)
-		{
-			if (drawerLayout.IsDrawerOpen(3) || drawerLayout.IsDrawerOpen(5))
-			{
-				drawerLayout.CloseDrawers();
-			}
-			else
-			{
-				drawerLayout.OpenDrawer(3);
-			}
-			return false;
-		}
-		if (Settings.AppSettings.CustomMenuButton == 2)
-		{
-			if (drawerLayout.IsDrawerOpen(3) || drawerLayout.IsDrawerOpen(5))
-			{
-				drawerLayout.CloseDrawers();
-			}
-			PopupShortcutMenu();
-			return false;
-		}
 		if (drawerLayout.IsDrawerOpen(3) || drawerLayout.IsDrawerOpen(5))
 		{
 			drawerLayout.CloseDrawers();
 		}
-		CreateShortcutMenu(menu);
-		MenuGrayout(menu);
-		return base.OnPrepareOptionsMenu(menu);
+		else
+		{
+			drawerLayout.OpenDrawer(3);
+		}
+		return false;
 	}
 
 	public override bool OnOptionsItemSelected(IMenuItem item)
@@ -889,22 +870,6 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		if (presenter.AutoPlay)
 		{
 			presenter.AutoPlayStop();
-		}
-		else if (Settings.AppSettings.CustomMenuButton == 1)
-		{
-			if (drawerLayout.IsDrawerOpen(3) || drawerLayout.IsDrawerOpen(5))
-			{
-				drawerLayout.CloseDrawers();
-			}
-			OpenOptionsMenu();
-		}
-		else if (Settings.AppSettings.CustomMenuButton == 2)
-		{
-			if (drawerLayout.IsDrawerOpen(3) || drawerLayout.IsDrawerOpen(5))
-			{
-				drawerLayout.CloseDrawers();
-			}
-			PopupShortcutMenu();
 		}
 		else if (drawerLayout.IsDrawerOpen(3) || drawerLayout.IsDrawerOpen(5))
 		{

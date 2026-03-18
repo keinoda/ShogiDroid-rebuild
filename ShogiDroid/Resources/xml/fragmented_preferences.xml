@@ -31,7 +31,6 @@
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/SettingsCustom_Text">
         <shogidroid.controls.ListIntPreference android:entries="@array/SettingsShortcutMenu_Texts" android:title="@string/SettingsReversButton_Text" android:key="App.ReverseButotn" android:entryValues="@array/SettingsShortcutMenu_Values" />
-        <shogidroid.controls.ListIntPreference android:entries="@array/SettingsMenuButton_Texts" android:title="@string/SettingsMenuButton_Text" android:key="App.CustomMenuButton" android:entryValues="@array/SettingsMenuButton_Values" />
         <shogidroid.controls.ListIntPreference android:entries="@array/SettingsShortcutMenu_Texts" android:title="@string/SettingsShortcutMenu1_Text" android:key="App.ShortcutMenu1" android:entryValues="@array/SettingsShortcutMenu_Values" />
         <shogidroid.controls.ListIntPreference android:entries="@array/SettingsShortcutMenu_Texts" android:title="@string/SettingsShortcutMenu2_Text" android:key="App.ShortcutMenu2" android:entryValues="@array/SettingsShortcutMenu_Values" />
         <shogidroid.controls.ListIntPreference android:entries="@array/SettingsShortcutMenu_Texts" android:title="@string/SettingsShortcutMenu3_Text" android:key="App.ShortcutMenu3" android:entryValues="@array/SettingsShortcutMenu_Values" />
