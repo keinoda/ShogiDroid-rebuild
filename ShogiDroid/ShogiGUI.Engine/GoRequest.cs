@@ -29,6 +29,10 @@ public class GoRequest
 
 	public int Byoyomi { get; set; }
 
+	public int Binc { get; set; }
+
+	public int Winc { get; set; }
+
 	public long Nodes { get; set; }
 
 	public long Depth { get; set; }

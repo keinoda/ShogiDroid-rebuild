@@ -44,6 +44,11 @@
                 <Space android:layout_width="20.0dip" android:layout_height="0.0dip" />
                 <Spinner android:entries="@array/SettingsCountdown_Texts" android:id="@id/GameStartDialogCountdown" android:layout_width="wrap_content" android:layout_height="wrap_content" />
             </LinearLayout>
+            <TextView android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/SettingsIncrement_Text" />
+            <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
+                <Space android:layout_width="20.0dip" android:layout_height="0.0dip" />
+                <Spinner android:entries="@array/SettingsIncrement_Texts" android:id="@id/GameStartDialogIncrement" android:layout_width="wrap_content" android:layout_height="wrap_content" />
+            </LinearLayout>
             <Space android:layout_width="20.0dip" android:layout_height="10.0dip" />
         </LinearLayout>
     </ScrollView>

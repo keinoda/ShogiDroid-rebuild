@@ -58,6 +58,10 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public int WhiteTime => Domain.Game.WhiteTime.TotalElapsedTime;
 
+	public GameRemainTime BlackRemainTime => Domain.Game.BlackTime;
+
+	public GameRemainTime WhiteRemainTime => Domain.Game.WhiteTime;
+
 	public bool AutoPlay => autoplay;
 
 	public MainPresenter(IMainView view)
@@ -137,6 +141,7 @@ public class MainPresenter : PresenterBase<IMainView>
 		gameParam.WhiteName = GetPlayerName(Settings.AppSettings.WhiteNo);
 		gameParam.Time = Settings.EngineSettings.Time;
 		gameParam.Countdown = Settings.EngineSettings.Countdown;
+		gameParam.Increment = Settings.EngineSettings.Increment;
 		if (continued)
 		{
 			gameParam.StartPosition = GameStartPosition.NowPosition;

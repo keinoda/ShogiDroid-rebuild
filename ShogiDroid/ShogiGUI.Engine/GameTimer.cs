@@ -66,13 +66,14 @@ public class GameTimer : IDisposable
 		return blackRemainTime;
 	}
 
-	public void SetTime(PlayerColor color, int timeMs, int byoyomiMs)
+	public void SetTime(PlayerColor color, int timeMs, int byoyomiMs, int incrementMs = 0)
 	{
 		if (color == PlayerColor.Black)
 		{
 			BlackTime.Time = timeMs;
 			BlackTime.RemainTime = BlackTime.Time;
 			BlackTime.Byoyomi = byoyomiMs;
+			BlackTime.Increment = incrementMs;
 			BlackTime.ElapsedTime = 0;
 		}
 		else
@@ -80,6 +81,7 @@ public class GameTimer : IDisposable
 			WhiteTime.Time = timeMs;
 			WhiteTime.RemainTime = WhiteTime.Time;
 			WhiteTime.Byoyomi = byoyomiMs;
+			WhiteTime.Increment = incrementMs;
 			WhiteTime.ElapsedTime = 0;
 		}
 	}
@@ -206,6 +208,7 @@ public class GameTimer : IDisposable
 		result.ElapsedTime = (int)num;
 		result.HaveTime = gameTime.Time;
 		result.HaveByoyomi = gameTime.Byoyomi;
+		result.HaveIncrement = gameTime.Increment;
 		result.TotalElapsedTime = gameTime.ElapsedTime + (int)num;
 		return result;
 	}
@@ -224,6 +227,7 @@ public class GameTimer : IDisposable
 			{
 				BlackTime.RemainTime -= (int)num;
 			}
+			BlackTime.RemainTime += BlackTime.Increment;
 			elapsedTime = BlackTime.ElapsedTime;
 			BlackTime.ElapsedTime += (int)num;
 			return BlackTime.ElapsedTime / 1000 - elapsedTime / 1000;
@@ -236,6 +240,7 @@ public class GameTimer : IDisposable
 		{
 			WhiteTime.RemainTime -= (int)num;
 		}
+		WhiteTime.RemainTime += WhiteTime.Increment;
 		elapsedTime = WhiteTime.ElapsedTime;
 		WhiteTime.ElapsedTime += (int)num;
 		return WhiteTime.ElapsedTime / 1000 - elapsedTime / 1000;
