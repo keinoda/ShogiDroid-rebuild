@@ -5,13 +5,12 @@
         <shogidroid.controls.ListIntPreference android:entries="@array/SettingsTime_Texts" android:title="@string/SettingsTime_Text" android:key="Engine.Time" android:defaultValue="@string/SettingsTime_Default" android:entryValues="@array/SettingsTime_Values" />
         <shogidroid.controls.ListIntPreference android:entries="@array/SettingsCountdown_Texts" android:title="@string/SettingsCountdown_Text" android:key="Engine.Countdown" android:defaultValue="@string/SettingsCountdown_Default" android:entryValues="@array/SettingsCountdown_Values" />
     </PreferenceCategory>
-    <PreferenceCategory android:title="@string/SettingsEngineSettings_Text">
-        <shogidroid.controls.SeekBarPreference android:title="@string/SettingsEngineStrength_Text" android:key="Engine.Strength" app:SeekBarMax="100" android:defaultValue="100" />
-        <CheckBoxPreference android:title="@string/SettingsEngineOwnBook_Text" android:key="Engine.OwnBook" android:defaultValue="true" />
-    </PreferenceCategory>
     <PreferenceCategory android:title="@string/SettingsAnalyze_Text">
         <shogidroid.controls.ListIntPreference android:entries="@array/SettingsAnalyzeTime_Texts" android:title="@string/SettingsAnalyzeTime_Text" android:key="Analyze.Time" android:defaultValue="@string/SettingsAnalyzeTime_Default" android:entryValues="@array/SettingsAnalyzeTime_Values" />
-        <CheckBoxPreference android:title="@string/SettingsEngineOwnBook_Text" android:key="Analyze.OwnBook" android:defaultValue="true" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/SettingsRemoteEngine_Text">
+        <EditTextPreference android:singleLine="true" android:title="@string/SettingsRemoteHost_Text" android:key="Engine.RemoteHost" android:defaultValue="" />
+        <EditTextPreference android:singleLine="true" android:title="@string/SettingsRemotePort_Text" android:key="Engine.RemotePort" android:defaultValue="28597" android:inputType="number" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/SettingsAppearance_Text">
         <CheckBoxPreference android:title="@string/SettingsShowHintArrow_Text" android:key="App.ShowHintArrow" android:defaultValue="true" />
@@ -20,7 +19,7 @@
         <ListPreference android:entries="@array/SettingsAnimateSpeed_Texts" android:title="@string/SettingsAnimateMoves_Text" android:key="App.AnimationSpeed" android:defaultValue="@string/SettingsAnimateSpeed_Default" android:entryValues="@array/SettingsAnimateSpeed_Values" />
         <ListPreference android:entries="@array/SettingsMoveStyle_Texts" android:title="@string/SettingsMoveStyle_Text" android:key="App.MoveStyle" android:defaultValue="@string/SettingsMoveStyle_Default" android:entryValues="@array/SettingsMoveStyle_Values" />
         <shogidroid.controls.ListIntPreference android:entries="@array/SettingsPlayInterval_Texts" android:title="@string/SettingsPlayInterval_Text" android:key="App.PlayInterval" android:entryValues="@array/SettingsPlayInterval_Values" />
-        <CheckBoxPreference android:title="@string/SettingsDispToolbar_Text" android:key="App.DispToolbar" android:defaultValue="false" />
+        <CheckBoxPreference android:title="@string/SettingsDispToolbar_Text" android:key="App.DispToolbar" android:defaultValue="true" />
         <shogidroid.controls.ListIntPreference android:entries="@array/SettingsPVDisplay_Texts" android:title="@string/SettingsPVDisplay_Text" android:key="App.PVDisplay" android:entryValues="@array/SettingsPVDisplay_Values" />
         <CheckBoxPreference android:title="@string/SettingsEvalGraphLiner_Text" android:key="App.GraphLiner" android:defaultValue="true" />
     </PreferenceCategory>
