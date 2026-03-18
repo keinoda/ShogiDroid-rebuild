@@ -26,6 +26,4 @@ public interface IMainView
 	void AutoPlayState(bool play);
 
 	void ShowInterstitial();
-
-	void ShowAnalysisSummary(AnalyzeMoveInfo blackInfo, AnalyzeMoveInfo whiteInfo);
 }

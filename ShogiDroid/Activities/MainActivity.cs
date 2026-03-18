@@ -1229,39 +1229,6 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		// Removed: AdMob dependency not available
 	}
 
-	public void ShowAnalysisSummary(AnalyzeMoveInfo blackInfo, AnalyzeMoveInfo whiteInfo)
-	{
-		if (blackInfo.Count == 0 && whiteInfo.Count == 0) return;
-
-		int blackMatch = blackInfo.Count > 0 ? blackInfo.Matches * 100 / blackInfo.Count : 0;
-		int whiteMatch = whiteInfo.Count > 0 ? whiteInfo.Matches * 100 / whiteInfo.Count : 0;
-
-		string FormatPlayer(string name, AnalyzeMoveInfo info, int matchPct)
-		{
-			if (info.Count == 0) return "";
-			int blunders = info.Moves[(int)ShogiLib.MoveEval.Blunder];
-			int bads = info.Moves[(int)ShogiLib.MoveEval.Bad];
-			int weaks = info.Moves[(int)ShogiLib.MoveEval.Weak];
-			int goods = info.Moves[(int)ShogiLib.MoveEval.Good] + info.Moves[(int)ShogiLib.MoveEval.Best];
-			return $"【{name}】\n" +
-				$"  一致率: {matchPct}% ({info.Matches}/{info.Count})\n" +
-				$"  好手: {goods}  疑問手: {weaks}  緩手: {bads}  悪手: {blunders}\n";
-		}
-
-		string msg = "棋譜解析完了\n\n" +
-			FormatPlayer("先手", blackInfo, blackMatch) + "\n" +
-			FormatPlayer("後手", whiteInfo, whiteMatch);
-
-		RunOnUiThread(() =>
-		{
-			new AlertDialog.Builder(this)
-				.SetTitle("解析結果サマリー")
-				.SetMessage(msg)
-				.SetPositiveButton("OK", (s, e) => { })
-				.Show();
-		});
-	}
-
 	private void IntentRecive(Intent intent)
 	{
 		string stringExtra = intent.GetStringExtra("android.intent.extra.SUBJECT");
