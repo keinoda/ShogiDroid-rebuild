@@ -467,6 +467,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	{
 		UpdateWindowSettings();
 		SetContentView(Resource.Layout.maina);
+		FontUtil.ApplyFont(FindViewById(Android.Resource.Id.Content));
 		shogiBoard = FindViewById<ShogiBoard>(Resource.Id.shogiboard);
 		shogiBoard.MakeMoveEvent += ShogiBoard_MakeMoveEvent;
 		shogiBoard.AnimationEnd += ShogiBoard_AnimationEnd;
