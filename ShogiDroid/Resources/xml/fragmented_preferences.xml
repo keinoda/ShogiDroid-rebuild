@@ -12,6 +12,10 @@
         <EditTextPreference android:singleLine="true" android:title="@string/SettingsRemoteHost_Text" android:key="Engine.RemoteHost" android:defaultValue="" />
         <EditTextPreference android:singleLine="true" android:title="@string/SettingsRemotePort_Text" android:key="Engine.RemotePort" android:defaultValue="28597" android:inputType="number" />
     </PreferenceCategory>
+    <PreferenceCategory android:title="@string/SettingsVastAi_Text">
+        <EditTextPreference android:singleLine="true" android:title="@string/SettingsVastAiApiKey_Text" android:key="Engine.VastAiApiKey" android:defaultValue="" android:inputType="textPassword" />
+        <EditTextPreference android:singleLine="true" android:title="@string/SettingsVastAiDockerImage_Text" android:key="Engine.VastAiDockerImage" android:defaultValue="keinoda/shogi:v9.0" />
+    </PreferenceCategory>
     <PreferenceCategory android:title="@string/SettingsAppearance_Text">
         <CheckBoxPreference android:title="@string/SettingsShowHintArrow_Text" android:key="App.ShowHintArrow" android:defaultValue="true" />
         <CheckBoxPreference android:title="@string/SettingsShowNextMoveArrow_Text" android:key="App.ShowNextArrow" android:defaultValue="true" />

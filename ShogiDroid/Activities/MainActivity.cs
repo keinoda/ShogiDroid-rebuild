@@ -156,7 +156,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	// private MyInterstitialAd interstitial; // Removed: AdMob dependency not available
 
-	private readonly MainMenuItem[] menuItems = new MainMenuItem[13]
+	private readonly MainMenuItem[] menuItems = new MainMenuItem[14]
 	{
 		new MainMenuItem(Resource.Id.game_start, Resource.String.Menu_NewGame_Text),
 		new MainMenuItem(Resource.Id.game_continue, Resource.String.Menu_ContinuedGame_Text),
@@ -168,6 +168,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		new MainMenuItem(Resource.Id.menu_edit, Resource.String.MenuEdit_Text),
 		new MainMenuItem(Resource.Id.menu_disp, Resource.String.MenuDisp_Text),
 		new MainMenuItem(Resource.Id.menu_engine, Resource.String.Menu_EngineManage_Text),
+		new MainMenuItem(Resource.Id.menu_vastai, Resource.String.Menu_VastAi_Text),
 		new MainMenuItem(),
 		new MainMenuItem(Resource.Id.action_settings, Resource.String.action_settings),
 		new MainMenuItem(Resource.Id.menu_about, Resource.String.Menu_About_Text)
@@ -427,6 +428,15 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		presenter = new MainPresenter(this);
 		presenter.Initialize();
 		InitCommand();
+
+		// vast.ai watchdog: notify user when instance is auto-suspended
+		VastAiWatchdog.Instance.InstanceAutoSuspended += (instanceId) =>
+		{
+			RunOnUiThread(() =>
+			{
+				Toast.MakeText(this, $"vast.ai インスタンス #{instanceId} をアイドルのため自動休止しました", ToastLength.Long).Show();
+			});
+		};
 		UpdateSettings();
 		UpdateNotation(NotationEventId.OBJECT_CHANGED);
 		CreateFolders();
@@ -732,6 +742,15 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 				presenter.CreateFolders();
 			}
 			break;
+		case VASTAI_ACTIVITY_CODE:
+			if (resultCode == Result.Ok)
+			{
+				// VastAiActivity has set RemoteHost/RemotePort/EngineNo in Settings
+				Settings.Load();
+				presenter.SelectEngine(RemoteEnginePlayer.RemoteEngineNo, Settings.EngineSettings.EngineName);
+				drawerLayout.CloseDrawers();
+			}
+			break;
 		case 101:
 		case 106:
 			break;
@@ -949,8 +968,15 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		case Resource.Id.menu_engine:
 			PopupEngineMenu();
 			break;
+		case Resource.Id.menu_vastai:
+			StartActivityForResult(new Intent(this, typeof(VastAiActivity)), VASTAI_ACTIVITY_CODE);
+			drawerLayout.CloseDrawers();
+			break;
 		case Resource.Id.engine_select:
 			ShowEngineSelectDialog();
+			break;
+		case Resource.Id.engine_settings_wrapper:
+			StartActivityForResult(new Intent(this, typeof(EngineSettingsWrapperActivity)), 110);
 			break;
 		case Resource.Id.engine_options:
 			StartActivityForResult(new Intent(this, typeof(EngineOptionsActivity)), 104);
@@ -1573,6 +1599,8 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		popupMenu.Show();
 	}
 
+	private const int VASTAI_ACTIVITY_CODE = 120;
+
 	private void ShowEngineSelectDialog()
 	{
 		EngineSelectDialog selectDialog = EngineSelectDialog.NewInstance(Settings.EngineSettings.GetExternalEngineFolder(), Settings.EngineSettings.EngineNo, Settings.EngineSettings.EngineName);
@@ -1730,15 +1758,35 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	{
 		if (presenter.GameMode == GameMode.Play)
 		{
-			if (presenter.Reverse)
+			var blackRT = presenter.BlackRemainTime;
+			var whiteRT = presenter.WhiteRemainTime;
+			bool isTimed = blackRT.HaveTime > 0 || blackRT.HaveByoyomi > 0 || blackRT.HaveIncrement > 0
+			             || whiteRT.HaveTime > 0 || whiteRT.HaveByoyomi > 0 || whiteRT.HaveIncrement > 0;
+			if (isTimed)
 			{
-				topTime.Text = GetTimeString(presenter.BlackTime);
-				bottomTime.Text = GetTimeString(presenter.WhiteTime);
+				if (presenter.Reverse)
+				{
+					topTime.Text = GetRemainTimeString(blackRT);
+					bottomTime.Text = GetRemainTimeString(whiteRT);
+				}
+				else
+				{
+					bottomTime.Text = GetRemainTimeString(blackRT);
+					topTime.Text = GetRemainTimeString(whiteRT);
+				}
 			}
 			else
 			{
-				bottomTime.Text = GetTimeString(presenter.BlackTime);
-				topTime.Text = GetTimeString(presenter.WhiteTime);
+				if (presenter.Reverse)
+				{
+					topTime.Text = GetTimeString(presenter.BlackTime);
+					bottomTime.Text = GetTimeString(presenter.WhiteTime);
+				}
+				else
+				{
+					bottomTime.Text = GetTimeString(presenter.BlackTime);
+					topTime.Text = GetTimeString(presenter.WhiteTime);
+				}
 			}
 		}
 		else if (notation.MoveCurrent.Number == 0)
@@ -1802,6 +1850,23 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		int num2 = num / 3600;
 		int num3 = num - num2 * 3600;
 		return $"{num2,3:0}:{num3 / 60:00}:{num3 % 60:00}";
+	}
+
+	private string GetRemainTimeString(ShogiGUI.Engine.GameRemainTime rt)
+	{
+		if (rt.Time > 0)
+		{
+			int totalSec = rt.Time / 1000;
+			int h = totalSec / 3600;
+			int rest = totalSec - h * 3600;
+			return $"{h,3:0}:{rest / 60:00}:{rest % 60:00}";
+		}
+		if (rt.Byoyomi > 0)
+		{
+			int sec = rt.Byoyomi / 1000;
+			return $"  {sec}秒";
+		}
+		return "  0:00:00";
 	}
 
 	private void UpdateNotationListView(NotationEventId eventid)
