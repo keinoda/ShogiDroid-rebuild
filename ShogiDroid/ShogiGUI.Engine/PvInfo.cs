@@ -281,8 +281,16 @@ public class PvInfo
 		}
 		if (HasEval)
 		{
-			text = text + " " + valueText + " " + ValueToString(Mate, Score, 0);
-			text += " (" + WinRateUtil.FormatWinRate(Score, HasMate, Mate) + ")";
+			if (Settings.AppSettings.ConvertEvalToWinRate)
+			{
+				int.TryParse(Settings.AppSettings.WinRateCoefficient, out int coeffInt);
+				double coeff = coeffInt > 0 ? coeffInt : WinRateUtil.DefaultCoefficient;
+				text = text + " " + valueText + " " + WinRateUtil.FormatWinRate(Score, HasMate, Mate, coeff);
+			}
+			else
+			{
+				text = text + " " + valueText + " " + ValueToString(Mate, Score, 0);
+			}
 		}
 		if (pvmoves_ != null && pvmoves_.Count != 0)
 		{
@@ -344,9 +352,34 @@ public class PvInfo
 		string text = string.Empty;
 		foreach (MoveDataEx move in moves)
 		{
-			text = text + " " + ((move.Turn == PlayerColor.Black) ? "▲" : "△") + move.ToString(style);
+			text = text + " " + ((move.Turn == PlayerColor.Black) ? "☗" : "☖") + move.ToString(style);
 		}
 		return text;
+	}
+
+	/// <summary>
+	/// 候補手（最初の1手）を返す。
+	/// </summary>
+	public string GetFirstMove(MoveStyle style)
+	{
+		if (PvMoves == null || PvMoves.Count == 0) return string.Empty;
+		var m = PvMoves[0];
+		return ((m.Turn == PlayerColor.Black) ? "☗" : "☖") + m.ToString(style);
+	}
+
+	/// <summary>
+	/// 候補手以降の残りの読み筋を返す。
+	/// </summary>
+	public string GetRestMoves(MoveStyle style)
+	{
+		if (PvMoves == null || PvMoves.Count <= 1) return string.Empty;
+		string text = string.Empty;
+		for (int i = 1; i < PvMoves.Count; i++)
+		{
+			var m = PvMoves[i];
+			text = text + " " + ((m.Turn == PlayerColor.Black) ? "☗" : "☖") + m.ToString(style);
+		}
+		return text.TrimStart();
 	}
 
 	private static string FormatWithSuffix(long value, long divisor, string suffix)

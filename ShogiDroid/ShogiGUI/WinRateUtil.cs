@@ -10,7 +10,7 @@ public static class WinRateUtil
 	/// <summary>
 	/// シグモイド変換の係数。600 = Ponanza定数（将棋GUIの標準）。
 	/// </summary>
-	public const double DefaultCoefficient = 600.0;
+	public const double DefaultCoefficient = 750.0;
 
 	/// <summary>
 	/// 評価値(cp)を勝率(0.0〜1.0)に変換する。
@@ -56,13 +56,13 @@ public static class WinRateUtil
 	/// <summary>
 	/// 評価値を勝率表示文字列に変換 (例: "56.3%")。
 	/// </summary>
-	public static string FormatWinRate(int cp, bool isMate, int matePly)
+	public static string FormatWinRate(int cp, bool isMate, int matePly, double coefficient = DefaultCoefficient)
 	{
 		if (isMate)
 		{
 			return matePly > 0 ? "100%" : "0%";
 		}
-		double pct = CpToWinPercent(cp);
+		double pct = CpToWinPercent(cp, coefficient);
 		return $"{pct:F1}%";
 	}
 

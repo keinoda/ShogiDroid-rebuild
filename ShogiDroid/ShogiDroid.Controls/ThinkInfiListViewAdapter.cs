@@ -149,16 +149,38 @@ public class ThinkInfiListViewAdapter : BaseAdapter
 			SetText(view, Resource.Id.depth, $"{pvInfo.Depth}/{pvInfo.SelDepth}");
 			SetText(view, Resource.Id.nodes, PvInfo.NodesToString(pvInfo.Nodes));
 			SetText(view, Resource.Id.nps, PvInfo.NpsToString(pvInfo.NPS) + "N/s");
-			string moves = pvInfo.GetMoves(moveStyle);
-			TextView textView2 = view.FindViewById<TextView>(Resource.Id.middle);
-			if (textView2 != null)
+			string evalStr;
+			if (Settings.AppSettings.ConvertEvalToWinRate && pvInfo.HasEval)
 			{
-				textView2.Text = activity.GetString(Resource.String.Value_Text) + " " + PvInfo.ValueToString(pvInfo.Mate, pvInfo.Score, pvInfo.Bounds) + " " + moves;
+				int.TryParse(Settings.AppSettings.WinRateCoefficient, out int coeffInt);
+				double coeff = coeffInt > 0 ? coeffInt : WinRateUtil.DefaultCoefficient;
+				evalStr = WinRateUtil.FormatWinRate(pvInfo.Score, pvInfo.HasMate, pvInfo.Mate, coeff);
 			}
 			else
 			{
-				SetText(view, Resource.Id.value, PvInfo.ValueToString(pvInfo.Mate, pvInfo.Score, pvInfo.Bounds));
-				SetText(view, Resource.Id.moves, moves);
+				evalStr = PvInfo.ValueToString(pvInfo.Mate, pvInfo.Score, pvInfo.Bounds);
+			}
+
+			TextView textView2 = view.FindViewById<TextView>(Resource.Id.middle);
+			if (textView2 != null)
+			{
+				textView2.Text = activity.GetString(Resource.String.Value_Text) + " " + evalStr + " " + pvInfo.GetMoves(moveStyle);
+			}
+			else
+			{
+				SetText(view, Resource.Id.value, evalStr);
+				// 候補手と残りの読み筋を分離表示
+				var firstMoveView = view.FindViewById<TextView>(Resource.Id.first_move);
+				var restMovesView = view.FindViewById<TextView>(Resource.Id.rest_moves);
+				if (firstMoveView != null && restMovesView != null)
+				{
+					firstMoveView.Text = pvInfo.GetFirstMove(moveStyle);
+					restMovesView.Text = pvInfo.GetRestMoves(moveStyle);
+				}
+				else
+				{
+					SetText(view, Resource.Id.moves, pvInfo.GetMoves(moveStyle));
+				}
 			}
 		}
 		return view;
