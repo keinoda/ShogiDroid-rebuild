@@ -134,6 +134,9 @@ public class Game
 
 	protected virtual void OnGameEvent(GameEventArgs e)
 	{
+		// Notify watchdog of engine activity for auto-suspend
+		VastAiWatchdog.Instance.OnGameEvent(e.EventId);
+
 		if (this.GameEventHandler != null)
 		{
 			this.GameEventHandler(this, e);
@@ -189,7 +192,7 @@ public class Game
 		}
 		else
 		{
-			gameTimer.SetTime(PlayerColor.Black, param.Time, param.Countdown);
+			gameTimer.SetTime(PlayerColor.Black, param.Time, param.Countdown, param.Increment);
 		}
 		if (gameParam.WhiteNo == 0)
 		{
@@ -197,7 +200,7 @@ public class Game
 		}
 		else
 		{
-			gameTimer.SetTime(PlayerColor.White, param.Time, param.Countdown);
+			gameTimer.SetTime(PlayerColor.White, param.Time, param.Countdown, param.Increment);
 		}
 		bothcomputer = gameParam.BlackNo != 0 && gameParam.WhiteNo != 0;
 		if (gameParam.StartMode == GameStartMode.Continued)

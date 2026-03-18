@@ -162,6 +162,10 @@
     <string name="SettingsRemoteEngine_Text">リモートエンジン</string>
     <string name="SettingsRemoteHost_Text">ホスト</string>
     <string name="SettingsRemotePort_Text">ポート</string>
+    <string name="SettingsVastAi_Text">vast.ai クラウド設定</string>
+    <string name="Menu_VastAi_Text">vast.ai</string>
+    <string name="SettingsVastAiApiKey_Text">APIキー</string>
+    <string name="SettingsVastAiDockerImage_Text">Dockerイメージ</string>
     <string name="SettingsPVDisplay_Text">PV表示設定</string>
     <string name="SettingsPlayInterval_Text">棋譜再生間隔</string>
     <string name="SettingsPlayerName_Text">プレイヤー名</string>
@@ -206,4 +210,8 @@
     <string name="permission_external_storage">ストレージの書き込みを許可しますか？</string>
     <string name="app_text">将棋ドロイドR</string>
     <string name="Menu_CameraRead_Text">盤面読み取り</string>
+    <string name="SettingsIncrement_Text">加算(フィッシャー)</string>
+    <string name="EngineSettingsTitle_Text">エンジン設定</string>
+    <string name="EngineSettingsAllOptions_Text">全オプション</string>
+    <string name="Menu_EngineSettings_Text">エンジン設定</string>
 </resources>
