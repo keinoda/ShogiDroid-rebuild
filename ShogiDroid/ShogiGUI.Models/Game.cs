@@ -217,9 +217,6 @@ public class Game
 					return;
 				}
 			}
-			enginePlayer.SetOption("OwnBook", param.OwnBook, temp: true);
-			enginePlayer.SetOption("USI_OwnBook", param.OwnBook, temp: true);
-			enginePlayer.SetStrength(param.Strength);
 			pvinfos.Clear();
 			hint_info.Clear();
 			OnGameEvent(new GameEventArgs(GameEventId.Info));
@@ -280,9 +277,6 @@ public class Game
 			{
 				enginePlayer.Stop();
 			}
-			enginePlayer.SetOption("OwnBook", gameParam.OwnBook, temp: true);
-			enginePlayer.SetOption("USI_OwnBook", gameParam.OwnBook, temp: true);
-			enginePlayer.SetStrength(gameParam.Strength);
 			if (CurrentPlayer == enginePlayer)
 			{
 				comState = ComputerState.Thinking;
@@ -307,9 +301,6 @@ public class Game
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
 			}
-			enginePlayer.SetOption("OwnBook", Settings.AnalyzeSettings.OwnBook, temp: true);
-			enginePlayer.SetOption("USI_OwnBook", Settings.AnalyzeSettings.OwnBook, temp: true);
-			enginePlayer.SetStrength(100);
 			busy = true;
 			pvinfos.Clear();
 			hint_info.Clear();
@@ -326,20 +317,10 @@ public class Game
 		pvinfos.Clear();
 		hint_info.Clear();
 		OnGameEvent(new GameEventArgs(GameEventId.Info));
-		bool flag = false;
-		if (enginePlayer.SetOption("OwnBook", Settings.AnalyzeSettings.OwnBook, temp: true))
-		{
-			flag = true;
-		}
-		if (enginePlayer.SetOption("USI_OwnBook", Settings.AnalyzeSettings.OwnBook, temp: true))
-		{
-			flag = true;
-		}
-		if (engineMode != EngineMode.Hint || flag)
+		if (engineMode != EngineMode.Hint)
 		{
 			comState = ComputerState.Analyzing;
 			engineMode = EngineMode.Hint;
-			enginePlayer.SetStrength(100);
 			enginePlayer.Ready();
 			busy = true;
 		}
@@ -412,9 +393,6 @@ public class Game
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
 			}
-			enginePlayer.ResetOption("OwnBook");
-			enginePlayer.ResetOption("USI_OwnBook");
-			enginePlayer.SetStrength(100);
 			busy = true;
 			comState = ComputerState.Analyzing;
 			engineMode = EngineMode.Analyze;
@@ -423,9 +401,6 @@ public class Game
 		}
 		else
 		{
-			enginePlayer.ResetOption("OwnBook");
-			enginePlayer.ResetOption("USI_OwnBook");
-			enginePlayer.SetStrength(100);
 			busy = true;
 			comState = ComputerState.Analyzing;
 			engineMode = EngineMode.Analyze;
@@ -460,9 +435,6 @@ public class Game
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
 			}
-			enginePlayer.SetOption("OwnBook", Settings.AnalyzeSettings.OwnBook, temp: true);
-			enginePlayer.SetOption("USI_OwnBook", Settings.AnalyzeSettings.OwnBook, temp: true);
-			enginePlayer.SetStrength(100);
 			busy = true;
 			comState = ComputerState.Analyzing;
 			engineMode = EngineMode.Hint;
@@ -470,22 +442,12 @@ public class Game
 			OnGameEvent(new GameEventArgs(GameEventId.InitializeStart));
 			return;
 		}
-		bool flag = false;
-		if (enginePlayer.SetOption("OwnBook", Settings.AnalyzeSettings.OwnBook, temp: true))
-		{
-			flag = true;
-		}
-		if (enginePlayer.SetOption("USI_OwnBook", Settings.AnalyzeSettings.OwnBook, temp: true))
-		{
-			flag = true;
-		}
 		gameMode = GameMode.Consider;
-		if (engineMode != EngineMode.Hint || flag)
+		if (engineMode != EngineMode.Hint)
 		{
 			busy = true;
 			comState = ComputerState.Analyzing;
 			engineMode = EngineMode.Hint;
-			enginePlayer.SetStrength(100);
 			enginePlayer.Ready();
 		}
 		else
@@ -529,49 +491,83 @@ public class Game
 		AppDebug.Log.Info($"initEnginePlayer: playerNo={playerNo}");
 		if (playerNo != 0)
 		{
-			string enginePath;
-			if (playerNo == 1)
+			if (playerNo == RemoteEnginePlayer.RemoteEngineNo)
 			{
-				InternalEnginePlayer internalEnginePlayer = new InternalEnginePlayer(PlayerColor.Black);
-				if (!internalEnginePlayer.CopyFiles())
+				string host = Settings.EngineSettings.RemoteHost;
+				int port = 28597;
+				int.TryParse(Settings.EngineSettings.RemotePort, out port);
+				AppDebug.Log.Info($"initEnginePlayer: remote engine host={host}, port={port}");
+				if (string.IsNullOrEmpty(host))
 				{
-					AppDebug.Log.Error("initEnginePlayer: InternalEngine CopyFiles failed");
+					AppDebug.Log.Error("initEnginePlayer: RemoteHost is empty");
 					return false;
 				}
-				internalEnginePlayer.LoadSettings();
-				enginePlayer = internalEnginePlayer;
-				enginePath = internalEnginePlayer.EnginePath;
+				RemoteEnginePlayer remoteEnginePlayer = new RemoteEnginePlayer(PlayerColor.Black, host, port);
+				remoteEnginePlayer.CopyFiles();
+				remoteEnginePlayer.LoadSettings();
+				enginePlayer = remoteEnginePlayer;
+				enginePlayer.Initialized += Player_Initialized;
+				enginePlayer.ReadyOk += Player_ReadyOk;
+				enginePlayer.BestMoveRecieved += Player_BestMoveRecieved;
+				enginePlayer.CheckMateRecieved += Player_CheckMateRecieved;
+				enginePlayer.Stopped += Player_Stopped;
+				enginePlayer.InfoRecieved += Player_InfoRecieved;
+				enginePlayer.ReportError += Player_ReportError;
+				if (!enginePlayer.InitRemote(host, port))
+				{
+					AppDebug.Log.Error($"initEnginePlayer: InitRemote failed for {host}:{port}");
+					enginePlayer.Terminate();
+					enginePlayer = null;
+					return false;
+				}
+				AppDebug.Log.Info("initEnginePlayer: remote engine connected successfully");
 			}
 			else
 			{
-				string externalFile = Settings.EngineSettings.GetExternalEngineFile();
-				AppDebug.Log.Info($"initEnginePlayer: external engine file={externalFile}");
-				ExternalEnginePlayer externalEnginePlayer = new ExternalEnginePlayer(PlayerColor.Black, externalFile);
-				if (!externalEnginePlayer.CopyFiles())
+				string enginePath;
+				if (playerNo == 1)
 				{
-					AppDebug.Log.Error("initEnginePlayer: ExternalEngine CopyFiles failed");
+					InternalEnginePlayer internalEnginePlayer = new InternalEnginePlayer(PlayerColor.Black);
+					if (!internalEnginePlayer.CopyFiles())
+					{
+						AppDebug.Log.Error("initEnginePlayer: InternalEngine CopyFiles failed");
+						return false;
+					}
+					internalEnginePlayer.LoadSettings();
+					enginePlayer = internalEnginePlayer;
+					enginePath = internalEnginePlayer.EnginePath;
+				}
+				else
+				{
+					string externalFile = Settings.EngineSettings.GetExternalEngineFile();
+					AppDebug.Log.Info($"initEnginePlayer: external engine file={externalFile}");
+					ExternalEnginePlayer externalEnginePlayer = new ExternalEnginePlayer(PlayerColor.Black, externalFile);
+					if (!externalEnginePlayer.CopyFiles())
+					{
+						AppDebug.Log.Error("initEnginePlayer: ExternalEngine CopyFiles failed");
+						return false;
+					}
+					externalEnginePlayer.LoadSettings();
+					enginePlayer = externalEnginePlayer;
+					enginePath = externalEnginePlayer.EnginePath;
+				}
+				AppDebug.Log.Info($"initEnginePlayer: launching engine at {enginePath}");
+				enginePlayer.Initialized += Player_Initialized;
+				enginePlayer.ReadyOk += Player_ReadyOk;
+				enginePlayer.BestMoveRecieved += Player_BestMoveRecieved;
+				enginePlayer.CheckMateRecieved += Player_CheckMateRecieved;
+				enginePlayer.Stopped += Player_Stopped;
+				enginePlayer.InfoRecieved += Player_InfoRecieved;
+				enginePlayer.ReportError += Player_ReportError;
+				if (!enginePlayer.Init(enginePath))
+				{
+					AppDebug.Log.Error($"initEnginePlayer: Init failed for {enginePath}");
+					enginePlayer.Terminate();
+					enginePlayer = null;
 					return false;
 				}
-				externalEnginePlayer.LoadSettings();
-				enginePlayer = externalEnginePlayer;
-				enginePath = externalEnginePlayer.EnginePath;
+				AppDebug.Log.Info("initEnginePlayer: engine started successfully");
 			}
-			AppDebug.Log.Info($"initEnginePlayer: launching engine at {enginePath}");
-			enginePlayer.Initialized += Player_Initialized;
-			enginePlayer.ReadyOk += Player_ReadyOk;
-			enginePlayer.BestMoveRecieved += Player_BestMoveRecieved;
-			enginePlayer.CheckMateRecieved += Player_CheckMateRecieved;
-			enginePlayer.Stopped += Player_Stopped;
-			enginePlayer.InfoRecieved += Player_InfoRecieved;
-			enginePlayer.ReportError += Player_ReportError;
-			if (!enginePlayer.Init(enginePath))
-			{
-				AppDebug.Log.Error($"initEnginePlayer: Init failed for {enginePath}");
-				enginePlayer.Terminate();
-				enginePlayer = null;
-				return false;
-			}
-			AppDebug.Log.Info("initEnginePlayer: engine started successfully");
 		}
 		return true;
 	}
@@ -641,7 +637,10 @@ public class Game
 			int time = gameTimer.Stop();
 			AddMove(moveData, time);
 			blackPlayer.GameOver(notationModel.Notation.WinColor);
-			whitePlayer.GameOver(notationModel.Notation.WinColor);
+			if (whitePlayer != blackPlayer)
+			{
+				whitePlayer.GameOver(notationModel.Notation.WinColor);
+			}
 			if (Settings.AppSettings.AutoSave)
 			{
 				string fileName = notationModel.FileName;

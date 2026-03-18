@@ -150,6 +150,16 @@ public class EngineOptionsActivity : Activity, IEngineOptions
 		UpdateControls();
 	}
 
+	public void InitializeError()
+	{
+		RunOnUiThread(() =>
+		{
+			Android.Widget.Toast.MakeText(this, "エンジンの初期化に失敗しました", Android.Widget.ToastLength.Long).Show();
+			SetResult(Result.Canceled);
+			Finish();
+		});
+	}
+
 	private void UpdateWindowSettings()
 	{
 		if (Settings.AppSettings.DispToolbar)

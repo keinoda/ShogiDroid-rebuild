@@ -4,8 +4,6 @@ public class AnalyzeSettings
 {
 	public int Time = 60000;
 
-	public bool OwnBook;
-
 	public int AnalyzeTime = 5000;
 
 	public bool AnalyzeDepthEnable;

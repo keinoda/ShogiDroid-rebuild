@@ -45,5 +45,9 @@ public class EngineOptionsPresenter : PresenterBase<IEngineOptions>
 		{
 			view.InitializeEnd();
 		}
+		else if (e.EventId == GameEventId.InitializeError)
+		{
+			view.InitializeError();
+		}
 	}
 }

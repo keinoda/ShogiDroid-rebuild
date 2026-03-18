@@ -8,15 +8,15 @@ public class EngineSettings
 
 	public int Countdown = 10000;
 
-	public int Strength = 100;
-
-	public bool OwnBook = true;
-
 	public int EngineNo = 1;
 
 	public string EngineName = string.Empty;
 
 	public string EngineFolder = string.Empty;
+
+	public string RemoteHost = string.Empty;
+
+	public string RemotePort = "28597";
 
 	public string GetExternalEngineFolder()
 	{

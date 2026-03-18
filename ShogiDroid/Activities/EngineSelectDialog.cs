@@ -11,6 +11,8 @@ namespace ShogiDroid;
 
 public class EngineSelectDialog : DialogFragment
 {
+	private const string RemoteEngineLabel = "リモートエンジン";
+
 	private int engineNo;
 
 	private string enginename;
@@ -75,8 +77,13 @@ public class EngineSelectDialog : DialogFragment
 		list.Add(InternalEnginePlayer.EngineBaseName);
 		file_list = LoadFileList(path);
 		list.AddRange(file_list);
+		list.Add(RemoteEngineLabel);
 		int num = 0;
-		if (engineNo != 1)
+		if (engineNo == RemoteEnginePlayer.RemoteEngineNo)
+		{
+			num = list.Count - 1;
+		}
+		else if (engineNo != 1)
 		{
 			num = Array.IndexOf(file_list, enginename);
 			if (num >= 0)
@@ -91,15 +98,22 @@ public class EngineSelectDialog : DialogFragment
 
 	private void ListClicked(object sender, DialogClickEventArgs e)
 	{
+		int remoteIndex = 1 + file_list.Length;
 		if (e.Which == 0)
 		{
 			enginename = InternalEnginePlayer.EngineBaseName;
+			engineNo = 1;
+		}
+		else if (e.Which == remoteIndex)
+		{
+			enginename = RemoteEngineLabel;
+			engineNo = RemoteEnginePlayer.RemoteEngineNo;
 		}
 		else
 		{
 			enginename = file_list[e.Which - 1];
+			engineNo = e.Which + 1;
 		}
-		engineNo = e.Which + 1;
 		if (OKClick != null)
 		{
 			OKClick(sender, e);

@@ -16,10 +16,6 @@ public class GameParam
 
 	public int Countdown = 10000;
 
-	public int Strength = 100;
-
-	public bool OwnBook = true;
-
 	public GameStartPosition StartPosition;
 
 	public GameStartMode StartMode;
@@ -38,8 +34,6 @@ public class GameParam
 		WhiteName = param.WhiteName;
 		Time = param.Time;
 		Countdown = param.Countdown;
-		Strength = param.Strength;
-		OwnBook = param.OwnBook;
 		StartPosition = param.StartPosition;
 		StartMode = param.StartMode;
 		Handicap = param.Handicap;
