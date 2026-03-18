@@ -113,6 +113,12 @@
     <item type="id" name="adView" />
     <item type="id" name="alertTitle" />
     <item type="id" name="analyze_button" />
+    <item type="id" name="analyze_text" />
+    <item type="id" name="first_button" />
+    <item type="id" name="last_button" />
+    <item type="id" name="input_cancel_button" />
+    <item type="id" name="thinkinfo_header" />
+    <item type="id" name="thinkinfo_listview_main" />
     <item type="id" name="androidx_window_activity_scope" />
     <item type="id" name="app_name" />
     <item type="id" name="bottom_name" />

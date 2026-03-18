@@ -75,11 +75,25 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	private ImageButton nextButton;
 
-	private ImageButton analyzButton;
+	private ImageButton firstButton;
+
+	private ImageButton lastButton;
+
+	private View analyzButton;
+
+	private TextView analyzeText;
+
+	private bool isAnalyzeActive;
+
+	private DateTime analyzeStartTime;
+
+	private System.Timers.Timer analyzeTimer;
 
 	private ImageButton reverseButton;
 
 	private ImageButton menuButton;
+
+	private ImageButton inputCancelButton;
 
 	private TextView stateText;
 
@@ -127,7 +141,6 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	private bool changeNotationFlag;
 
-	private SystemUiFlags uiFlags = SystemUiFlags.Fullscreen | SystemUiFlags.HideNavigation | SystemUiFlags.ImmersiveSticky | SystemUiFlags.LayoutHideNavigation;
 
 	private int defaultTimeTextColor;
 
@@ -141,14 +154,13 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	// private MyInterstitialAd interstitial; // Removed: AdMob dependency not available
 
-	private readonly MainMenuItem[] menuItems = new MainMenuItem[14]
+	private readonly MainMenuItem[] menuItems = new MainMenuItem[13]
 	{
 		new MainMenuItem(Resource.Id.game_start, Resource.String.Menu_NewGame_Text),
 		new MainMenuItem(Resource.Id.game_continue, Resource.String.Menu_ContinuedGame_Text),
 		new MainMenuItem(Resource.Id.game_stop, Resource.String.Menu_StopGame_Text),
 		new MainMenuItem(Resource.Id.game_resign, Resource.String.Menu_ResignGame_Text),
 		new MainMenuItem(Resource.Id.notation_analysis, Resource.String.Menu_Analysis_Text),
-		new MainMenuItem(Resource.Id.consider, Resource.String.Consider_Text),
 		new MainMenuItem(),
 		new MainMenuItem(Resource.Id.menu_file, Resource.String.Menu_File_Text),
 		new MainMenuItem(Resource.Id.menu_edit, Resource.String.MenuEdit_Text),
@@ -397,6 +409,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	protected override void OnCreate(Bundle bundle)
 	{
 		base.OnCreate(bundle);
+		System.Text.Encoding.RegisterProvider(System.Text.CodePagesEncodingProvider.Instance);
 		AppDebug.Log.Initialize();
 		AppDebug.Log.Info("MainActivity.OnCreate started");
 		RequestWindowFeature(WindowFeatures.NoTitle);
@@ -443,13 +456,20 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		prevButton.Click += PrevButton_Click;
 		nextButton = FindViewById<ImageButton>(Resource.Id.next_button);
 		nextButton.Click += NextButton_Click;
-		analyzButton = FindViewById<ImageButton>(Resource.Id.analyze_button);
+		firstButton = FindViewById<ImageButton>(Resource.Id.first_button);
+		firstButton.Click += FirstButton_Click;
+		lastButton = FindViewById<ImageButton>(Resource.Id.last_button);
+		lastButton.Click += LastButton_Click;
+		analyzButton = FindViewById<View>(Resource.Id.analyze_button);
 		analyzButton.Click += AnalyzeButton_Click;
 		analyzButton.LongClick += AnalyzButton_LongClick;
+		analyzeText = FindViewById<TextView>(Resource.Id.analyze_text);
 		menuButton = FindViewById<ImageButton>(Resource.Id.menu_button);
 		menuButton.Click += MenuButton_Click;
 		reverseButton = FindViewById<ImageButton>(Resource.Id.reverse_button);
 		reverseButton.Click += ReverseButton_Click;
+		inputCancelButton = FindViewById<ImageButton>(Resource.Id.input_cancel_button);
+		inputCancelButton.Click += InputCancelButton_Click;
 		if (Settings.AppSettings.ReverseButotn != 50)
 		{
 			reverseButton.SetImageResource(Resource.Drawable.ic_fn);
@@ -515,6 +535,10 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		if (num != 0)
 		{
 			infoPager.SetCurrentItem(num, smoothScroll: false);
+		}
+		else
+		{
+			infoPager.SetCurrentItem(1, smoothScroll: false);
 		}
 		// Ad banner removed: AdMob dependency not available
 		// if (barnerView != null)
@@ -648,22 +672,15 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		{
 			MainMenuGryout(mainMenuAdapter);
 		}
-		else
+		else if (e.DrawerView == rightDrawer)
 		{
-			_ = e.DrawerView;
-			_ = rightDrawer;
+			notationListView.SetSelection(notation.MoveCurrent.Number);
 		}
 		presenter.AutoPlayStop();
 	}
 
 	private void DrawerLayout_DrawerSlide(object sender, DrawerLayout.DrawerSlideEventArgs e)
 	{
-		if (e.DrawerView == rightDrawer && changeNotationFlag)
-		{
-			changeNotationFlag = false;
-			notationListView.InvalidateViews();
-			notationBranchListView.InvalidateViews();
-		}
 	}
 
 	protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)
@@ -785,12 +802,81 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	{
 		presenter.AutoPlayStop();
 		infoPager.SetCurrentItem(1, smoothScroll: false);
-		presenter.Hint();
+		if (presenter.GameMode == GameMode.Consider)
+		{
+			presenter.Stop();
+		}
+		else
+		{
+			ConsiderStart();
+		}
+	}
+
+	private void FirstButton_Click(object sender, EventArgs e)
+	{
+		presenter.First();
+	}
+
+	private void LastButton_Click(object sender, EventArgs e)
+	{
+		presenter.Last();
+	}
+
+	private void InputCancelButton_Click(object sender, EventArgs e)
+	{
+		presenter.InputCancel();
 	}
 
 	private void AnalyzButton_LongClick(object sender, View.LongClickEventArgs e)
 	{
 		presenter.EngineTerminate();
+	}
+
+	private void UpdateAnalyzeButton(bool analyzing)
+	{
+		if (analyzing == isAnalyzeActive) return;
+		isAnalyzeActive = analyzing;
+		if (analyzing)
+		{
+			analyzButton.SetBackgroundResource(Resource.Drawable.analyze_btn_bg_active);
+			if (analyzeText != null) analyzeText.Text = "解析終了 00:00";
+			analyzeStartTime = DateTime.Now;
+			StartAnalyzeTimer();
+		}
+		else
+		{
+			analyzButton.SetBackgroundResource(Resource.Drawable.analyze_btn_bg_idle);
+			if (analyzeText != null) analyzeText.Text = "解析開始";
+			StopAnalyzeTimer();
+		}
+	}
+
+	private void StartAnalyzeTimer()
+	{
+		StopAnalyzeTimer();
+		analyzeTimer = new System.Timers.Timer(1000);
+		analyzeTimer.Elapsed += (s, e) =>
+		{
+			RunOnUiThread(() =>
+			{
+				if (analyzeText != null && isAnalyzeActive)
+				{
+					var elapsed = DateTime.Now - analyzeStartTime;
+					analyzeText.Text = $"解析終了 {(int)elapsed.TotalMinutes:D2}:{elapsed.Seconds:D2}";
+				}
+			});
+		};
+		analyzeTimer.Start();
+	}
+
+	private void StopAnalyzeTimer()
+	{
+		if (analyzeTimer != null)
+		{
+			analyzeTimer.Stop();
+			analyzeTimer.Dispose();
+			analyzeTimer = null;
+		}
 	}
 
 	private void MateButton_Click(object sender, EventArgs e)
@@ -845,13 +931,12 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	private void NotationText_Click(object sender, EventArgs e)
 	{
 		presenter.AutoPlayStop();
-		if (drawerLayout.IsDrawerOpen(5))
+		if (drawerLayout != null)
 		{
-			drawerLayout.CloseDrawers();
-		}
-		else
-		{
-			drawerLayout.OpenDrawer(5);
+			changeNotationFlag = false;
+			notationListView.InvalidateViews();
+			notationBranchListView.InvalidateViews();
+			drawerLayout.OpenDrawer(rightDrawer);
 		}
 	}
 
@@ -1030,14 +1115,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		{
 			stateText.Text = ComStateToString(presenter.ComState);
 		}
-		if (presenter.ComState == ComputerState.Analyzing || presenter.ComState == ComputerState.Mating)
-		{
-			analyzButton.Activated = true;
-		}
-		else
-		{
-			analyzButton.Activated = false;
-		}
+		UpdateAnalyzeButton(presenter.ComState == ComputerState.Analyzing || presenter.ComState == ComputerState.Mating);
 		if (evalGraphView != null)
 		{
 			evalGraphView.DispComGraph = presenter.GameMode != GameMode.Play || Settings.AppSettings.ShowComputerThinking || presenter.BothComputer;
@@ -1874,21 +1952,20 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	{
 		if (Settings.AppSettings.DispToolbar)
 		{
-			uiFlags = SystemUiFlags.ImmersiveSticky;
-		}
-		else
-		{
-			uiFlags = SystemUiFlags.Fullscreen | SystemUiFlags.HideNavigation | SystemUiFlags.ImmersiveSticky | SystemUiFlags.LayoutHideNavigation;
-		}
-		if (Settings.AppSettings.DispToolbar)
-		{
+			// Show system bars (status bar + navigation bar)
+			Window.DecorView.SystemUiVisibility = (StatusBarVisibility)SystemUiFlags.Visible;
 			Window.ClearFlags(WindowManagerFlags.Fullscreen);
 		}
 		else
 		{
+			// Hide system bars (immersive sticky mode)
+			Window.DecorView.SystemUiVisibility = (StatusBarVisibility)(
+				SystemUiFlags.ImmersiveSticky |
+				SystemUiFlags.HideNavigation |
+				SystemUiFlags.Fullscreen);
 			Window.Attributes.Flags |= WindowManagerFlags.Fullscreen;
 		}
-		Window.DecorView.SystemUiVisibility = (StatusBarVisibility)uiFlags;
+		AndroidX.Core.View.WindowCompat.SetDecorFitsSystemWindows(Window, Settings.AppSettings.DispToolbar);
 	}
 
 	private string LoadTextFile(Android.Net.Uri uri)
