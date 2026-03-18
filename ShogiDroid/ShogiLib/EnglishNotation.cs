@@ -239,7 +239,7 @@ public class EnglishNotation
 			string text = MoveString(move_info, notation.Position, rankStyle);
 			if (text != string.Empty)
 			{
-				wr.Write("{0}{1}", (notation.Position.Turn == PlayerColor.Black) ? "▲" : "△", text);
+				wr.Write("{0}{1}", notation.Position.Turn.ToKifChar(), text);
 			}
 			writeMoveCount++;
 			if (text.Length >= 10)

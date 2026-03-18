@@ -60,10 +60,12 @@ public static class WinRateUtil
 	{
 		if (isMate)
 		{
-			return matePly > 0 ? "100%" : "0%";
+			return matePly > 0 ? "99%" : "1%";
 		}
-		double pct = CpToWinPercent(cp, coefficient);
-		return $"{pct:F1}%";
+		int pct = (int)CpToWinPercent(cp, coefficient);
+		if (pct > 99) pct = 99;
+		if (pct < 1) pct = 1;
+		return $"{pct}%";
 	}
 
 	/// <summary>

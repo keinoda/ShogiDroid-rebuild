@@ -11,6 +11,18 @@ public static class PlayerColorExtentions
 	{
 		if (color != PlayerColor.Black)
 		{
+			return '☖';
+		}
+		return '☗';
+	}
+
+	/// <summary>
+	/// 棋譜ファイル出力用（標準の三角マーク）。
+	/// </summary>
+	public static char ToKifChar(this PlayerColor color)
+	{
+		if (color != PlayerColor.Black)
+		{
 			return '△';
 		}
 		return '▲';

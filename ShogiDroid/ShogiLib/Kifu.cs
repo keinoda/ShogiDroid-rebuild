@@ -755,7 +755,7 @@ public class Kifu
 	{
 		if (notation.MoveCurrent != notation.MoveFirst)
 		{
-			wr.WriteLine("手数＝{0}  {1}{2} まで", notation.MoveCurrent.Number, notation.MoveCurrent.Turn.ToChar(), GetMoveString(notation.MoveCurrent));
+			wr.WriteLine("手数＝{0}  {1}{2} まで", notation.MoveCurrent.Number, notation.MoveCurrent.Turn.ToKifChar(), GetMoveString(notation.MoveCurrent));
 		}
 	}
 

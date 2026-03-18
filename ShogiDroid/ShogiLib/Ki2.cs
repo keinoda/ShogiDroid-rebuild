@@ -82,7 +82,7 @@ public class Ki2 : Kifu
 	{
 		if (notation.MoveCurrent != notation.MoveFirst)
 		{
-			wr.WriteLine("手数＝{0}  {1}{2} まで", notation.MoveCurrent.Number, notation.MoveCurrent.Turn.ToChar(), GetLastMoveString(notation.MoveCurrent));
+			wr.WriteLine("手数＝{0}  {1}{2} まで", notation.MoveCurrent.Number, notation.MoveCurrent.Turn.ToKifChar(), GetLastMoveString(notation.MoveCurrent));
 		}
 	}
 
@@ -118,7 +118,7 @@ public class Ki2 : Kifu
 			string moveString = GetMoveString(notation.Position, move_info);
 			if (moveString != string.Empty)
 			{
-				wr.Write("{0}{1}", (notation.Position.Turn == PlayerColor.Black) ? "▲" : "△", moveString);
+				wr.Write("{0}{1}", notation.Position.Turn.ToKifChar(), moveString);
 			}
 			writeMoveCount++;
 			spaceCount = 6 - moveString.Length;
