@@ -1,6 +1,7 @@
 using ShogiDroid;
 using System.Collections.Generic;
 using Android.App;
+using ShogiGUI;
 using ShogiLib;
 
 namespace ShogiGUI.Engine;
@@ -281,6 +282,7 @@ public class PvInfo
 		if (HasEval)
 		{
 			text = text + " " + valueText + " " + ValueToString(Mate, Score, 0);
+			text += " (" + WinRateUtil.FormatWinRate(Score, HasMate, Mate) + ")";
 		}
 		if (pvmoves_ != null && pvmoves_.Count != 0)
 		{

@@ -73,6 +73,8 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	private ShogiBoard shogiBoard;
 
+	private EvalBar evalBar;
+
 	private ImageButton prevButton;
 
 	private ImageButton nextButton;
@@ -470,6 +472,17 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		shogiBoard = FindViewById<ShogiBoard>(Resource.Id.shogiboard);
 		shogiBoard.MakeMoveEvent += ShogiBoard_MakeMoveEvent;
 		shogiBoard.AnimationEnd += ShogiBoard_AnimationEnd;
+
+		// 形勢バーを盤面の左に追加
+		evalBar = new EvalBar(this);
+		var boardParent = (RelativeLayout)shogiBoard.Parent;
+		var evalBarLp = new RelativeLayout.LayoutParams(
+			(int)(16 * Resources.DisplayMetrics.Density),
+			RelativeLayout.LayoutParams.MatchParent);
+		evalBarLp.AddRule(LayoutRules.AlignParentLeft);
+		evalBar.LayoutParameters = evalBarLp;
+		boardParent.AddView(evalBar);
+		evalBar.Visibility = ViewStates.Gone;
 		prevButton = FindViewById<ImageButton>(Resource.Id.prev_button);
 		prevButton.Click += PrevButton_Click;
 		nextButton = FindViewById<ImageButton>(Resource.Id.next_button);
@@ -1147,6 +1160,27 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		{
 			UpdateHitInfo();
 		}
+		UpdateEvalBar(pvinfos);
+	}
+
+	private void UpdateEvalBar(PvInfos pvinfos)
+	{
+		if (evalBar == null || pvinfos == null) return;
+
+		// 最善手(rank 1)の評価値を取得
+		if (pvinfos.ContainsKey(1))
+		{
+			var best = pvinfos[1];
+			if (best.HasMate)
+			{
+				evalBar.SetEval(0, true, best.Mate);
+			}
+			else if (best.HasScore)
+			{
+				evalBar.SetEval(best.Score);
+			}
+			evalBar.Visibility = ViewStates.Visible;
+		}
 	}
 
 	public void UpdateHitInfo()
@@ -1201,6 +1235,8 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	public void UpdateReverse()
 	{
 		shogiBoard.Reverse = presenter.Reverse;
+		if (evalBar != null)
+			evalBar.DispReverse = presenter.Reverse;
 		SetName();
 		SetTime();
 	}
