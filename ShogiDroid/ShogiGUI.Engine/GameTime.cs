@@ -8,5 +8,7 @@ public struct GameTime
 
 	public int Byoyomi;
 
+	public int Increment;
+
 	public int ElapsedTime;
 }

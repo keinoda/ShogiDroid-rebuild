@@ -12,5 +12,7 @@ public struct GameRemainTime
 
 	public int HaveByoyomi;
 
+	public int HaveIncrement;
+
 	public int TotalElapsedTime;
 }

@@ -261,6 +261,8 @@ public class EnginePlayer : IPlayer
 				byoyomi = 10000;
 			}
 			GoRequest goRequest = new GoRequest(time_info.BlackTime.RemainTime, time_info.WhiteTime.RemainTime, byoyomi);
+			goRequest.Binc = time_info.BlackTime.Increment;
+			goRequest.Winc = time_info.WhiteTime.Increment;
 			if (notation.IsOutputInitialPosition || notation.Handicap != Handicap.HIRATE)
 			{
 				goRequest.Sfen = notation.InitialPosition.PositionToString(1);
@@ -298,12 +300,26 @@ public class EnginePlayer : IPlayer
 		send_cmd(text);
 		if (req.ReqType == GoRequest.Type.NORMAL)
 		{
-			text = $"go btime {req.Btime} wtime {req.Wtime} byoyomi {req.Byoyomi}";
+			if (req.Binc > 0 || req.Winc > 0)
+			{
+				text = $"go btime {req.Btime} wtime {req.Wtime} binc {req.Binc} winc {req.Winc}";
+			}
+			else
+			{
+				text = $"go btime {req.Btime} wtime {req.Wtime} byoyomi {req.Byoyomi}";
+			}
 			send_cmd(text);
 		}
 		else if (req.ReqType == GoRequest.Type.PONDER)
 		{
-			text = $"go ponder btime {req.Btime} wtime {req.Wtime} byoyomi {req.Byoyomi}";
+			if (req.Binc > 0 || req.Winc > 0)
+			{
+				text = $"go ponder btime {req.Btime} wtime {req.Wtime} binc {req.Binc} winc {req.Winc}";
+			}
+			else
+			{
+				text = $"go ponder btime {req.Btime} wtime {req.Wtime} byoyomi {req.Byoyomi}";
+			}
 			send_cmd(text);
 		}
 		else if (req.ReqType == GoRequest.Type.MOVETIME)
@@ -355,7 +371,9 @@ public class EnginePlayer : IPlayer
 			}
 			GoRequest goRequest = new GoRequest(time_info.BlackTime.RemainTime, time_info.WhiteTime.RemainTime, byoyomi)
 			{
-				ReqType = GoRequest.Type.PONDER
+				ReqType = GoRequest.Type.PONDER,
+				Binc = time_info.BlackTime.Increment,
+				Winc = time_info.WhiteTime.Increment
 			};
 			if (notation.IsOutputInitialPosition || notation.Handicap != Handicap.HIRATE)
 			{

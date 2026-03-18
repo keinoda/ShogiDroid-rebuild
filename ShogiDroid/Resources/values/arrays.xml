@@ -92,6 +92,30 @@
         <item>20000</item>
         <item>30000</item>
     </string-array>
+    <string-array name="SettingsIncrement_Texts">
+        <item>0</item>
+        <item>1秒</item>
+        <item>2秒</item>
+        <item>3秒</item>
+        <item>5秒</item>
+        <item>10秒</item>
+        <item>15秒</item>
+        <item>20秒</item>
+        <item>30秒</item>
+        <item>60秒</item>
+    </string-array>
+    <string-array name="SettingsIncrement_Values">
+        <item>0</item>
+        <item>1000</item>
+        <item>2000</item>
+        <item>3000</item>
+        <item>5000</item>
+        <item>10000</item>
+        <item>15000</item>
+        <item>20000</item>
+        <item>30000</item>
+        <item>60000</item>
+    </string-array>
     <string-array name="SettingsHashTable_Texts">
         <item>16MB</item>
         <item>32MB</item>

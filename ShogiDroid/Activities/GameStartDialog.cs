@@ -26,6 +26,10 @@ public class GameStartDialog : DialogFragment
 
 	private Spinner gameStartDialogCountdownSpinner;
 
+	private Spinner gameStartDialogIncrementSpinner;
+
+	private bool suppressSpinnerEvent;
+
 	public static GameStartDialog NewInstance()
 	{
 		return new GameStartDialog();
@@ -42,7 +46,12 @@ public class GameStartDialog : DialogFragment
 		gameStartDialogHandicapSpinner = view.FindViewById<Spinner>(Resource.Id.GameStartDialogHandicapSpinner);
 		gameStartDialogTimeSpinner = view.FindViewById<Spinner>(Resource.Id.GameStartDialogTime);
 		gameStartDialogCountdownSpinner = view.FindViewById<Spinner>(Resource.Id.GameStartDialogCountdown);
+		gameStartDialogIncrementSpinner = view.FindViewById<Spinner>(Resource.Id.GameStartDialogIncrement);
 		gameStartDialogPositionRadio = view.FindViewById<RadioGroup>(Resource.Id.GameStartDialogPositionRadio);
+
+		gameStartDialogCountdownSpinner.ItemSelected += CountdownSpinner_ItemSelected;
+		gameStartDialogIncrementSpinner.ItemSelected += IncrementSpinner_ItemSelected;
+
 		((Button)view.FindViewById(Resource.Id.DialogOKButton)).Click += delegate(object sender, EventArgs e)
 		{
 			saveSettings();
@@ -62,6 +71,30 @@ public class GameStartDialog : DialogFragment
 		};
 		loadSettings();
 		return dialog;
+	}
+
+	private void CountdownSpinner_ItemSelected(object sender, AdapterView.ItemSelectedEventArgs e)
+	{
+		if (suppressSpinnerEvent)
+			return;
+		if (e.Position > 0)
+		{
+			suppressSpinnerEvent = true;
+			gameStartDialogIncrementSpinner.SetSelection(0);
+			suppressSpinnerEvent = false;
+		}
+	}
+
+	private void IncrementSpinner_ItemSelected(object sender, AdapterView.ItemSelectedEventArgs e)
+	{
+		if (suppressSpinnerEvent)
+			return;
+		if (e.Position > 0)
+		{
+			suppressSpinnerEvent = true;
+			gameStartDialogCountdownSpinner.SetSelection(0);
+			suppressSpinnerEvent = false;
+		}
 	}
 
 	private void loadSettings()
@@ -91,8 +124,11 @@ public class GameStartDialog : DialogFragment
 		{
 			gameStartDialogPositionRadio.Check(Resource.Id.GameStartDialogNewGameThisPositionRadio);
 		}
+		suppressSpinnerEvent = true;
 		gameStartDialogTimeSpinner.SetSelection(GetIndex(Resource.Array.SettingsTime_Values, Settings.EngineSettings.Time));
 		gameStartDialogCountdownSpinner.SetSelection(GetIndex(Resource.Array.SettingsCountdown_Values, Settings.EngineSettings.Countdown));
+		gameStartDialogIncrementSpinner.SetSelection(GetIndex(Resource.Array.SettingsIncrement_Values, Settings.EngineSettings.Increment));
+		suppressSpinnerEvent = false;
 	}
 
 	private int GetIndex(int id, int value)
@@ -100,7 +136,7 @@ public class GameStartDialog : DialogFragment
 		int num = Array.FindIndex(base.Resources.GetStringArray(id), (string x) => x == value.ToString());
 		if (num < 0)
 		{
-			return 1;
+			return 0;
 		}
 		return num;
 	}
@@ -131,6 +167,7 @@ public class GameStartDialog : DialogFragment
 		Settings.AppSettings.Handicap = (Handicap)gameStartDialogHandicapSpinner.SelectedItemPosition;
 		Settings.EngineSettings.Time = GetValue(Resource.Array.SettingsTime_Values, gameStartDialogTimeSpinner.SelectedItemPosition);
 		Settings.EngineSettings.Countdown = GetValue(Resource.Array.SettingsCountdown_Values, gameStartDialogCountdownSpinner.SelectedItemPosition);
+		Settings.EngineSettings.Increment = GetValue(Resource.Array.SettingsIncrement_Values, gameStartDialogIncrementSpinner.SelectedItemPosition);
 		switch (gameStartDialogPositionRadio.CheckedRadioButtonId)
 		{
 		case Resource.Id.GameStartDialogNewGameInitialPositionRadio:
