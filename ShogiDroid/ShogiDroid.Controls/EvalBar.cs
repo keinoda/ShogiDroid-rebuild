@@ -14,11 +14,11 @@ namespace ShogiDroid.Controls;
 /// </summary>
 public class EvalBar : View
 {
-	private readonly Paint blackPaint_;
-	private readonly Paint whitePaint_;
-	private readonly Paint borderPaint_;
-	private readonly Paint textPaint_;
-	private readonly Paint textBgPaint_;
+	private Paint blackPaint_;
+	private Paint whitePaint_;
+	private Paint borderPaint_;
+	private Paint textPaint_;
+	private Paint textBgPaint_;
 
 	private double winRate_ = 0.5; // 先手の勝率 (0.0-1.0)
 	private string evalText_ = "";
@@ -27,19 +27,25 @@ public class EvalBar : View
 
 	public EvalBar(Context context) : base(context)
 	{
-		blackPaint_ = new Paint { AntiAlias = true, Color = Color.ParseColor("#333333") };
-		whitePaint_ = new Paint { AntiAlias = true, Color = Color.ParseColor("#EEEEEE") };
-		borderPaint_ = new Paint { AntiAlias = true, Color = Color.ParseColor("#888888") };
-		borderPaint_.SetStyle(Paint.Style.Stroke);
-		borderPaint_.StrokeWidth = 1f;
+		InitPaints();
+	}
 
-		textPaint_ = new Paint { AntiAlias = true, Color = Color.White, TextAlign = Paint.Align.Center };
-		textPaint_.SetTypeface(Typeface.DefaultBold);
+	public EvalBar(Context context, IAttributeSet attrs) : base(context, attrs)
+	{
+		InitPaints();
+	}
 
-		textBgPaint_ = new Paint { AntiAlias = true, Color = Color.ParseColor("#AA000000") };
+	public EvalBar(Context context, IAttributeSet attrs, int defStyleAttr) : base(context, attrs, defStyleAttr)
+	{
+		InitPaints();
 	}
 
 	protected EvalBar(IntPtr javaReference, JniHandleOwnership transfer) : base(javaReference, transfer)
+	{
+		InitPaints();
+	}
+
+	private void InitPaints()
 	{
 		blackPaint_ = new Paint { AntiAlias = true, Color = Color.ParseColor("#333333") };
 		whitePaint_ = new Paint { AntiAlias = true, Color = Color.ParseColor("#EEEEEE") };
@@ -129,14 +135,14 @@ public class EvalBar : View
 		// 枠線
 		canvas.DrawRect(0, 0, w, h, borderPaint_);
 
-		// 勝率テキスト（バーの中央に表示）
+		// 勝率テキスト（90度回転で境界線付近に表示）
 		if (!string.IsNullOrEmpty(evalText_))
 		{
-			float textSize = Math.Min(w * 0.7f, 11f * Resources.DisplayMetrics.Density);
+			float textSize = 10f * Resources.DisplayMetrics.Density;
 			textPaint_.TextSize = textSize;
 
 			float textX = w / 2f;
-			float textY = whiteHeight;
+			float textY = Math.Max(Math.Min(whiteHeight, h - textSize), textSize);
 
 			// テキスト背景
 			float textW = textPaint_.MeasureText(evalText_);
@@ -144,12 +150,17 @@ public class EvalBar : View
 			float textH = fm.Bottom - fm.Top;
 			float bgPad = 2f * Resources.DisplayMetrics.Density;
 
-			// 境界線付近にテキストを配置
+			canvas.Save();
+			canvas.Rotate(-90, textX, textY);
+
+			float bgLeft = textX - textW / 2 - bgPad;
+			float bgRight = textX + textW / 2 + bgPad;
 			float bgTop = textY - textH / 2 - bgPad;
 			float bgBottom = textY + textH / 2 + bgPad;
-			canvas.DrawRect(textX - textW / 2 - bgPad, bgTop, textX + textW / 2 + bgPad, bgBottom, textBgPaint_);
-
+			canvas.DrawRect(bgLeft, bgTop, bgRight, bgBottom, textBgPaint_);
 			canvas.DrawText(evalText_, textX, textY + (fm.Bottom - fm.Top) / 2 - fm.Bottom, textPaint_);
+
+			canvas.Restore();
 		}
 	}
 

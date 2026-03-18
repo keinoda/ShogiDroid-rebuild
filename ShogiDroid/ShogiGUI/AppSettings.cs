@@ -68,6 +68,10 @@ public class AppSettings
 
 	public string ImportUrl = string.Empty;
 
+	public bool ConvertEvalToWinRate = false;
+
+	public string WinRateCoefficient = "750";
+
 	public AppSettings()
 	{
 	}
