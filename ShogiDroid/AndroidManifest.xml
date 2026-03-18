@@ -13,6 +13,7 @@
     android:allowBackup="true"
     android:icon="@drawable/shogidroid_icon"
     android:label="将棋ドロイドR"
-    android:extractNativeLibs="true">
+    android:extractNativeLibs="true"
+    android:theme="@style/AppTheme">
   </application>
 </manifest>

@@ -11,7 +11,7 @@ using ShogiGUI.Presenters;
 
 namespace ShogiDroid;
 
-[Activity(Label = "EditBoard", ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/Theme.AppCompat.Light")]
+[Activity(Label = "EditBoard", ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
 public class EditBoardActivity : Activity, IEditBoardView
 {
 	private EditBoardPresenter presenter;

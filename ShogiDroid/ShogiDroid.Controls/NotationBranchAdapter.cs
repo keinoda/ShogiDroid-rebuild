@@ -2,6 +2,7 @@ using Android.App;
 using Android.Views;
 using Android.Widget;
 using Java.Lang;
+using ShogiGUI;
 using ShogiLib;
 using Object = Java.Lang.Object;
 
@@ -62,6 +63,7 @@ public class NotationBranchAdapter : BaseAdapter
 	public override View GetView(int position, View convertView, ViewGroup parent)
 	{
 		View obj = convertView ?? activity.LayoutInflater.Inflate(Resource.Layout.notationlistviewitem, parent, attachToRoot: false);
+		FontUtil.ApplyFont(obj);
 		TextView textView = obj.FindViewById<TextView>(Resource.Id.move_text);
 		MoveNode moveNode = notation.MoveCurrent.Children[position];
 		textView.Text = $"{moveNode.Turn.ToChar()}{moveNode.ToString(moveStyle)}";

@@ -5,6 +5,7 @@ using Android.Views;
 using Android.Widget;
 using AndroidX.Core.Content;
 using Java.Lang;
+using ShogiGUI;
 using Object = Java.Lang.Object;
 
 namespace ShogiDroid.Controls;
@@ -56,6 +57,7 @@ public class MainMenuAdapter : BaseAdapter
 				view = activity.LayoutInflater.Inflate(Resource.Layout.mainmenuitem, parent, attachToRoot: false);
 			}
 			TextView textView = view.FindViewById<TextView>(Resource.Id.menu_text);
+			FontUtil.SetFont(textView);
 			textView.Text = activity.GetString(mainMenuItem.TextId);
 			if (mainMenuItem.Enable)
 			{
