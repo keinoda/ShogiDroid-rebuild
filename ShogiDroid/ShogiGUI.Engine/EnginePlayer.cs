@@ -109,6 +109,31 @@ public class EnginePlayer : IPlayer
 				engine_ = null;
 				return false;
 			}
+			return StartProtocol();
+		}
+	}
+
+	public bool InitRemote(string host, int port)
+	{
+		lock (lockObj)
+		{
+			if (state_ != EnginePlayerState.NONE)
+			{
+				return false;
+			}
+			engine_ = new USIEngine();
+			cancel_ = false;
+			if (!engine_.InitializeRemote(host, port))
+			{
+				engine_ = null;
+				return false;
+			}
+			return StartProtocol();
+		}
+	}
+
+	private bool StartProtocol()
+	{
 			mre = new ManualResetEvent(initialState: false);
 			th_ = new Thread(receive_thread);
 			th_.Start();
@@ -119,7 +144,6 @@ public class EnginePlayer : IPlayer
 			timer_.Elapsed += InitTimeout;
 			timer_.Interval = 60000.0;
 			timer_.Start();
-		}
 		return true;
 	}
 
@@ -180,6 +204,11 @@ public class EnginePlayer : IPlayer
 		state_ = EnginePlayerState.WAIT_READY;
 		mre.Reset();
 		send_cmd("isready");
+		timer_.Stop();
+		timer_.Elapsed -= InitTimeout;
+		timer_.Elapsed += ReadyTimeout;
+		timer_.Interval = 30000.0;
+		timer_.Start();
 	}
 
 	public void GameStart()
@@ -692,6 +721,8 @@ public class EnginePlayer : IPlayer
 			case EnginePlayerState.WAIT_READY:
 				if (str == "readyok")
 				{
+					timer_.Stop();
+					timer_.Elapsed -= ReadyTimeout;
 					state_ = EnginePlayerState.IDLE;
 					OnReadyOk(new ReadyOkEventArgs(color_));
 					handleIdleState();
@@ -1030,6 +1061,17 @@ public class EnginePlayer : IPlayer
 	{
 		if (state_ == EnginePlayerState.INITIALIZING)
 		{
+			OnReportError(new ReportErrorEventArgs(color_, -1, PlayerErrorId.InitializeTimeout));
+		}
+	}
+
+	private void ReadyTimeout(object sender, ElapsedEventArgs e)
+	{
+		timer_.Stop();
+		timer_.Elapsed -= ReadyTimeout;
+		if (state_ == EnginePlayerState.WAIT_READY)
+		{
+			AppDebug.Log.Error("EnginePlayer: readyok timeout, engine may be stuck");
 			OnReportError(new ReportErrorEventArgs(color_, -1, PlayerErrorId.InitializeTimeout));
 		}
 	}

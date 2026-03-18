@@ -137,8 +137,6 @@ public class MainPresenter : PresenterBase<IMainView>
 		gameParam.WhiteName = GetPlayerName(Settings.AppSettings.WhiteNo);
 		gameParam.Time = Settings.EngineSettings.Time;
 		gameParam.Countdown = Settings.EngineSettings.Countdown;
-		gameParam.Strength = Settings.EngineSettings.Strength;
-		gameParam.OwnBook = Settings.EngineSettings.OwnBook;
 		if (continued)
 		{
 			gameParam.StartPosition = GameStartPosition.NowPosition;

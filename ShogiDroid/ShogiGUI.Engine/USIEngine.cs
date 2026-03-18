@@ -2,6 +2,8 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Net.Sockets;
+using System.Threading;
 
 namespace ShogiGUI.Engine;
 
@@ -17,6 +19,14 @@ public class USIEngine : IDisposable
 
 	private object lockObj = new object();
 
+	private bool isRemote_;
+
+	private TcpClient tcpClient_;
+
+	private StreamWriter tcpWriter_;
+
+	private Thread tcpReceiveThread_;
+
 	public USIOptions Options => options_;
 
 	public void Dispose()
@@ -30,6 +40,11 @@ public class USIEngine : IDisposable
 			if (process_ != null)
 			{
 				process_.Dispose();
+			}
+			if (tcpClient_ != null)
+			{
+				try { tcpClient_.Close(); } catch { }
+				tcpClient_ = null;
 			}
 			string_queue_ = null;
 			process_ = null;
@@ -50,21 +65,32 @@ public class USIEngine : IDisposable
 			{
 				return false;
 			}
+			isRemote_ = false;
 			string_queue_ = new StringQueue();
 			process_ = new Process();
-			string linker64 = "/system/bin/linker64";
-			string linker = "/system/bin/linker";
-			bool useLinker = System.IO.File.Exists(linker64) || System.IO.File.Exists(linker);
-			if (useLinker)
+			bool isScript = IsShellScript(filename);
+			if (isScript)
 			{
-				string linkerPath = System.IO.File.Exists(linker64) ? linker64 : linker;
-				process_.StartInfo.FileName = linkerPath;
+				process_.StartInfo.FileName = "/system/bin/sh";
 				process_.StartInfo.Arguments = filename;
-				AppDebug.Log.Info($"USIEngine: using linker wrapper: {linkerPath} {filename}");
+				AppDebug.Log.Info($"USIEngine: shell script detected, using /system/bin/sh {filename}");
 			}
 			else
 			{
-				process_.StartInfo.FileName = filename;
+				string linker64 = "/system/bin/linker64";
+				string linker = "/system/bin/linker";
+				bool useLinker = System.IO.File.Exists(linker64) || System.IO.File.Exists(linker);
+				if (useLinker)
+				{
+					string linkerPath = System.IO.File.Exists(linker64) ? linker64 : linker;
+					process_.StartInfo.FileName = linkerPath;
+					process_.StartInfo.Arguments = filename;
+					AppDebug.Log.Info($"USIEngine: using linker wrapper: {linkerPath} {filename}");
+				}
+				else
+				{
+					process_.StartInfo.FileName = filename;
+				}
 			}
 			process_.StartInfo.CreateNoWindow = true;
 			process_.StartInfo.UseShellExecute = false;
@@ -97,6 +123,72 @@ public class USIEngine : IDisposable
 		return result;
 	}
 
+	public bool InitializeRemote(string host, int port)
+	{
+		AppDebug.Log.Info($"USIEngine.InitializeRemote: host={host}, port={port}");
+		lock (lockObj)
+		{
+			if (initialized_)
+			{
+				return false;
+			}
+			isRemote_ = true;
+			string_queue_ = new StringQueue();
+			try
+			{
+				tcpClient_ = new TcpClient();
+				tcpClient_.Connect(host, port);
+				var stream = tcpClient_.GetStream();
+				var reader = new StreamReader(stream);
+				tcpWriter_ = new StreamWriter(stream) { AutoFlush = true };
+
+				tcpReceiveThread_ = new Thread(() =>
+				{
+					try
+					{
+						string line;
+						while ((line = reader.ReadLine()) != null)
+						{
+							lock (lockObj)
+							{
+								if (string_queue_ != null)
+									string_queue_.Push(line.Replace("\r", string.Empty));
+							}
+						}
+					}
+					catch (Exception ex)
+					{
+						AppDebug.Log.Info($"USIEngine: TCP receive ended: {ex.Message}");
+					}
+					finally
+					{
+						lock (lockObj)
+						{
+							if (string_queue_ != null)
+								string_queue_.Close();
+						}
+					}
+				});
+				tcpReceiveThread_.IsBackground = true;
+				tcpReceiveThread_.Start();
+
+				initialized_ = true;
+				AppDebug.Log.Info($"USIEngine: TCP connected to {host}:{port}");
+			}
+			catch (Exception ex)
+			{
+				AppDebug.Log.ErrorException(ex, $"USIEngine: failed to connect to {host}:{port}");
+				try { tcpClient_?.Close(); } catch { }
+				tcpClient_ = null;
+				tcpWriter_ = null;
+				string_queue_.Dispose();
+				string_queue_ = null;
+				return false;
+			}
+		}
+		return true;
+	}
+
 	public void Terminate()
 	{
 		if (!initialized_)
@@ -105,25 +197,42 @@ public class USIEngine : IDisposable
 		}
 		initialized_ = false;
 		string_queue_.Close();
-		if (!process_.WaitForExit(10000))
+		if (isRemote_)
 		{
-			try
+			lock (lockObj)
 			{
-				process_.Kill();
-			}
-			catch
-			{
+				try { tcpClient_?.Close(); } catch { }
+				tcpClient_ = null;
+				tcpWriter_ = null;
+				tcpReceiveThread_?.Join(5000);
+				tcpReceiveThread_ = null;
+				string_queue_.Close();
+				string_queue_.Dispose();
+				string_queue_ = null;
 			}
 		}
-		lock (lockObj)
+		else
 		{
-			process_.OutputDataReceived -= process_DataRecieved;
-			process_.Exited -= process_Exited;
-			process_.Close();
-			process_ = null;
-			string_queue_.Close();
-			string_queue_.Dispose();
-			string_queue_ = null;
+			if (!process_.WaitForExit(10000))
+			{
+				try
+				{
+					process_.Kill();
+				}
+				catch
+				{
+				}
+			}
+			lock (lockObj)
+			{
+				process_.OutputDataReceived -= process_DataRecieved;
+				process_.Exited -= process_Exited;
+				process_.Close();
+				process_ = null;
+				string_queue_.Close();
+				string_queue_.Dispose();
+				string_queue_ = null;
+			}
 		}
 	}
 
@@ -158,8 +267,16 @@ public class USIEngine : IDisposable
 	{
 		try
 		{
-			process_.StandardInput.WriteLine(str);
-			process_.StandardInput.Flush();
+			if (isRemote_)
+			{
+				tcpWriter_.WriteLine(str);
+				tcpWriter_.Flush();
+			}
+			else
+			{
+				process_.StandardInput.WriteLine(str);
+				process_.StandardInput.Flush();
+			}
 		}
 		catch
 		{
@@ -221,5 +338,20 @@ public class USIEngine : IDisposable
 		{
 			SetOption(item.Key, item.Value);
 		}
+	}
+
+	private static bool IsShellScript(string filename)
+	{
+		try
+		{
+			using var fs = new FileStream(filename, FileMode.Open, FileAccess.Read);
+			byte[] header = new byte[2];
+			if (fs.Read(header, 0, 2) == 2)
+			{
+				return header[0] == '#' && header[1] == '!';
+			}
+		}
+		catch { }
+		return false;
 	}
 }
