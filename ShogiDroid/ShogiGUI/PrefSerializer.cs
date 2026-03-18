@@ -38,6 +38,10 @@ public class PrefSerializer
 				{
 					editor.PutFloat(text, (float)fieldInfo.GetValue(obj));
 				}
+				else if (fieldInfo.FieldType.Name == "Double")
+				{
+					editor.PutString(text, ((double)fieldInfo.GetValue(obj)).ToString("R"));
+				}
 				else if (fieldInfo.FieldType.IsValueType)
 				{
 					editor.PutInt(text, (int)fieldInfo.GetValue(obj));
@@ -89,6 +93,12 @@ public class PrefSerializer
 				{
 					float num = pref.GetFloat(text, (float)fieldInfo.GetValue(obj));
 					fieldInfo.SetValue(obj, num);
+				}
+				else if (fieldInfo.FieldType.Name == "Double")
+				{
+					string ds = pref.GetString(text, ((double)fieldInfo.GetValue(obj)).ToString("R"));
+					if (double.TryParse(ds, out double dv))
+						fieldInfo.SetValue(obj, dv);
 				}
 				else if (fieldInfo.FieldType.IsValueType)
 				{
