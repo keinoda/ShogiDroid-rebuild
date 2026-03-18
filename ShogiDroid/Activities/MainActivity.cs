@@ -745,9 +745,10 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		case VASTAI_ACTIVITY_CODE:
 			if (resultCode == Result.Ok)
 			{
-				// VastAiActivity has set RemoteHost/RemotePort/EngineNo in Settings
+				// VastAiActivity has saved RemoteHost/RemotePort/EngineNo to disk.
+				// Force engine reconnect by terminating before loading new settings.
+				presenter.ForceEngineReconnect();
 				Settings.Load();
-				presenter.SelectEngine(RemoteEnginePlayer.RemoteEngineNo, Settings.EngineSettings.EngineName);
 				drawerLayout.CloseDrawers();
 			}
 			break;

@@ -577,6 +577,14 @@ public class MainPresenter : PresenterBase<IMainView>
 		}
 	}
 
+	/// <summary>
+	/// Unconditionally terminate current engine so next use picks up new settings (host/port etc).
+	/// </summary>
+	public void ForceEngineReconnect()
+	{
+		Domain.Game.EngineTerminate();
+	}
+
 	public void EngineWakeup()
 	{
 		Domain.Game.EngineWakeup();
