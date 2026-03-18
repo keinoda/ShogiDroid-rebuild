@@ -293,11 +293,14 @@ public class VastAiManager : IDisposable
 
 	private Dictionary<string, object> BuildSearchQuery(VastAiSearchCriteria criteria)
 	{
+		string sortField = string.IsNullOrEmpty(criteria.SortField) ? "dph_total" : criteria.SortField;
+		string sortDir = criteria.SortAsc ? "asc" : "desc";
+
 		var query = new Dictionary<string, object>
 		{
 			["rentable"] = new Dictionary<string, object> { ["eq"] = true },
 			["rented"] = new Dictionary<string, object> { ["eq"] = false },
-			["order"] = new object[] { new object[] { "dph_total", "asc" } },
+			["order"] = new object[] { new object[] { sortField, sortDir } },
 			["type"] = "bid"
 		};
 
@@ -321,6 +324,26 @@ public class VastAiManager : IDisposable
 			query["gpu_ram"] = new Dictionary<string, object> { ["gte"] = criteria.MinGpuRam * 1024 };
 		}
 
+		if (criteria.MinDiskSpace > 0)
+		{
+			query["disk_space"] = new Dictionary<string, object> { ["gte"] = (double)criteria.MinDiskSpace };
+		}
+
+		if (criteria.MinReliability > 0)
+		{
+			query["reliability2"] = new Dictionary<string, object> { ["gte"] = criteria.MinReliability / 100.0 };
+		}
+
+		if (criteria.MinInetDown > 0)
+		{
+			query["inet_down"] = new Dictionary<string, object> { ["gte"] = criteria.MinInetDown };
+		}
+
+		if (criteria.NumGpus > 0)
+		{
+			query["num_gpus"] = new Dictionary<string, object> { ["eq"] = criteria.NumGpus };
+		}
+
 		return query;
 	}
 
@@ -339,10 +362,16 @@ public class VastAiManager : IDisposable
 
 public class VastAiSearchCriteria
 {
-	public string[] GpuNames = new[] { "RTX 4090", "RTX 4090 D" };
+	public string[] GpuNames = new[] { "RTX 4090", "RTX 5090" };
 	public int MinCpuCoresEffective = 32;
 	public double MaxDphTotal = 0.4;
-	public int MinGpuRam = 0;
+	public int MinGpuRam = 0;       // GB
+	public int MinDiskSpace = 0;     // GB
+	public double MinReliability = 0; // % (0-100)
+	public double MinInetDown = 0;   // Mbps
+	public int NumGpus = 0;          // 0 = any
+	public string SortField = "dph_total";  // dph_total, dlperf, cpu_cores_effective, reliability2, inet_down
+	public bool SortAsc = true;
 }
 
 public class VastAiInstanceConfig

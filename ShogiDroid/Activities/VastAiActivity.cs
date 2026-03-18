@@ -40,6 +40,18 @@ public class VastAiActivity : Activity
 	private EditText manualHostEdit_;
 	private EditText manualPortEdit_;
 
+	// Search criteria UI
+	private EditText gpuNamesEdit_;
+	private EditText minCpuCoresEdit_;
+	private EditText maxDphEdit_;
+	private EditText minGpuRamEdit_;
+	private EditText minDiskSpaceEdit_;
+	private EditText minReliabilityEdit_;
+	private EditText minInetDownEdit_;
+	private EditText numGpusEdit_;
+	private Spinner sortFieldSpinner_;
+	private CheckBox sortAscCheck_;
+
 	protected override void OnCreate(Bundle savedInstanceState)
 	{
 		base.OnCreate(savedInstanceState);
@@ -68,6 +80,16 @@ public class VastAiActivity : Activity
 
 		// === 既存インスタンス ===
 		AddSectionHeader(rootLayout_, "既存インスタンス");
+
+		var refreshBtn = new Button(this) { Text = "更新" };
+		refreshBtn.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+		var refreshLp = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.WrapContent, LinearLayout.LayoutParams.WrapContent);
+		refreshLp.BottomMargin = DpToPx(4);
+		refreshBtn.LayoutParameters = refreshLp;
+		refreshBtn.Click += (s, e) => LoadExistingInstancesAsync();
+		rootLayout_.AddView(refreshBtn);
+
 		existingInstancesContainer_ = new LinearLayout(this) { Orientation = Orientation.Vertical };
 		rootLayout_.AddView(existingInstancesContainer_);
 
@@ -107,6 +129,65 @@ public class VastAiActivity : Activity
 		onStartCmdEdit_.SetMaxLines(3);
 		onStartCmdEdit_.SetSingleLine(false);
 
+		// === 検索条件 ===
+		AddSectionHeader(rootLayout_, "検索条件");
+
+		gpuNamesEdit_ = AddEditField(rootLayout_, "GPU名 (カンマ区切り)", "例: RTX 4090, RTX 4090 D");
+
+		// 2列レイアウトで検索条件を並べる
+		var row1 = MakeTwoColumnRow();
+		minCpuCoresEdit_ = AddCompactEditField(row1, "最小CPUコア数", "32", true);
+		maxDphEdit_ = AddCompactEditField(row1, "最大単価 ($/h)", "0.5", false);
+		rootLayout_.AddView(row1);
+
+		var row2 = MakeTwoColumnRow();
+		minGpuRamEdit_ = AddCompactEditField(row2, "最小GPU RAM (GB)", "0", true);
+		minDiskSpaceEdit_ = AddCompactEditField(row2, "最小ディスク (GB)", "0", true);
+		rootLayout_.AddView(row2);
+
+		var row3 = MakeTwoColumnRow();
+		minReliabilityEdit_ = AddCompactEditField(row3, "最小信頼性 (%)", "0", false);
+		minInetDownEdit_ = AddCompactEditField(row3, "最小DL速度 (Mbps)", "0", false);
+		rootLayout_.AddView(row3);
+
+		var row4 = MakeTwoColumnRow();
+		numGpusEdit_ = AddCompactEditField(row4, "GPU数 (0=指定なし)", "0", true);
+		// ソート方向
+		var sortAscContainer = new LinearLayout(this) { Orientation = Orientation.Vertical };
+		sortAscContainer.LayoutParameters = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WrapContent, 1f);
+		sortAscContainer.SetPadding(DpToPx(4), 0, DpToPx(4), 0);
+		var sortAscLabel = new TextView(this) { Text = "ソート順" };
+		sortAscLabel.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+		sortAscLabel.SetTypeface(null, TypefaceStyle.Bold);
+		sortAscContainer.AddView(sortAscLabel);
+		sortAscCheck_ = new CheckBox(this) { Text = "昇順 (安い順)", Checked = true };
+		sortAscCheck_.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+		sortAscContainer.AddView(sortAscCheck_);
+		row4.AddView(sortAscContainer);
+		rootLayout_.AddView(row4);
+
+		// ソートフィールド
+		var sortRow = new LinearLayout(this) { Orientation = Orientation.Horizontal };
+		sortRow.SetGravity(GravityFlags.CenterVertical);
+		var sortRowLp = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+		sortRowLp.TopMargin = DpToPx(4);
+		sortRow.LayoutParameters = sortRowLp;
+
+		var sortLabel = new TextView(this) { Text = "ソート基準: " };
+		sortLabel.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
+		sortLabel.SetTypeface(null, TypefaceStyle.Bold);
+		sortRow.AddView(sortLabel);
+
+		sortFieldSpinner_ = new Spinner(this);
+		var sortItems = new[] { "時間単価", "DLパフォーマンス", "CPUコア数", "信頼性", "DL速度" };
+		var sortAdapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleSpinnerItem, sortItems);
+		sortAdapter.SetDropDownViewResource(Android.Resource.Layout.SimpleSpinnerDropDownItem);
+		sortFieldSpinner_.Adapter = sortAdapter;
+		sortFieldSpinner_.LayoutParameters = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WrapContent, 1f);
+		sortRow.AddView(sortFieldSpinner_);
+		rootLayout_.AddView(sortRow);
+
 		searchButton_ = new Button(this) { Text = "オファー検索 (interruptible)" };
 		searchButton_.Click += (s, e) => SearchOffersAsync();
 		var searchLp = new LinearLayout.LayoutParams(
@@ -141,11 +222,27 @@ public class VastAiActivity : Activity
 		SetContentView(scroll);
 	}
 
+	private static readonly string[] SortFieldValues = { "dph_total", "dlperf", "cpu_cores_effective", "reliability2", "inet_down" };
+
 	private void LoadSettings()
 	{
 		apiKeyEdit_.Text = Settings.EngineSettings.VastAiApiKey;
 		dockerImageEdit_.Text = Settings.EngineSettings.VastAiDockerImage;
 		onStartCmdEdit_.Text = Settings.EngineSettings.VastAiOnStartCmd;
+
+		// Search criteria
+		gpuNamesEdit_.Text = Settings.EngineSettings.VastAiGpuNames;
+		minCpuCoresEdit_.Text = Settings.EngineSettings.VastAiMinCpuCores.ToString();
+		maxDphEdit_.Text = Settings.EngineSettings.VastAiMaxDph.ToString("G");
+		minGpuRamEdit_.Text = Settings.EngineSettings.VastAiMinGpuRam.ToString();
+		minDiskSpaceEdit_.Text = Settings.EngineSettings.VastAiMinDiskSpace.ToString();
+		minReliabilityEdit_.Text = Settings.EngineSettings.VastAiMinReliability.ToString("G");
+		minInetDownEdit_.Text = Settings.EngineSettings.VastAiMinInetDown.ToString("G");
+		numGpusEdit_.Text = Settings.EngineSettings.VastAiNumGpus.ToString();
+		sortAscCheck_.Checked = Settings.EngineSettings.VastAiSortAsc;
+
+		int sortIndex = Array.IndexOf(SortFieldValues, Settings.EngineSettings.VastAiSortField);
+		sortFieldSpinner_.SetSelection(sortIndex >= 0 ? sortIndex : 0);
 	}
 
 	private void SaveSettings()
@@ -153,6 +250,28 @@ public class VastAiActivity : Activity
 		Settings.EngineSettings.VastAiApiKey = apiKeyEdit_.Text?.Trim() ?? "";
 		Settings.EngineSettings.VastAiDockerImage = dockerImageEdit_.Text?.Trim() ?? "";
 		Settings.EngineSettings.VastAiOnStartCmd = onStartCmdEdit_.Text?.Trim() ?? "";
+
+		// Search criteria
+		Settings.EngineSettings.VastAiGpuNames = gpuNamesEdit_.Text?.Trim() ?? "";
+		int.TryParse(minCpuCoresEdit_.Text, out int cpuCores);
+		Settings.EngineSettings.VastAiMinCpuCores = cpuCores;
+		double.TryParse(maxDphEdit_.Text, out double maxDph);
+		Settings.EngineSettings.VastAiMaxDph = maxDph;
+		int.TryParse(minGpuRamEdit_.Text, out int gpuRam);
+		Settings.EngineSettings.VastAiMinGpuRam = gpuRam;
+		int.TryParse(minDiskSpaceEdit_.Text, out int diskSpace);
+		Settings.EngineSettings.VastAiMinDiskSpace = diskSpace;
+		double.TryParse(minReliabilityEdit_.Text, out double reliability);
+		Settings.EngineSettings.VastAiMinReliability = reliability;
+		double.TryParse(minInetDownEdit_.Text, out double inetDown);
+		Settings.EngineSettings.VastAiMinInetDown = inetDown;
+		int.TryParse(numGpusEdit_.Text, out int numGpus);
+		Settings.EngineSettings.VastAiNumGpus = numGpus;
+		Settings.EngineSettings.VastAiSortAsc = sortAscCheck_.Checked;
+		int sortPos = sortFieldSpinner_.SelectedItemPosition;
+		Settings.EngineSettings.VastAiSortField = (sortPos >= 0 && sortPos < SortFieldValues.Length)
+			? SortFieldValues[sortPos] : "dph_total";
+
 		Settings.Save();
 	}
 
@@ -493,12 +612,7 @@ public class VastAiActivity : Activity
 
 		try
 		{
-			var criteria = new VastAiSearchCriteria
-			{
-				GpuNames = new[] { "RTX 4090", "RTX 4090 D" },
-				MinCpuCoresEffective = 32,
-				MaxDphTotal = 0.5
-			};
+			var criteria = BuildCriteriaFromUI();
 
 			var offers = await manager.SearchOffersAsync(criteria, cts_.Token);
 
@@ -552,7 +666,7 @@ public class VastAiActivity : Activity
 
 		var cpuText = new TextView(this)
 		{
-			Text = $"CPU: {offer.CpuCoresEffective:F0}cores (割当) | RAM: {offer.CpuRamGb:F0}GB | 信頼性: {offer.Reliability:F1}%"
+			Text = $"CPU: {offer.CpuName} {offer.CpuCoresEffective:F0}cores (割当) | RAM: {offer.CpuRamGb:F0}GB | 信頼性: {offer.Reliability:F1}%"
 		};
 		cpuText.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
 		cpuText.SetTextColor(Color.DarkGray);
@@ -664,6 +778,78 @@ public class VastAiActivity : Activity
 		resultIntent.PutExtra(ExtraPort, port);
 		SetResult(Result.Ok, resultIntent);
 		Finish();
+	}
+
+	// ===== Search Criteria =====
+
+	private VastAiSearchCriteria BuildCriteriaFromUI()
+	{
+		string gpuText = gpuNamesEdit_.Text?.Trim() ?? "";
+		string[] gpuNames = string.IsNullOrEmpty(gpuText)
+			? Array.Empty<string>()
+			: gpuText.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0).ToArray();
+
+		int.TryParse(minCpuCoresEdit_.Text, out int cpuCores);
+		double.TryParse(maxDphEdit_.Text, out double maxDph);
+		int.TryParse(minGpuRamEdit_.Text, out int gpuRam);
+		int.TryParse(minDiskSpaceEdit_.Text, out int diskSpace);
+		double.TryParse(minReliabilityEdit_.Text, out double reliability);
+		double.TryParse(minInetDownEdit_.Text, out double inetDown);
+		int.TryParse(numGpusEdit_.Text, out int numGpus);
+
+		int sortPos = sortFieldSpinner_.SelectedItemPosition;
+		string sortField = (sortPos >= 0 && sortPos < SortFieldValues.Length)
+			? SortFieldValues[sortPos] : "dph_total";
+
+		return new VastAiSearchCriteria
+		{
+			GpuNames = gpuNames,
+			MinCpuCoresEffective = cpuCores,
+			MaxDphTotal = maxDph,
+			MinGpuRam = gpuRam,
+			MinDiskSpace = diskSpace,
+			MinReliability = reliability,
+			MinInetDown = inetDown,
+			NumGpus = numGpus,
+			SortField = sortField,
+			SortAsc = sortAscCheck_.Checked
+		};
+	}
+
+	private LinearLayout MakeTwoColumnRow()
+	{
+		var row = new LinearLayout(this) { Orientation = Orientation.Horizontal };
+		var lp = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+		lp.TopMargin = DpToPx(2);
+		row.LayoutParameters = lp;
+		return row;
+	}
+
+	private EditText AddCompactEditField(LinearLayout parent, string label, string hint, bool integerOnly)
+	{
+		var container = new LinearLayout(this) { Orientation = Orientation.Vertical };
+		container.LayoutParameters = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WrapContent, 1f);
+		container.SetPadding(DpToPx(4), 0, DpToPx(4), 0);
+
+		var labelView = new TextView(this) { Text = label };
+		labelView.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+		labelView.SetTypeface(null, TypefaceStyle.Bold);
+		container.AddView(labelView);
+
+		var editText = new EditText(this);
+		editText.Hint = hint;
+		editText.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
+		editText.SetSingleLine(true);
+		editText.InputType = integerOnly
+			? Android.Text.InputTypes.ClassNumber
+			: (Android.Text.InputTypes.ClassNumber | Android.Text.InputTypes.NumberFlagDecimal);
+		editText.LayoutParameters = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+		container.AddView(editText);
+
+		parent.AddView(container);
+		return editText;
 	}
 
 	// ===== Helpers =====
