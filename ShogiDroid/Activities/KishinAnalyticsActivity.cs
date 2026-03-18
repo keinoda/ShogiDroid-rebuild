@@ -16,7 +16,7 @@ using Java.Interop;
 
 namespace ShogiDroid;
 
-[Activity(Label = "盤面読み取り", Theme = "@style/Theme.AppCompat.Light")]
+[Activity(Label = "盤面読み取り", Theme = "@style/AppTheme")]
 public class KishinAnalyticsActivity : Activity
 {
 	private const string KISHIN_URL = "https://kishin-analytics.heroz.jp/";

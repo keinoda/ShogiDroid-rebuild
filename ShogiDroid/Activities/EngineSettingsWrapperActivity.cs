@@ -17,7 +17,7 @@ using Math = System.Math;
 
 namespace ShogiDroid;
 
-[Activity(Label = "@string/EngineSettingsTitle_Text", ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/Theme.AppCompat.Light")]
+[Activity(Label = "@string/EngineSettingsTitle_Text", ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
 public class EngineSettingsWrapperActivity : Activity, IEngineOptions
 {
 	private EngineOptionsPresenter presenter;
@@ -57,6 +57,9 @@ public class EngineSettingsWrapperActivity : Activity, IEngineOptions
 		new OptionDef(new[] { "UCT_Threads", "UCT_Threads1" }, "ニューラルネット設定",
 			"MCTS探索スレッド数",
 			"GPU毎の探索スレッド数。推奨: 2～3"),
+		new OptionDef(new[] { "UCT_NodeLimit" }, "ニューラルネット設定",
+			"MCTS最大ノード数",
+			"探索木の最大ノード数。1ノード≒2KBのメモリを使用。\n推奨: 50000000(50M≒100GB)。長時間解析時は増やす"),
 
 		// === 定跡設定 ===
 		new OptionDef(new[] { "USI_OwnBook" }, "定跡設定",

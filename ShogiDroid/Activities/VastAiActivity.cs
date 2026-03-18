@@ -14,7 +14,7 @@ using ShogiGUI.Engine;
 
 namespace ShogiDroid;
 
-[Activity(Label = "リモートエンジン (vast.ai)", ConfigurationChanges = (Android.Content.PM.ConfigChanges.Orientation | Android.Content.PM.ConfigChanges.ScreenSize), Theme = "@style/Theme.AppCompat.Light")]
+[Activity(Label = "リモートエンジン (vast.ai)", ConfigurationChanges = (Android.Content.PM.ConfigChanges.Orientation | Android.Content.PM.ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
 public class VastAiActivity : Activity
 {
 	public const string ExtraHost = "vast_ai_host";

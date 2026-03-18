@@ -121,6 +121,7 @@ public class ThinkInfiListViewAdapter : BaseAdapter
 			view = activity.LayoutInflater.Inflate(LayoutId, parent, attachToRoot: false);
 			view.Id = LayoutId;
 		}
+		FontUtil.ApplyFont(view);
 		if (pvinfos == null || pvinfos.Length == 0)
 		{
 			SetText(view, Resource.Id.kind, string.Empty);

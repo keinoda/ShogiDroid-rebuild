@@ -4,6 +4,7 @@ using Android.Views;
 using Android.Widget;
 using AndroidX.Core.Content;
 using Java.Lang;
+using ShogiGUI;
 using ShogiLib;
 using Object = Java.Lang.Object;
 
@@ -54,6 +55,7 @@ public class NotatinAdapter : BaseAdapter
 	public override View GetView(int position, View convertView, ViewGroup parent)
 	{
 		View view = convertView ?? activity.LayoutInflater.Inflate(Resource.Layout.notationlistviewitem, parent, attachToRoot: false);
+		FontUtil.ApplyFont(view);
 		TextView textView = view.FindViewById<TextView>(Resource.Id.move_text);
 		MoveNode moveNode = notation.GetMoveNode(position);
 		TextView textView2 = view.FindViewById<TextView>(Resource.Id.time_text);

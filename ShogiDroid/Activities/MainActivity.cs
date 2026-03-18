@@ -32,7 +32,7 @@ using ShogiLib;
 
 namespace ShogiDroid;
 
-[Activity(Label = "ShogiDroid", MainLauncher = true, Icon = "@drawable/shogidroid_icon", WindowSoftInputMode = SoftInput.AdjustNothing, ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/Theme.AppCompat.Light")]
+[Activity(Label = "ShogiDroid", MainLauncher = true, Icon = "@drawable/shogidroid_icon", WindowSoftInputMode = SoftInput.AdjustNothing, ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT", "android.intent.category.BROWSABLE" }, DataScheme = "http", DataHost = "live.shogi.or.jp", DataPathPattern = "/.*/kifu/.*")]
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT", "android.intent.category.BROWSABLE" }, DataScheme = "http", DataHost = "*", DataPathPattern = "/.*.kif")]
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT", "android.intent.category.BROWSABLE" }, DataScheme = "http", DataHost = "*", DataPathPattern = "/.*.ki2")]

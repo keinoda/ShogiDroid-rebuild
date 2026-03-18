@@ -11,7 +11,7 @@ using ShogiGUI;
 
 namespace ShogiDroid;
 
-[Activity(Label = "@string/action_settings", Theme = "@style/Theme.AppCompat.Light")]
+[Activity(Label = "@string/action_settings", Theme = "@style/AppTheme")]
 public class SettingActivity : PreferenceActivity
 {
 	public class SettingsFragment : PreferenceFragment, ISharedPreferencesOnSharedPreferenceChangeListener, IJavaObject, IDisposable, IJavaPeerable
