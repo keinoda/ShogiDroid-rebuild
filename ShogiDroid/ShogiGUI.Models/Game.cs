@@ -55,6 +55,8 @@ public class Game
 
 	private AnalyzeInfoList analyzeInfoList = new AnalyzeInfoList();
 
+	public AnalyzeInfoList AnalyzeInfoList => analyzeInfoList;
+
 	private EngineMode engineMode;
 
 	private static string gameText = Application.Context.GetString(Resource.String.Game_Text);
