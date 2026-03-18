@@ -360,9 +360,9 @@ public class PvInfo
 	public static string NodesToString(long nodes)
 	{
 		if (nodes >= 1000000000L)
-			return FormatWithSuffix(nodes, 1000000000L, "g");
+			return FormatWithSuffix(nodes, 1000000000L, "B");
 		if (nodes >= 1000000)
-			return FormatWithSuffix(nodes, 1000000, "m");
+			return FormatWithSuffix(nodes, 1000000, "M");
 		if (nodes >= 1000)
 			return FormatWithSuffix(nodes, 1000, "k");
 		return nodes.ToString();
@@ -371,7 +371,7 @@ public class PvInfo
 	public static string NpsToString(long nodes)
 	{
 		if (nodes >= 1000000)
-			return FormatWithSuffix(nodes, 1000000, "m");
+			return FormatWithSuffix(nodes, 1000000, "M");
 		if (nodes >= 1000)
 			return FormatWithSuffix(nodes, 1000, "k");
 		return nodes.ToString();
