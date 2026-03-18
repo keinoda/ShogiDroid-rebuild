@@ -410,4 +410,9 @@
     <item type="id" name="visible_removing_fragment_view_tag" />
     <item type="id" name="web_view" />
     <item type="id" name="with_icon" />
+    <item type="id" name="camera_read" />
+    <item type="id" name="kishin_webview" />
+    <item type="id" name="kishin_close_button" />
+    <item type="id" name="kishin_progress_bar" />
+    <item type="id" name="kishin_overlay" />
 </resources>

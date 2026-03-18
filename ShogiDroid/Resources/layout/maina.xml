@@ -4,9 +4,10 @@
   xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
     <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent">
         <!-- Top bar: menu + space for future additions -->
-        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
-            <ImageButton android:id="@id/menu_button" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@drawable/ic_overflow" />
-        </LinearLayout>
+        <FrameLayout android:layout_width="fill_parent" android:layout_height="wrap_content">
+            <ImageButton android:id="@id/menu_button" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@drawable/ic_overflow" android:layout_gravity="start|center_vertical" />
+            <ImageButton android:id="@id/camera_read" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@drawable/ic_camera" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="@string/Menu_CameraRead_Text" android:layout_gravity="center" />
+        </FrameLayout>
         <!-- Board area -->
         <RelativeLayout android:layout_width="fill_parent" android:layout_height="wrap_content">
             <shogidroid.controls.shogiboard.ShogiBoard android:id="@id/shogiboard" android:background="@color/theme_background" android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_marginLeft="0.0dip" android:layout_marginRight="0.0dip" app:DesignMode="true" />
