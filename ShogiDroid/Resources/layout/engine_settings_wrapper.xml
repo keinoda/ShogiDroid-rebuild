@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+  xmlns:android="http://schemas.android.com/apk/res/android"
+  android:layout_width="match_parent"
+  android:layout_height="match_parent"
+  android:orientation="vertical"
+  android:fitsSystemWindows="true">
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:gravity="center_vertical"
+      android:padding="8dp"
+      android:background="@color/title_background">
+        <TextView
+          android:id="@id/engine_settings_title"
+          android:layout_width="0dp"
+          android:layout_height="wrap_content"
+          android:layout_weight="1"
+          android:text="@string/EngineSettingsTitle_Text"
+          android:textSize="18sp"
+          android:textColor="@android:color/white" />
+        <Button
+          android:id="@id/engine_settings_all_options"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="@string/EngineSettingsAllOptions_Text"
+          android:textSize="12sp"
+          style="?android:attr/buttonBarButtonStyle" />
+    </LinearLayout>
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:padding="4dp">
+        <TextView
+          android:id="@id/engine_settings_engine_name"
+          android:layout_width="0dp"
+          android:layout_height="wrap_content"
+          android:layout_weight="1"
+          android:textSize="14sp"
+          android:ellipsize="end"
+          android:singleLine="true" />
+    </LinearLayout>
+    <ScrollView
+      android:layout_width="match_parent"
+      android:layout_height="0dp"
+      android:layout_weight="1">
+        <LinearLayout
+          android:id="@id/engine_settings_container"
+          android:layout_width="match_parent"
+          android:layout_height="wrap_content"
+          android:orientation="vertical"
+          android:padding="8dp" />
+    </ScrollView>
+    <LinearLayout
+      android:layout_width="match_parent"
+      android:layout_height="wrap_content"
+      android:orientation="horizontal"
+      android:gravity="center">
+        <Space android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+        <Button
+          android:id="@id/CancelButton"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="@string/DialogCancel_Text"
+          android:layout_weight="2" />
+        <Space android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+        <Button
+          android:id="@id/OKButton"
+          android:layout_width="wrap_content"
+          android:layout_height="wrap_content"
+          android:text="@string/DialogOK_Text"
+          android:layout_weight="2" />
+        <Space android:layout_width="0dp" android:layout_height="0dp" android:layout_weight="1" />
+    </LinearLayout>
+</LinearLayout>
