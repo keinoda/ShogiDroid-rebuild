@@ -205,4 +205,5 @@
     <string name="hide_bottom_view_on_scroll_behavior">com.google.android.material.behavior.HideBottomViewOnScrollBehavior</string>
     <string name="permission_external_storage">ストレージの書き込みを許可しますか？</string>
     <string name="app_text">将棋ドロイドR</string>
+    <string name="Menu_CameraRead_Text">盤面読み取り</string>
 </resources>

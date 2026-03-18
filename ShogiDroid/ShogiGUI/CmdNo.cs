@@ -37,5 +37,6 @@ public enum CmdNo
 	Kyokumen = 51,
 	BoardEdit = 52,
 	MangeEgien = 53,
-	ShogiWars = 54
+	ShogiWars = 54,
+	CameraRead = 55
 }

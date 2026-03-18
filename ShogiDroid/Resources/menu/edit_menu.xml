@@ -8,4 +8,5 @@
     <item android:id="@id/notation_copy" android:title="@string/Menu_NotaitonCopy_Text" />
     <item android:id="@id/notation_paste" android:title="@string/Menu_NotaitonPaste_Text" />
     <item android:id="@id/menu_board_edit" android:title="@string/Menu_EditBoard_Text" />
+    <item android:id="@id/camera_read" android:title="@string/Menu_CameraRead_Text" />
 </menu>

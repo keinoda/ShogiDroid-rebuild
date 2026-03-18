@@ -69,6 +69,8 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	private const int WARS_GAME_RESULT_CODE = 108;
 
+	private const int CAMERA_READ_CODE = 109;
+
 	private ShogiBoard shogiBoard;
 
 	private ImageButton prevButton;
@@ -236,6 +238,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		commands.Add(CmdNo.NotationAnalysis, Resource.Id.notation_analysis, ShowAnalyzeStartDialog, presenter.CanAnalyzerStart);
 		commands.Add(CmdNo.Consider, Resource.Id.consider, ConsiderStart, presenter.CanConsiderStart);
 		commands.Add(CmdNo.BoardEdit, Resource.Id.menu_board_edit, BoardEdit, presenter.CanEditBoard);
+		commands.Add(CmdNo.CameraRead, Resource.Id.camera_read, CameraRead, presenter.CanEditBoard);
 		commands.Add(CmdNo.MangeEgien, Resource.Id.menu_engine, PopupEngineMenu, presenter.CanManageEngine);
 	}
 
@@ -368,6 +371,11 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		StartActivityForResult(new Intent(this, typeof(EditBoardActivity)), 103);
 	}
 
+	private void CameraRead()
+	{
+		StartActivityForResult(new Intent(this, typeof(KishinAnalyticsActivity)), CAMERA_READ_CODE);
+	}
+
 	private void KyokumenPedia()
 	{
 		string text = "http://kyokumen.jp/positions/";
@@ -466,6 +474,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		analyzeText = FindViewById<TextView>(Resource.Id.analyze_text);
 		menuButton = FindViewById<ImageButton>(Resource.Id.menu_button);
 		menuButton.Click += MenuButton_Click;
+		FindViewById<ImageButton>(Resource.Id.camera_read).Click += (s, e) => CameraRead();
 		reverseButton = FindViewById<ImageButton>(Resource.Id.reverse_button);
 		reverseButton.Click += ReverseButton_Click;
 		inputCancelButton = FindViewById<ImageButton>(Resource.Id.input_cancel_button);
@@ -702,6 +711,19 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 			break;
 		case 108:
 			RecieveWarsGameResult();
+			break;
+		case CAMERA_READ_CODE:
+			if (resultCode == Result.Ok && data != null)
+			{
+				string sfen = data.GetStringExtra("sfen");
+				if (!string.IsNullOrEmpty(sfen))
+				{
+					SNotation newNotation = new SNotation();
+					Sfen.LoadNotation(newNotation, sfen);
+					Domain.Game.NotationModel.EditBoard(newNotation);
+					StartActivityForResult(new Intent(this, typeof(EditBoardActivity)), EDIT_BOARD_CODE);
+				}
+			}
 			break;
 		case 200:
 			if ((int)Build.VERSION.SdkInt >= 30 && Android.OS.Environment.IsExternalStorageManager)
