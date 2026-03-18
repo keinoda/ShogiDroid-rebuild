@@ -10,7 +10,7 @@
     <string name="AnalyzeRange_Text">範囲</string>
     <string name="AnalyzeStartDialog_Text">棋譜解析</string>
     <string name="AnalyzeTime_Text">時間</string>
-    <string name="Analyzing_Text">検討中</string>
+    <string name="Analyzing_Text">解析中</string>
     <string name="BadMove_Text">悪手</string>
     <string name="Balanced_Text">互角</string>
     <string name="BlackAdvantage_Text">先手有利</string>
@@ -137,8 +137,8 @@
     <string name="SettingsAnalyzeMultiPv_Default">10000</string>
     <string name="SettingsAnalyzeMultiPv_Text">候補手の数</string>
     <string name="SettingsAnalyzeTime_Default">10000</string>
-    <string name="SettingsAnalyzeTime_Text">時間</string>
-    <string name="SettingsAnalyze_Text">ヒント</string>
+    <string name="SettingsAnalyzeTime_Text">自動解析終了時間</string>
+    <string name="SettingsAnalyze_Text">解析</string>
     <string name="SettingsAnimateMoves_Text">駒移動アニメーション</string>
     <string name="SettingsAnimateSpeed_Default">Normal</string>
     <string name="SettingsAppearance_Text">表示</string>
@@ -159,6 +159,9 @@
     <string name="SettingsMoveStyle_Default">Kif</string>
     <string name="SettingsMoveStyle_Text">指し手表記</string>
     <string name="SettingsOther_Text">その他</string>
+    <string name="SettingsRemoteEngine_Text">リモートエンジン</string>
+    <string name="SettingsRemoteHost_Text">ホスト</string>
+    <string name="SettingsRemotePort_Text">ポート</string>
     <string name="SettingsPVDisplay_Text">PV表示設定</string>
     <string name="SettingsPlayInterval_Text">棋譜再生間隔</string>
     <string name="SettingsPlayerName_Text">プレイヤー名</string>
@@ -171,7 +174,7 @@
     <string name="SettingsShortcutMenu5_Text">ショートカット 5</string>
     <string name="SettingsShortcutMenu6_Text">ショートカット 6</string>
     <string name="SettingsShowComputerThinking_Text">コンピューターの思考表示</string>
-    <string name="SettingsShowHintArrow_Text">ヒントの矢印表示</string>
+    <string name="SettingsShowHintArrow_Text">解析の矢印表示</string>
     <string name="SettingsShowNextMoveArrow_Text">次の手を矢印表示</string>
     <string name="SettingsTimeControl_Text">時間設定</string>
     <string name="SettingsTime_Default">300000</string>
