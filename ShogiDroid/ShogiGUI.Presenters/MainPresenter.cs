@@ -815,6 +815,9 @@ public class MainPresenter : PresenterBase<IMainView>
 				Settings.AppSettings.NotationAnalyzeCount = 0;
 				view.ShowInterstitial();
 			}
+			view.ShowAnalysisSummary(
+				Domain.Game.AnalyzeInfoList.BlackMoveInfo,
+				Domain.Game.AnalyzeInfoList.WhiteMoveInfo);
 			break;
 		}
 		if (e.EventId != GameEventId.Info && e.EventId != GameEventId.UpdateTime)
