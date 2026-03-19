@@ -345,7 +345,7 @@ public class VastAiActivity : Activity
 					var otherHeader = new TextView(this) { Text = "その他のインスタンス" };
 					otherHeader.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
 					otherHeader.SetTypeface(null, TypefaceStyle.Italic);
-					otherHeader.SetTextColor(Color.Gray);
+					otherHeader.SetTextColor(ColorUtils.Get(this, Resource.Color.vast_card_sub_text));
 					var headerLp = new LinearLayout.LayoutParams(
 						LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
 					headerLp.TopMargin = DpToPx(8);
@@ -371,7 +371,12 @@ public class VastAiActivity : Activity
 
 	private void AddInstanceCard(VastAiInstance inst, bool isShogiLabeled)
 	{
-		string bgColor = inst.IsRunning ? "#E8F5E9" : (inst.IsStopped ? "#FFF3E0" : "#E3F2FD");
+		bool dark = ColorUtils.IsDarkMode(this);
+		string bgColor = inst.IsRunning
+			? (dark ? "#1B3A1B" : "#E8F5E9")
+			: (inst.IsStopped
+				? (dark ? "#3A2A00" : "#FFF3E0")
+				: (dark ? "#0D1B3A" : "#E3F2FD"));
 
 		var card = new LinearLayout(this) { Orientation = Orientation.Vertical };
 		card.SetBackgroundColor(Color.ParseColor(bgColor));
@@ -397,14 +402,14 @@ public class VastAiActivity : Activity
 			Text = $"{inst.GpuName} x{inst.NumGpus} | CPU {inst.CpuCoresEffective:F0}cores (割当) | RAM {inst.CpuRamGb:F0}GB | ${inst.DphTotal:F3}/h"
 		};
 		specsText.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
-		specsText.SetTextColor(Color.DarkGray);
+		specsText.SetTextColor(ColorUtils.Get(this, Resource.Color.vast_card_sub_text));
 		card.AddView(specsText);
 
 		if (inst.IsRunning && !string.IsNullOrEmpty(inst.PublicIpAddr))
 		{
 			var ipText = new TextView(this) { Text = $"IP: {inst.PublicIpAddr}" };
 			ipText.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
-			ipText.SetTextColor(Color.DarkGray);
+			ipText.SetTextColor(ColorUtils.Get(this, Resource.Color.vast_card_sub_text));
 			card.AddView(ipText);
 		}
 
@@ -421,11 +426,11 @@ public class VastAiActivity : Activity
 			int nnuePort = inst.GetMappedPort(PortNNUE);
 			int deepPort = inst.GetMappedPort(PortDEEP);
 
-			var nnueBtn = MakeButton("NNUE接続", "#1B5E20");
+			var nnueBtn = MakeButton("NNUE接続", Resource.Color.vast_btn_green);
 			nnueBtn.Click += (s, e) => ConnectToInstance(inst, nnuePort, "NNUE");
 			btnRow.AddView(nnueBtn);
 
-			var deepBtn = MakeButton("DEEP接続", "#0D47A1");
+			var deepBtn = MakeButton("DEEP接続", Resource.Color.vast_btn_blue);
 			deepBtn.Click += (s, e) => ConnectToInstance(inst, deepPort, "DEEP");
 			btnRow.AddView(deepBtn);
 		}
@@ -433,18 +438,18 @@ public class VastAiActivity : Activity
 		// 停止/再開 トグルボタン
 		if (inst.IsRunning)
 		{
-			var toggleBtn = MakeButton("停止", "#E65100");
+			var toggleBtn = MakeButton("停止", Resource.Color.vast_btn_orange);
 			toggleBtn.Click += (s, e) => StopInstanceAsync(inst.Id);
 			btnRow.AddView(toggleBtn);
 		}
 		else if (inst.IsStopped)
 		{
-			var toggleBtn = MakeButton("再開", "#1B5E20");
+			var toggleBtn = MakeButton("再開", Resource.Color.vast_btn_green);
 			toggleBtn.Click += (s, e) => ResumeInstanceAsync(inst.Id);
 			btnRow.AddView(toggleBtn);
 		}
 
-		var destroyBtn = MakeButton("削除", "#B71C1C");
+		var destroyBtn = MakeButton("削除", Resource.Color.vast_btn_red);
 		destroyBtn.Click += (s, e) => ConfirmDestroyAsync(inst.Id);
 		btnRow.AddView(destroyBtn);
 
@@ -452,11 +457,11 @@ public class VastAiActivity : Activity
 		existingInstancesContainer_.AddView(card);
 	}
 
-	private Button MakeButton(string text, string textColor)
+	private Button MakeButton(string text, int colorResId)
 	{
 		var btn = new Button(this) { Text = text };
 		btn.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
-		btn.SetTextColor(Color.ParseColor(textColor));
+		btn.SetTextColor(ColorUtils.Get(this, colorResId));
 		var lp = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WrapContent, 1f);
 		lp.SetMargins(DpToPx(2), 0, DpToPx(2), 0);
 		btn.LayoutParameters = lp;
@@ -649,7 +654,7 @@ public class VastAiActivity : Activity
 	private void AddOfferCard(VastAiOffer offer)
 	{
 		var card = new LinearLayout(this) { Orientation = Orientation.Vertical };
-		card.SetBackgroundColor(Color.ParseColor("#F0F4FF"));
+		card.SetBackgroundColor(ColorUtils.Get(this, Resource.Color.card_background));
 		card.SetPadding(DpToPx(12), DpToPx(8), DpToPx(12), DpToPx(8));
 		var cardLp = new LinearLayout.LayoutParams(
 			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
@@ -669,7 +674,7 @@ public class VastAiActivity : Activity
 			Text = $"CPU: {offer.CpuName} {offer.CpuCoresEffective:F0}cores (割当) | RAM: {offer.CpuRamGb:F0}GB | 信頼性: {offer.Reliability:F1}%"
 		};
 		cpuText.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
-		cpuText.SetTextColor(Color.DarkGray);
+		cpuText.SetTextColor(ColorUtils.Get(this, Resource.Color.vast_card_sub_text));
 		card.AddView(cpuText);
 
 		var row = new LinearLayout(this) { Orientation = Orientation.Horizontal };
@@ -677,7 +682,7 @@ public class VastAiActivity : Activity
 
 		var priceText = new TextView(this) { Text = $"${offer.DphTotal:F3}/h" };
 		priceText.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
-		priceText.SetTextColor(Color.ParseColor("#1565C0"));
+		priceText.SetTextColor(ColorUtils.Get(this, Resource.Color.title_background));
 		priceText.SetTypeface(null, TypefaceStyle.Bold);
 		priceText.LayoutParameters = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WrapContent, 1f);
 		row.AddView(priceText);
@@ -866,7 +871,7 @@ public class VastAiActivity : Activity
 		header.Text = title;
 		header.SetTextSize(Android.Util.ComplexUnitType.Sp, 16);
 		header.SetTypeface(null, TypefaceStyle.Bold);
-		header.SetTextColor(Color.ParseColor("#1565C0"));
+		header.SetTextColor(ColorUtils.Get(this, Resource.Color.title_background));
 		var lp = new LinearLayout.LayoutParams(
 			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
 		lp.TopMargin = DpToPx(16);
@@ -875,7 +880,7 @@ public class VastAiActivity : Activity
 		parent.AddView(header);
 
 		var divider = new View(this);
-		divider.SetBackgroundColor(Color.ParseColor("#1565C0"));
+		divider.SetBackgroundColor(ColorUtils.Get(this, Resource.Color.title_background));
 		divider.LayoutParameters = new LinearLayout.LayoutParams(
 			LinearLayout.LayoutParams.MatchParent, DpToPx(2));
 		parent.AddView(divider);
