@@ -44,6 +44,7 @@ adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd reverse
 adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd menu
 adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd stop
 adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd screenshot
+adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd book_load --es path /sdcard/book.db
 ```
 
 ## プロジェクト構成
