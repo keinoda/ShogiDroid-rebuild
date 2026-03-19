@@ -16,6 +16,8 @@ public class LocalFile
 
 	public static string EnginePath => Path.Combine(StorageFolderPath, "engine");
 
+	public static string BookPath => Path.Combine(StorageFolderPath, "book");
+
 	public static void CreateFolders()
 	{
 		string storageFolderPath = StorageFolderPath;

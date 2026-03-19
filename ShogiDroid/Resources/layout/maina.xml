@@ -7,6 +7,7 @@
         <FrameLayout android:layout_width="fill_parent" android:layout_height="36.0dip">
             <ImageButton android:id="@id/menu_button" android:layout_width="36.0dip" android:layout_height="36.0dip" android:src="@drawable/ic_menu_hamburger" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="6.0dip" android:layout_gravity="start|center_vertical" />
             <ImageButton android:id="@id/camera_read" android:layout_width="36.0dip" android:layout_height="36.0dip" android:src="@drawable/ic_camera" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="6.0dip" android:contentDescription="@string/Menu_CameraRead_Text" android:layout_gravity="center" />
+            <Button android:id="@id/book_browse_close" android:layout_width="wrap_content" android:layout_height="32.0dip" android:text="@string/BookBrowseClose_Text" android:textSize="12.0sp" android:padding="4.0dip" android:layout_gravity="end|center_vertical" android:layout_marginEnd="4.0dip" android:visibility="gone" />
         </FrameLayout>
         <!-- Board area -->
         <RelativeLayout android:layout_width="fill_parent" android:layout_height="wrap_content">
