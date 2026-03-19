@@ -1002,17 +1002,12 @@ public class Kifu
 
 	protected static Handicap HandicapFromStr(string str)
 	{
-		Handicap result = Handicap.OTHER;
-		object obj = HandicapExtention.HandicapHash[str];
-		if (obj == null)
+		if (HandicapExtention.HandicapHash.TryGetValue(str, out var result))
 		{
-			Log.Warning("ハンディキャップ?" + str);
+			return result;
 		}
-		else
-		{
-			result = (Handicap)obj;
-		}
-		return result;
+		Log.Warning("ハンディキャップ?" + str);
+		return Handicap.OTHER;
 	}
 
 	protected static string StrFromHand(int[] hand)

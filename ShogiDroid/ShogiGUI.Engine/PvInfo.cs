@@ -281,16 +281,7 @@ public class PvInfo
 		}
 		if (HasEval)
 		{
-			if (Settings.AppSettings.ConvertEvalToWinRate)
-			{
-				int.TryParse(Settings.AppSettings.WinRateCoefficient, out int coeffInt);
-				double coeff = coeffInt > 0 ? coeffInt : WinRateUtil.DefaultCoefficient;
-				text = text + " " + valueText + " " + WinRateUtil.FormatWinRate(Score, HasMate, Mate, coeff);
-			}
-			else
-			{
-				text = text + " " + valueText + " " + ValueToString(Mate, Score, 0);
-			}
+			text = text + " " + valueText + " " + ValueToString(Mate, Score, 0);
 		}
 		if (pvmoves_ != null && pvmoves_.Count != 0)
 		{
@@ -352,7 +343,7 @@ public class PvInfo
 		string text = string.Empty;
 		foreach (MoveDataEx move in moves)
 		{
-			text = text + " " + ((move.Turn == PlayerColor.Black) ? "☗" : "☖") + move.ToString(style);
+			text = text + " " + ((move.Turn == PlayerColor.Black) ? "▲" : "△") + move.ToString(style);
 		}
 		return text;
 	}
