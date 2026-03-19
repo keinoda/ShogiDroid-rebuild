@@ -6,8 +6,8 @@ using Android.Content;
 using Android.Graphics;
 using Android.Views;
 using Android.Widget;
-using AndroidX.Core.Content;
 using Java.Lang;
+using ShogiGUI;
 using ShogiGUI.Engine;
 namespace ShogiDroid.Controls;
 
@@ -48,11 +48,11 @@ public class EngineOptionAdapter : BaseAdapter
 			textView.Text = GetItem(position);
 			if (textView.Text == selString)
 			{
-				textView.SetTextColor(new Color(ContextCompat.GetColor(Context, Resource.Color.option_change_text_color)));
+				textView.SetTextColor(ColorUtils.Get(Context, Resource.Color.option_change_text_color));
 			}
 			else
 			{
-				textView.SetTextColor(new Color(ContextCompat.GetColor(Context, Resource.Color.option_normal_text_color)));
+				textView.SetTextColor(ColorUtils.Get(Context, Resource.Color.option_normal_text_color));
 			}
 			return convertView;
 		}
@@ -67,11 +67,11 @@ public class EngineOptionAdapter : BaseAdapter
 			textView.Text = GetItem(position);
 			if (textView.Text != defautString)
 			{
-				textView.SetTextColor(new Color(ContextCompat.GetColor(Context, Resource.Color.option_change_text_color)));
+				textView.SetTextColor(ColorUtils.Get(Context, Resource.Color.option_change_text_color));
 			}
 			else
 			{
-				textView.SetTextColor(new Color(ContextCompat.GetColor(Context, Resource.Color.option_normal_text_color)));
+				textView.SetTextColor(ColorUtils.Get(Context, Resource.Color.option_normal_text_color));
 			}
 			return convertView;
 		}
@@ -122,11 +122,11 @@ public class EngineOptionAdapter : BaseAdapter
 			checkBox.Tag = position;
 			if (uSIOptionCheck.Value != uSIOptionCheck.DefaultValue)
 			{
-				checkBox.SetTextColor(new Color(ContextCompat.GetColor(activity, Resource.Color.option_change_text_color)));
+				checkBox.SetTextColor(ColorUtils.Get(activity, Resource.Color.option_change_text_color));
 			}
 			else
 			{
-				checkBox.SetTextColor(new Color(ContextCompat.GetColor(activity, Resource.Color.option_normal_text_color)));
+				checkBox.SetTextColor(ColorUtils.Get(activity, Resource.Color.option_normal_text_color));
 			}
 			checkBox.Click += Checkbox_Click;
 			view.FindViewById<TextView>(Resource.Id.OptionSummary).Text = activity.GetString(Resource.String.Default_Text) + ":" + uSIOptionCheck.DefaultValue;
@@ -142,11 +142,11 @@ public class EngineOptionAdapter : BaseAdapter
 			editText2.Text = uSIOptionSpin.ValueToString();
 			if (uSIOptionSpin.Value != uSIOptionSpin.DefaultValue)
 			{
-				editText2.SetTextColor(new Color(ContextCompat.GetColor(activity, Resource.Color.option_change_text_color)));
+				editText2.SetTextColor(ColorUtils.Get(activity, Resource.Color.option_change_text_color));
 			}
 			else
 			{
-				editText2.SetTextColor(new Color(ContextCompat.GetColor(activity, Resource.Color.option_normal_text_color)));
+				editText2.SetTextColor(ColorUtils.Get(activity, Resource.Color.option_normal_text_color));
 			}
 			editText2.FocusChange += Spin_FocusChange;
 			view.FindViewById<TextView>(Resource.Id.OptionSummary).Text = activity.GetString(Resource.String.Min_Text) + ":" + uSIOptionSpin.Min + " " + activity.GetString(Resource.String.Max_Text) + ":" + uSIOptionSpin.Max + " " + activity.GetString(Resource.String.Default_Text) + ":" + uSIOptionSpin.DefaultValue;
@@ -181,11 +181,11 @@ public class EngineOptionAdapter : BaseAdapter
 			editText.Tag = position;
 			if (uSIOptionString.Value != uSIOptionString.DefaultValue)
 			{
-				editText.SetTextColor(new Color(ContextCompat.GetColor(activity, Resource.Color.option_change_text_color)));
+				editText.SetTextColor(ColorUtils.Get(activity, Resource.Color.option_change_text_color));
 			}
 			else
 			{
-				editText.SetTextColor(new Color(ContextCompat.GetColor(activity, Resource.Color.option_normal_text_color)));
+				editText.SetTextColor(ColorUtils.Get(activity, Resource.Color.option_normal_text_color));
 			}
 			editText.FocusChange += String_FocusChange;
 			view.FindViewById<TextView>(Resource.Id.OptionSummary).Text = activity.GetString(Resource.String.Default_Text) + ":" + uSIOptionString.DefaultValue;
@@ -215,11 +215,11 @@ public class EngineOptionAdapter : BaseAdapter
 			uSIOptionString.SetValue(editText.Text);
 			if (uSIOptionString.Value != uSIOptionString.DefaultValue)
 			{
-				editText.SetTextColor(new Color(ContextCompat.GetColor(activity, Resource.Color.option_change_text_color)));
+				editText.SetTextColor(ColorUtils.Get(activity, Resource.Color.option_change_text_color));
 			}
 			else
 			{
-				editText.SetTextColor(new Color(ContextCompat.GetColor(activity, Resource.Color.option_normal_text_color)));
+				editText.SetTextColor(ColorUtils.Get(activity, Resource.Color.option_normal_text_color));
 			}
 		}
 	}
@@ -248,11 +248,11 @@ public class EngineOptionAdapter : BaseAdapter
 			uSIOptionSpin.SetValue(result);
 			if (uSIOptionSpin.Value != uSIOptionSpin.DefaultValue)
 			{
-				editText.SetTextColor(new Color(ContextCompat.GetColor(activity, Resource.Color.option_change_text_color)));
+				editText.SetTextColor(ColorUtils.Get(activity, Resource.Color.option_change_text_color));
 			}
 			else
 			{
-				editText.SetTextColor(new Color(ContextCompat.GetColor(activity, Resource.Color.option_normal_text_color)));
+				editText.SetTextColor(ColorUtils.Get(activity, Resource.Color.option_normal_text_color));
 			}
 		}
 	}
@@ -265,11 +265,11 @@ public class EngineOptionAdapter : BaseAdapter
 		uSIOptionCheck.SetValue(checkBox.Checked);
 		if (uSIOptionCheck.Value != uSIOptionCheck.DefaultValue)
 		{
-			checkBox.SetTextColor(new Color(ContextCompat.GetColor(activity, Resource.Color.option_change_text_color)));
+			checkBox.SetTextColor(ColorUtils.Get(activity, Resource.Color.option_change_text_color));
 		}
 		else
 		{
-			checkBox.SetTextColor(new Color(ContextCompat.GetColor(activity, Resource.Color.option_normal_text_color)));
+			checkBox.SetTextColor(ColorUtils.Get(activity, Resource.Color.option_normal_text_color));
 		}
 	}
 

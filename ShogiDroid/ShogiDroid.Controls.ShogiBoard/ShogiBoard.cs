@@ -2219,6 +2219,13 @@ public class ShogiBoard : View
 		{
 			startime = DateTime.Now.Ticks;
 			g.DrawBitmap(offscreen, screenOfsX, screenOfsY, null);
+			// ダークモード時は盤面に半透明オーバーレイを適用
+			var overlayColor = ShogiGUI.ColorUtils.Get(Context, Resource.Color.board_overlay);
+			if (overlayColor != Android.Graphics.Color.Transparent)
+			{
+				using var overlayPaint = new Paint { Color = overlayColor };
+				g.DrawRect(screenOfsX, screenOfsY, screenOfsX + offscreen.Width, screenOfsY + offscreen.Height, overlayPaint);
+			}
 			drawHintArrowFlag = false;
 			drawBookArrowFlag = false;
 			DrawTurn(g);
