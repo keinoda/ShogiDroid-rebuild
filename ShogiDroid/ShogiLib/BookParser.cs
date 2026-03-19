@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using ProtoBuf;
 
 namespace ShogiLib;
 
@@ -16,10 +17,6 @@ public class BookMove
 
 public static class BookParser
 {
-	/// <summary>
-	/// sfenからキー部分を抽出（手数を除く）
-	/// "lnsgkgsnl/... b - 1" → "lnsgkgsnl/... b -"
-	/// </summary>
 	public static string NormalizeSfenKey(string sfen)
 	{
 		int lastSpace = sfen.LastIndexOf(' ');
@@ -30,18 +27,12 @@ public static class BookParser
 		return sfen;
 	}
 
-	/// <summary>
-	/// YaneuraOu db形式ファイルを読み込み
-	/// </summary>
 	public static Dictionary<string, List<BookMove>> LoadDb(string filename)
 	{
 		using var stream = new FileStream(filename, FileMode.Open, FileAccess.Read);
 		return LoadDb(stream);
 	}
 
-	/// <summary>
-	/// YaneuraOu db形式ストリームを読み込み
-	/// </summary>
 	public static Dictionary<string, List<BookMove>> LoadDb(Stream stream)
 	{
 		var book = new Dictionary<string, List<BookMove>>();
@@ -59,8 +50,7 @@ public static class BookParser
 
 			if (line.StartsWith("sfen "))
 			{
-				// "sfen board turn hands movenum" → キーは手数を除いた部分
-				string sfenBody = line.Substring(5); // "sfen " を除く
+				string sfenBody = line.Substring(5);
 				currentKey = NormalizeSfenKey(sfenBody);
 				if (!book.ContainsKey(currentKey))
 				{
@@ -69,7 +59,6 @@ public static class BookParser
 			}
 			else if (currentKey != null)
 			{
-				// 指し手行: "7g7f 3c3d 0 32 2" or "7g7f none 0 32 1"
 				var parts = line.Split(' ', StringSplitOptions.RemoveEmptyEntries);
 				if (parts.Length >= 1)
 				{
@@ -90,8 +79,7 @@ public static class BookParser
 	}
 
 	/// <summary>
-	/// ShogiGUI sbk形式（バイナリ）を読み込み
-	/// BookConv の SBook.Load() ロジック準拠
+	/// ShogiGUI sbk形式を読み込み（Protocol Buffers + BookConv互換デコード）
 	/// </summary>
 	public static Dictionary<string, List<BookMove>> LoadSbk(string filename)
 	{
@@ -99,69 +87,314 @@ public static class BookParser
 		return LoadSbk(stream);
 	}
 
-	/// <summary>
-	/// ShogiGUI sbk形式ストリームを読み込み
-	/// sbk形式: 各エントリが (sfen文字列 + 手のリスト) のバイナリ
-	/// </summary>
 	public static Dictionary<string, List<BookMove>> LoadSbk(Stream stream)
 	{
-		var book = new Dictionary<string, List<BookMove>>();
-
-		using var reader = new BinaryReader(stream, Encoding.UTF8);
-		try
+		var sbook = Serializer.Deserialize<SbkBook>(stream);
+		if (sbook == null || sbook.BookStates == null || sbook.BookStates.Count == 0)
 		{
-			while (reader.BaseStream.Position < reader.BaseStream.Length)
+			return new Dictionary<string, List<BookMove>>();
+		}
+
+		// NextStateId → SbkBookState のインデックスマップ
+		var stateById = new Dictionary<int, SbkBookState>();
+		foreach (var state in sbook.BookStates)
+		{
+			stateById[state.Id] = state;
+		}
+
+		// sbkはツリー構造（初期局面のみPosition有、以降はNextStateIdで辿る）
+		// DFSでツリーを辿りながらSPositionで局面を再現し、db辞書に変換する
+		var book = new Dictionary<string, List<BookMove>>();
+		var visitedStates = new HashSet<int>();
+
+		// 初期局面を見つける（Position が設定されているか、Id=0）
+		SbkBookState rootState = null;
+		foreach (var state in sbook.BookStates)
+		{
+			if (!string.IsNullOrEmpty(state.Position))
 			{
-				// sfen文字列長 (int32) + sfen文字列
-				int sfenLen = reader.ReadInt32();
-				if (sfenLen <= 0 || sfenLen > 1024)
-				{
-					break;
-				}
-				byte[] sfenBytes = reader.ReadBytes(sfenLen);
-				string sfenStr = Encoding.UTF8.GetString(sfenBytes);
-				string key = NormalizeSfenKey(sfenStr);
-
-				// 手の数 (int32)
-				int moveCount = reader.ReadInt32();
-				var moves = new List<BookMove>();
-
-				for (int i = 0; i < moveCount; i++)
-				{
-					// 各手: usi文字列長(int32) + usi文字列 + eval(int32) + depth(int32) + count(int32)
-					int moveLen = reader.ReadInt32();
-					byte[] moveBytes = reader.ReadBytes(moveLen);
-					string usiMove = Encoding.UTF8.GetString(moveBytes);
-
-					int eval = reader.ReadInt32();
-					int depth = reader.ReadInt32();
-					int count = reader.ReadInt32();
-
-					moves.Add(new BookMove
-					{
-						UsiMove = usiMove,
-						Response = "none",
-						Eval = eval,
-						Depth = depth,
-						Count = count
-					});
-				}
-
-				if (!book.ContainsKey(key))
-				{
-					book[key] = moves;
-				}
-				else
-				{
-					book[key].AddRange(moves);
-				}
+				rootState = state;
+				break;
 			}
 		}
-		catch (EndOfStreamException)
+		if (rootState == null)
 		{
-			// ファイル末尾到達
+			rootState = sbook.BookStates[0];
 		}
+
+		// 初期局面のSPositionを構築
+		var pos = new SPosition();
+		if (!string.IsNullOrEmpty(rootState.Position))
+		{
+			Sfen.LoadPosition(pos, rootState.Position);
+		}
+		else
+		{
+			pos.InitHashKey();
+		}
+
+		SbkDFS(rootState, pos, stateById, book, visitedStates);
 
 		return book;
 	}
+
+	/// <summary>
+	/// sbkツリーをDFSで辿り、各局面のsfenと候補手をdb辞書に追加
+	/// </summary>
+	private static void SbkDFS(
+		SbkBookState state,
+		SPosition pos,
+		Dictionary<int, SbkBookState> stateById,
+		Dictionary<string, List<BookMove>> book,
+		HashSet<int> visitedStates)
+	{
+		if (visitedStates.Contains(state.Id))
+		{
+			return;
+		}
+		visitedStates.Add(state.Id);
+
+		if (state.Moves == null || state.Moves.Count == 0)
+		{
+			return;
+		}
+
+		// 現在局面のsfenキーを生成
+		string sfenKey = NormalizeSfenKey(pos.PositionToString(1));
+
+		// この局面の候補手を収集
+		var moves = new List<BookMove>();
+		foreach (var sbkMove in state.Moves)
+		{
+			string usiMove = SbkMoveToUsi(sbkMove.Move);
+			if (string.IsNullOrEmpty(usiMove))
+			{
+				continue;
+			}
+
+			int eval = 0;
+			int depth = 0;
+			if (state.Evals != null && state.Evals.Count > 0)
+			{
+				eval = state.Evals[0].EvalutionValue;
+				depth = state.Evals[0].Depth;
+			}
+
+			moves.Add(new BookMove
+			{
+				UsiMove = usiMove,
+				Response = "none",
+				Eval = eval,
+				Depth = depth,
+				Count = sbkMove.Weight > 0 ? sbkMove.Weight : 1
+			});
+		}
+
+		if (moves.Count > 0)
+		{
+			if (!book.ContainsKey(sfenKey))
+			{
+				book[sfenKey] = moves;
+			}
+			else
+			{
+				book[sfenKey].AddRange(moves);
+			}
+		}
+
+		// 各手について次の局面に再帰
+		foreach (var sbkMove in state.Moves)
+		{
+			if (sbkMove.NextStateId == 0 || !stateById.TryGetValue(sbkMove.NextStateId, out var nextState))
+			{
+				continue;
+			}
+
+			string usiMove = SbkMoveToUsi(sbkMove.Move);
+			if (string.IsNullOrEmpty(usiMove))
+			{
+				continue;
+			}
+
+			// USI文字列から手を適用
+			var moveData = Sfen.ParseMove(pos, usiMove);
+			if (moveData == null || moveData.MoveType == MoveType.NoMove)
+			{
+				continue;
+			}
+
+			// CapturePiece設定（UnMoveに必要）
+			if (moveData.MoveType.HasFlag(MoveType.MoveFlag) && !moveData.MoveType.HasFlag(MoveType.DropFlag))
+			{
+				moveData.CapturePiece = pos.GetPiece(moveData.ToSquare);
+			}
+
+			pos.Move(moveData);
+			SbkDFS(nextState, pos, stateById, book, visitedStates);
+			pos.UnMove(moveData, null);
+		}
+	}
+
+	/// <summary>
+	/// sbkの32ビット手エンコードをUSI文字列に変換
+	/// BookConv準拠のビットレイアウト:
+	///   bits  0-3 : 移動元段 (rank, 0=持ち駒)
+	///   bits  4-7 : 移動元筋 (file, 0=持ち駒)
+	///   bits  8-11: 移動先段 (rank)
+	///   bits 12-15: 移動先筋 (file)
+	///   bit  19   : 成りフラグ
+	///   bits 24-29: 駒種
+	///   bit  31   : 手番 (0=先手, 1=後手)
+	/// </summary>
+	private static string SbkMoveToUsi(int move)
+	{
+		int fromRank = move & 0xF;
+		int fromFile = (move >> 4) & 0xF;
+		int toRank = (move >> 8) & 0xF;
+		int toFile = (move >> 12) & 0xF;
+		bool promote = ((move >> 19) & 1) != 0;
+		int pieceType = (move >> 24) & 0x3F;
+
+		if (toFile < 1 || toFile > 9 || toRank < 1 || toRank > 9)
+		{
+			return null;
+		}
+
+		char toFileChar = (char)('0' + toFile);
+		char toRankChar = (char)('a' + toRank - 1);
+
+		if (fromFile == 0 && fromRank == 0)
+		{
+			// 駒打ち
+			char pieceChar = PieceTypeToChar(pieceType);
+			if (pieceChar == '\0')
+			{
+				return null;
+			}
+			return $"{pieceChar}*{toFileChar}{toRankChar}";
+		}
+		else
+		{
+			if (fromFile < 1 || fromFile > 9 || fromRank < 1 || fromRank > 9)
+			{
+				return null;
+			}
+			char fromFileChar = (char)('0' + fromFile);
+			char fromRankChar = (char)('a' + fromRank - 1);
+			string prom = promote ? "+" : "";
+			return $"{fromFileChar}{fromRankChar}{toFileChar}{toRankChar}{prom}";
+		}
+	}
+
+	/// <summary>
+	/// sbkの駒種番号をUSIの駒文字に変換（打ち駒用）
+	/// BookConvの駒種定義に準拠
+	/// </summary>
+	private static char PieceTypeToChar(int pieceType)
+	{
+		// 先手駒: 1=歩,2=香,3=桂,4=銀,5=金,6=角,7=飛,8=王
+		// 後手駒: bit31で判定されるが、打ち駒は色なし
+		int pt = pieceType & 0xF; // 下位4ビットが駒種
+		switch (pt)
+		{
+			case 1: return 'P';
+			case 2: return 'L';
+			case 3: return 'N';
+			case 4: return 'S';
+			case 5: return 'G';
+			case 6: return 'B';
+			case 7: return 'R';
+			default: return '\0';
+		}
+	}
+}
+
+// ============================================================
+// ShogiGUI sbk形式の Protocol Buffers 定義
+// BookConv の book.proto / book.cs 準拠
+// ============================================================
+
+[ProtoContract]
+public class SbkBook
+{
+	[ProtoMember(1)]
+	public string Author { get; set; } = "";
+
+	[ProtoMember(2)]
+	public string Description { get; set; } = "";
+
+	[ProtoMember(3)]
+	public List<SbkBookState> BookStates { get; set; } = new List<SbkBookState>();
+}
+
+[ProtoContract]
+public class SbkBookState
+{
+	[ProtoMember(1)]
+	public int Id { get; set; }
+
+	[ProtoMember(2)]
+	public ulong BoardKey { get; set; }
+
+	[ProtoMember(3)]
+	public uint HandKey { get; set; }
+
+	[ProtoMember(4)]
+	public int Games { get; set; }
+
+	[ProtoMember(5)]
+	public int WonBlack { get; set; }
+
+	[ProtoMember(6)]
+	public int WonWhite { get; set; }
+
+	[ProtoMember(7)]
+	public string Position { get; set; } = "";
+
+	[ProtoMember(8)]
+	public string Comment { get; set; } = "";
+
+	[ProtoMember(9)]
+	public List<SbkBookMove> Moves { get; set; } = new List<SbkBookMove>();
+
+	[ProtoMember(10)]
+	public List<SbkBookEval> Evals { get; set; } = new List<SbkBookEval>();
+}
+
+[ProtoContract]
+public class SbkBookMove
+{
+	[ProtoMember(1)]
+	public int Move { get; set; }
+
+	[ProtoMember(2)]
+	public int Evalution { get; set; }
+
+	[ProtoMember(3)]
+	public int Weight { get; set; }
+
+	[ProtoMember(4)]
+	public int NextStateId { get; set; }
+}
+
+[ProtoContract]
+public class SbkBookEval
+{
+	[ProtoMember(1)]
+	public int EvalutionValue { get; set; }
+
+	[ProtoMember(2)]
+	public int Depth { get; set; }
+
+	[ProtoMember(3)]
+	public int SelDepth { get; set; }
+
+	[ProtoMember(4)]
+	public long Nodes { get; set; }
+
+	[ProtoMember(5)]
+	public string Variation { get; set; } = "";
+
+	[ProtoMember(6)]
+	public string EngineName { get; set; } = "";
 }
