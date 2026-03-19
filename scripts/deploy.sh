@@ -6,7 +6,7 @@ PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 CONFIG="${1:-Debug}"
 PACKAGE="com.siganus.ShogiDroid.rebuild"
 ACTIVITY="crc64721063ab64a94a2e.MainActivity"
-APK="$PROJECT_DIR/ShogiDroid/bin/${CONFIG}/net9.0-android/com.siganus.ShogiDroid.rebuild-Signed.apk"
+APK="$PROJECT_DIR/ShogiDroid/bin/${CONFIG}/net9.0-android/android-arm64/com.siganus.ShogiDroid.rebuild-Signed.apk"
 
 if [ ! -f "$APK" ]; then
     echo "APK not found. Run build.sh first."
