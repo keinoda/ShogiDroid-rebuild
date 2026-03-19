@@ -23,9 +23,9 @@ public class EngineSettings
 	// vast.ai settings
 	public string VastAiApiKey = string.Empty;
 
-	public string VastAiDockerImage = "keinoda/shogi:v9.0";
+	public string VastAiDockerImage = string.Empty;
 
-	public string VastAiOnStartCmd = "env >> /etc/environment; touch ~/.no_auto_tmux; setsid bash -c 'cd /workspace/Suisho10 && socat TCP-LISTEN:6000,reuseaddr,bind=0.0.0.0,fork,keepalive,tcp-keepidle=60,tcp-keepintvl=10,tcp-keepcnt=3 EXEC:./Suisho10-YaneuraOu-tournament-avx2,pty,raw,echo=0' & setsid bash -c 'cd /workspace/FukauraOu && socat TCP-LISTEN:6001,reuseaddr,bind=0.0.0.0,fork,keepalive,tcp-keepidle=60,tcp-keepintvl=10,tcp-keepcnt=3 EXEC:./FukauraOu-avx2,pty,raw,echo=0' & setsid bash -c 'cd /workspace/FukauraOu && socat TCP-LISTEN:6002,reuseaddr,bind=0.0.0.0,fork,keepalive,tcp-keepidle=60,tcp-keepintvl=10,tcp-keepcnt=3 EXEC:bash' &;";
+	public string VastAiOnStartCmd = string.Empty;
 
 	public int VastAiInstanceId = 0;
 

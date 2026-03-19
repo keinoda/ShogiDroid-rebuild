@@ -123,7 +123,7 @@ public class VastAiActivity : Activity
 		apiKeyEdit_ = AddEditField(rootLayout_, "APIキー", "vast.ai API Key");
 		apiKeyEdit_.InputType = Android.Text.InputTypes.ClassText | Android.Text.InputTypes.TextVariationPassword;
 
-		dockerImageEdit_ = AddEditField(rootLayout_, "Dockerイメージ", "keinoda/shogi:v9.0");
+		dockerImageEdit_ = AddEditField(rootLayout_, "Dockerイメージ", "");
 
 		onStartCmdEdit_ = AddEditField(rootLayout_, "起動コマンド", "onstart command");
 		onStartCmdEdit_.SetMaxLines(3);

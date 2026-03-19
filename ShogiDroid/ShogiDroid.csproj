@@ -6,7 +6,7 @@
     <Nullable>disable</Nullable>
     <ImplicitUsings>disable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <ApplicationId>com.siganus.ShogiDroid.rebuild</ApplicationId>
+    <ApplicationId>com.ngs436.ShogiDroidR</ApplicationId>
     <ApplicationVersion>1</ApplicationVersion>
     <ApplicationDisplayVersion>0.0.1</ApplicationDisplayVersion>
     <ApplicationTitle>将棋ドロイドR</ApplicationTitle>

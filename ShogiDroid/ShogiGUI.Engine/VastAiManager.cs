@@ -376,7 +376,7 @@ public class VastAiSearchCriteria
 
 public class VastAiInstanceConfig
 {
-	public string DockerImage = "keinoda/shogi:v9.0";
+	public string DockerImage = "";
 	public int[] Ports = new[] { 6000, 6001 };
 	public double DiskGb = 8.0;
 	public string OnStartCmd = "";
