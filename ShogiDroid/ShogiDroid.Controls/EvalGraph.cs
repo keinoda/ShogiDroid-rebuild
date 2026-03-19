@@ -6,7 +6,7 @@ using Android.Runtime;
 using Android.Text;
 using Android.Util;
 using Android.Views;
-using AndroidX.Core.Content;
+using ShogiGUI;
 using ShogiGUI.Events;
 using ShogiLib;
 
@@ -36,7 +36,6 @@ public class EvalGraph : View
 	}
 
 	private const int DefaultDisplayMoves = 100;
-	private const int StepHeightEval = 500;
 
 	private SNotation notation;
 	private float scaleFactor = 1f;
@@ -45,11 +44,9 @@ public class EvalGraph : View
 	private int graphCenterY = 70;
 	private int graphHeight = 140;
 	private int graphStepWidth = 4;
-	private int graphStepHeight = 12;
-	private int graphVerticalScale = 70;
 
-	private static readonly int[] VerticalScale = { 9999, 2000, 1000, 500, 0, -500, -1000, -2000, -9999 };
-	private static readonly int[] VerticalScaleLiner = { 3000, 2000, 1000, 0, -1000, -2000, -3000 };
+	// 勝率変換の係数
+	private double winRateCoeff = 750.0;
 
 	private int dispMaxNum;
 	private int maxNumber;
@@ -67,7 +64,7 @@ public class EvalGraph : View
 
 	public SNotation Notation
 	{
-		set { notation = value; UpdateStepWidth(); UpdateScrollBar(); Invalidate(); }
+		set { notation = value; UpdateWinRateCoeff(); UpdateStepWidth(); UpdateScrollBar(); Invalidate(); }
 	}
 
 	public float ScaleFactor
@@ -100,7 +97,7 @@ public class EvalGraph : View
 
 	private void init()
 	{
-		SetBackgroundColor(new Color(ContextCompat.GetColor(Context, Resource.Color.graph_bg)));
+		SetBackgroundColor(ColorUtils.Get(Context, Resource.Color.graph_bg));
 		ges = new GestureDetector(Context, new GestureListener());
 		ges.DoubleTap += Ges_DoubleTap;
 		var sgl = new ScaleGestureListener();
@@ -113,8 +110,6 @@ public class EvalGraph : View
 	{
 		graphHeight = h;
 		graphCenterY = h / 2;
-		graphVerticalScale = (int)(graphCenterY * scaleFactor);
-		graphStepHeight = (int)(scaleFactor * 8f * Context.Resources.DisplayMetrics.Density);
 		UpdateStepWidth();
 		UpdateScrollBar();
 	}
@@ -173,25 +168,30 @@ public class EvalGraph : View
 		graphStepWidth = Math.Max(1, drawableWidth / displayMoves);
 	}
 
-	// ======= 縦軸: 元のEvalNormalize（評価値ベースで統一） =======
+	// ======= 縦軸: データ範囲に自動適応 =======
 
-	private double EvalNormalize(int score)
+	/// <summary>
+	/// 勝率変換の係数を設定から読み込む。
+	/// </summary>
+	private void UpdateWinRateCoeff()
 	{
-		if (liner)
-		{
-			return Math.Max(Math.Min((double)score * graphStepHeight / (StepHeightEval * (double)graphVerticalScale), 1.0), -1.0);
-		}
-		return Math.Max(Math.Min(
-			2.0 / Math.PI * Math.Asin(
-				Math.Max(Math.Min(
-					2.0 / Math.PI * Math.Atan(0.002056167583560283 * score),
-				1.0), -1.0)
-			), 1.0), -1.0);
+		int.TryParse(ShogiGUI.Settings.AppSettings.WinRateCoefficient, out int coeff);
+		winRateCoeff = coeff > 0 ? coeff : 750.0;
 	}
 
+	/// <summary>
+	/// 評価値(cp)をY座標に変換する。
+	/// cp → 勝率(0〜100%) → Y座標にマッピング。
+	/// 上端=100%(先手必勝)、中央=50%(互角)、下端=0%(後手必勝)。
+	/// </summary>
 	private int EvalToY(int eval)
 	{
-		return graphCenterY + (int)(-EvalNormalize(eval) * graphVerticalScale);
+		double winRate = ShogiGUI.WinRateUtil.CpToWinRate(eval, winRateCoeff);
+		// winRate: 0.0(後手勝ち) 〜 1.0(先手勝ち)
+		// 上端=1.0, 下端=0.0 にマッピング
+		int margin = (int)(graphHeight * 0.05); // 上下5%余白
+		int drawArea = graphHeight - margin * 2;
+		return margin + (int)((1.0 - winRate) * drawArea);
 	}
 
 	// ======= 描画: 折れ線グラフ（全ノードを走査してポイント配列を構築） =======
@@ -200,7 +200,7 @@ public class EvalGraph : View
 	{
 		using var paint = new Paint();
 		using var textPaint = new TextPaint();
-		textPaint.Color = Color.Black;
+		textPaint.Color = ColorUtils.Get(Context, Resource.Color.graph_text);
 		textPaint.TextSize = Context.Resources.GetDimension(Resource.Dimension.graph_font_small);
 		textPaint.AntiAlias = true;
 		using (var fm = textPaint.GetFontMetrics())
@@ -214,18 +214,20 @@ public class EvalGraph : View
 		for (int i = graphStartX + graphStepWidth * 10; i < Width; i += graphStepWidth * 10)
 			canvas.DrawLine(i, graphCenterY - 3, i, graphCenterY + 3, paint);
 
-		// 縦軸ラベル
+		// 縦軸ラベル（勝率%固定: 90%, 70%, 50%は中央線, 30%, 10%）
 		textPaint.TextAlign = Paint.Align.Left;
-		int[] vscale = liner ? VerticalScaleLiner : VerticalScale;
-		for (int j = 0; j < vscale.Length; j++)
+		using var gridPaint = new Paint { Color = ColorUtils.Get(Context, Resource.Color.graph_grid), StrokeWidth = 1f, AntiAlias = true };
+
+		int[] pctLabels = { 90, 70, 30, 10 };
+		foreach (int pct in pctLabels)
 		{
-			int v = vscale[j];
-			if (v == 0) continue;
-			int y = EvalToY(v);
+			int cpForPct = ShogiGUI.WinRateUtil.WinRateToCp(pct / 100.0, winRateCoeff);
+			int y = EvalToY(cpForPct);
 			if (y > 8 && y < graphHeight - 8)
 			{
+				canvas.DrawLine(graphStartX, y, Width, y, gridPaint);
 				canvas.DrawLine(graphStartX - 2, y, graphStartX + 4, y, paint);
-				canvas.DrawText(v.ToString(), 0f, y + fontHeight / 2f, textPaint);
+				canvas.DrawText($"{pct}%", 0f, y + fontHeight / 2f, textPaint);
 			}
 		}
 
@@ -247,62 +249,75 @@ public class EvalGraph : View
 	{
 		if (notation == null) return;
 
-		// 全ノードからポイント配列を構築
-		var evalPoints = new List<(int x, int y)>();   // Eval線
-		var scorePoints = new List<(int x, int y)>();  // Score線(青)
-
 		int sp = scrollpos;
+		int totalMoves = MaxNumber();
+
+		// 各手番号に対して1つの評価値のみを格納する配列
+		// index=手番号, value=評価値(null=データなし)
+		int?[] evalByMove = new int?[totalMoves + 1];
+		MoveEval[] gradeByMove = new MoveEval[totalMoves + 1];
+
 		foreach (MoveNode node in notation.MoveNodes)
 		{
 			if (!node.MoveType.IsMove()) continue;
-			int x = graphStartX + (node.Number - sp) * graphStepWidth;
+			int num = node.Number;
+			if (num < 0 || num > totalMoves) continue;
 
-			if (node.HasEval)
-				evalPoints.Add((x, EvalToY(node.Eval)));
-
+			// Scoreを優先、なければEvalを使う（1手に1つの値のみ）
 			if (node.HasScore)
-				scorePoints.Add((x, EvalToY(node.Score)));
+				evalByMove[num] = node.Score;
+			else if (node.HasEval)
+				evalByMove[num] = node.Eval;
+
+			gradeByMove[num] = MoveEvalExtention.GetMoveEval(node, node.Parent);
 		}
 
-		// 折れ線を描画
-		using var evalPaint = new Paint { Color = Color.Black, StrokeWidth = 2f, AntiAlias = true };
-		using var scorePaint = new Paint { Color = Color.Blue, StrokeWidth = 2f, AntiAlias = true };
-
-		DrawPolyline(canvas, evalPoints, evalPaint);
-		DrawPolyline(canvas, scorePoints, scorePaint);
-
-		// 手分類ドット
+		using var linePaint = new Paint { Color = ColorUtils.Get(Context, Resource.Color.graph_line), StrokeWidth = 2f, AntiAlias = true };
 		using var badPaint = new Paint { Color = Color.Red, AntiAlias = true };
 		using var weakPaint = new Paint { Color = Color.Orange, AntiAlias = true };
 		using var goodPaint = new Paint { Color = Color.Green, AntiAlias = true };
 
-		foreach (MoveNode node in notation.MoveNodes)
-		{
-			if (!node.MoveType.IsMove() || !node.HasScore) continue;
-			int x = graphStartX + (node.Number - sp) * graphStepWidth;
-			if (x < graphStartX || x > Width) continue;
-			int y = EvalToY(node.Score);
+		// 折れ線グラフ描画: 連続する手同士のみを線で結ぶ
+		int prevX = -1, prevY = -1;
+		bool hasPrev = false;
 
-			MoveEval me = MoveEvalExtention.GetMoveEval(node, node.Parent);
-			switch (me)
+		for (int num = 1; num <= totalMoves; num++)
+		{
+			if (!evalByMove[num].HasValue)
+			{
+				hasPrev = false; // データがない手で線を切る
+				continue;
+			}
+
+			int x = graphStartX + (num - sp) * graphStepWidth;
+			int y = EvalToY(evalByMove[num].Value);
+
+			// 直前の手と線で結ぶ（直前の手=num-1にデータがある場合のみ）
+			if (hasPrev)
+			{
+				canvas.DrawLine(prevX, prevY, x, y, linePaint);
+			}
+
+			prevX = x;
+			prevY = y;
+			hasPrev = true;
+		}
+
+		// 手分類ドット描画
+		for (int num = 1; num <= totalMoves; num++)
+		{
+			if (!evalByMove[num].HasValue) continue;
+
+			int x = graphStartX + (num - sp) * graphStepWidth;
+			if (x < graphStartX || x > Width) continue;
+			int y = EvalToY(evalByMove[num].Value);
+
+			switch (gradeByMove[num])
 			{
 			case MoveEval.Blunder: canvas.DrawCircle(x, y, 4f, badPaint); break;
 			case MoveEval.Bad: canvas.DrawCircle(x, y, 4f, weakPaint); break;
 			case MoveEval.Best: canvas.DrawCircle(x, y, 4f, goodPaint); break;
 			}
-		}
-	}
-
-	private void DrawPolyline(Canvas canvas, List<(int x, int y)> points, Paint paint)
-	{
-		for (int i = 1; i < points.Count; i++)
-		{
-			var p0 = points[i - 1];
-			var p1 = points[i];
-			// 画面外のセグメントはスキップ
-			if (p0.x > Width && p1.x > Width) continue;
-			if (p0.x < graphStartX && p1.x < graphStartX) continue;
-			canvas.DrawLine(p0.x, p0.y, p1.x, p1.y, paint);
 		}
 	}
 
@@ -313,7 +328,7 @@ public class EvalGraph : View
 		if (lastNumber == 0 || lastNumber <= scrollpos) return;
 		int x = graphStartX + (lastNumber - scrollpos) * graphStepWidth;
 		using var paint = new Paint();
-		paint.Color = Color.Black;
+		paint.Color = ColorUtils.Get(Context, Resource.Color.graph_cursor);
 		paint.SetPathEffect(new DashPathEffect(new float[] { 5f, 5f }, 0f));
 		canvas.DrawLine(x, 0f, x, graphHeight, paint);
 	}
@@ -344,8 +359,6 @@ public class EvalGraph : View
 	private void SetScale(float scale)
 	{
 		scaleFactor = Math.Max(1f, Math.Min(scale, 4f));
-		graphStepHeight = (int)(scaleFactor * 8f * Context.Resources.DisplayMetrics.Density);
-		graphVerticalScale = (int)(graphCenterY * scaleFactor);
 		UpdateStepWidth();
 		UpdateScrollBar();
 		Invalidate();
@@ -366,6 +379,7 @@ public class EvalGraph : View
 	{
 		if (op != NotationEventId.COMMENT)
 		{
+			UpdateWinRateCoeff();
 			UpdateStepWidth();
 			UpdateScrollBar();
 			EnsureVisible();
