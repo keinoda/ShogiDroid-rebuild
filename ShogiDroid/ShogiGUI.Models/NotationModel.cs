@@ -238,7 +238,21 @@ public class NotationModel
 		string ext = Path.GetExtension(filename).ToLower();
 		if (ext == ".sbk")
 		{
-			return BookParser.LoadSbk(filename);
+			// 同名のdbファイルがあればそちらを使用
+			string dbPath = Path.ChangeExtension(filename, ".db");
+			if (System.IO.File.Exists(dbPath))
+			{
+				return BookParser.LoadDb(dbPath);
+			}
+
+			// sbkを読み込み→db形式で保存
+			var book = BookParser.LoadSbk(filename);
+			try
+			{
+				BookParser.SaveDb(book, dbPath);
+			}
+			catch { }
+			return book;
 		}
 		return BookParser.LoadDb(filename);
 	}

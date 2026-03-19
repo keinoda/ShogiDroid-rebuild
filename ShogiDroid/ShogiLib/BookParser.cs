@@ -87,6 +87,23 @@ public static class BookParser
 		return LoadSbk(stream);
 	}
 
+	/// <summary>
+	/// 定跡辞書をYaneuraOu db形式でファイルに書き出す
+	/// </summary>
+	public static void SaveDb(Dictionary<string, List<BookMove>> book, string filename)
+	{
+		using var writer = new StreamWriter(filename, false, Encoding.UTF8);
+		writer.WriteLine("#YANEURAOU-DB2016 1.00");
+		foreach (var entry in book)
+		{
+			writer.WriteLine($"sfen {entry.Key} 1");
+			foreach (var move in entry.Value)
+			{
+				writer.WriteLine($"{move.UsiMove} {move.Response} {move.Eval} {move.Depth} {move.Count}");
+			}
+		}
+	}
+
 	public static Dictionary<string, List<BookMove>> LoadSbk(Stream stream)
 	{
 		var sbook = Serializer.Deserialize<SbkBook>(stream);
