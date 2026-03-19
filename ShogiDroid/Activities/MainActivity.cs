@@ -119,7 +119,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	private ListView notationListView;
 
-	private NotatinAdapter notationAdapter;
+	private NotationAdapter notationAdapter;
 
 	private ListView notationBranchListView;
 
@@ -483,6 +483,22 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		analyzButton.Click += AnalyzeButton_Click;
 		analyzButton.LongClick += AnalyzButton_LongClick;
 		analyzeText = FindViewById<TextView>(Resource.Id.analyze_text);
+		// ボタンサイズとテキスト幅を初期レイアウト後に固定
+		analyzButton.Post(() =>
+		{
+			var lp = analyzButton.LayoutParameters;
+			lp.Width = analyzButton.Width;
+			lp.Height = analyzButton.Height;
+			analyzButton.LayoutParameters = lp;
+			// テキスト幅を固定してアイコン位置がずれないようにする
+			if (analyzeText != null)
+			{
+				var tlp = analyzeText.LayoutParameters;
+				tlp.Width = analyzeText.Width;
+				analyzeText.LayoutParameters = tlp;
+				analyzeText.Gravity = Android.Views.GravityFlags.Center;
+			}
+		});
 		menuButton = FindViewById<ImageButton>(Resource.Id.menu_button);
 		menuButton.Click += MenuButton_Click;
 		FindViewById<ImageButton>(Resource.Id.camera_read).Click += (s, e) => CameraRead();
@@ -519,7 +535,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 			UnregisterForContextMenu(notationListView);
 			notationListView.Adapter = null;
 		}
-		notationAdapter = new NotatinAdapter(this);
+		notationAdapter = new NotationAdapter(this);
 		notationListView = FindViewById<ListView>(Resource.Id.notaiton_list_view);
 		notationListView.Adapter = notationAdapter;
 		notationListView.ItemClick += NotationListView_ItemClick;
@@ -863,16 +879,49 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		if (analyzing)
 		{
 			analyzButton.SetBackgroundResource(Resource.Drawable.analyze_btn_bg_active);
-			if (analyzeText != null) analyzeText.Text = "解析終了 00:00";
+			SetAnalyzeTimeText("00:00");
 			analyzeStartTime = DateTime.Now;
 			StartAnalyzeTimer();
 		}
 		else
 		{
 			analyzButton.SetBackgroundResource(Resource.Drawable.analyze_btn_bg_idle);
-			if (analyzeText != null) analyzeText.Text = "解析開始";
+			if (analyzeText != null)
+			{
+				if (analyzeTextDefaultPaddingTop >= 0)
+					analyzeText.SetPadding(analyzeText.PaddingLeft,
+						analyzeTextDefaultPaddingTop,
+						analyzeText.PaddingRight, analyzeText.PaddingBottom);
+				analyzeText.Text = "解析開始";
+			}
 			StopAnalyzeTimer();
 		}
+	}
+
+	private int analyzeTextDefaultPaddingTop = -1;
+
+	private void SetAnalyzeTimeText(string time)
+	{
+		if (analyzeText == null) return;
+		// 初回に元のpaddingTopを記録
+		if (analyzeTextDefaultPaddingTop < 0)
+			analyzeTextDefaultPaddingTop = analyzeText.PaddingTop;
+		// 2行テキストを少し上にずらして視覚的に中央に見せる
+		int offset = (int)(2 * Resources.DisplayMetrics.Density);
+		analyzeText.SetPadding(analyzeText.PaddingLeft,
+			analyzeTextDefaultPaddingTop - offset,
+			analyzeText.PaddingRight, analyzeText.PaddingBottom);
+
+		string full = $"解析中\n{time}";
+		var spannable = new Android.Text.SpannableString(full);
+		int timeStart = full.IndexOf('\n') + 1;
+		spannable.SetSpan(
+			new Android.Text.Style.AbsoluteSizeSpan(10, true),
+			timeStart, full.Length, Android.Text.SpanTypes.ExclusiveExclusive);
+		spannable.SetSpan(
+			new Android.Text.Style.ForegroundColorSpan(Android.Graphics.Color.Argb(204, 255, 255, 255)),
+			timeStart, full.Length, Android.Text.SpanTypes.ExclusiveExclusive);
+		analyzeText.SetText(spannable, Android.Widget.TextView.BufferType.Spannable);
 	}
 
 	private void StartAnalyzeTimer()
@@ -886,7 +935,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 				if (analyzeText != null && isAnalyzeActive)
 				{
 					var elapsed = DateTime.Now - analyzeStartTime;
-					analyzeText.Text = $"解析終了 {(int)elapsed.TotalMinutes:D2}:{elapsed.Seconds:D2}";
+					SetAnalyzeTimeText($"{(int)elapsed.TotalMinutes:D2}:{elapsed.Seconds:D2}");
 				}
 			});
 		};
@@ -1870,12 +1919,12 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		}
 		if (notation.Position.Turn == playerColor)
 		{
-			bottomTime.SetTextColor(new Color(ContextCompat.GetColor(this, Resource.Color.time_text_color)));
+			bottomTime.SetTextColor(ColorUtils.Get(this, Resource.Color.time_text_color));
 			topTime.SetTextColor(new Color(defaultTimeTextColor));
 		}
 		else
 		{
-			topTime.SetTextColor(new Color(ContextCompat.GetColor(this, Resource.Color.time_text_color)));
+			topTime.SetTextColor(ColorUtils.Get(this, Resource.Color.time_text_color));
 			bottomTime.SetTextColor(new Color(defaultTimeTextColor));
 		}
 	}
