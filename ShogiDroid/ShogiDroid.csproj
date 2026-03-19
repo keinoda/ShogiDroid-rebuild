@@ -8,7 +8,7 @@
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationId>com.siganus.ShogiDroid.rebuild</ApplicationId>
     <ApplicationVersion>1</ApplicationVersion>
-    <ApplicationDisplayVersion>2.0.0.0</ApplicationDisplayVersion>
+    <ApplicationDisplayVersion>0.0.1</ApplicationDisplayVersion>
     <ApplicationTitle>将棋ドロイドR</ApplicationTitle>
     <LangVersion>12.0</LangVersion>
     <AndroidLinkMode>None</AndroidLinkMode>

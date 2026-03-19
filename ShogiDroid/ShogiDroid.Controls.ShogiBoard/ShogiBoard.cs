@@ -583,6 +583,15 @@ public class ShogiBoard : View
 
 	public int ScreenHeight => screenHeight;
 
+	/// <summary>
+	/// 現在の盤面をBitmapとして取得する（画像出力用）。
+	/// </summary>
+	public Bitmap CaptureBoardBitmap()
+	{
+		if (offscreen == null) return null;
+		return Bitmap.CreateBitmap(offscreen);
+	}
+
 	public OperationMode OperationMode
 	{
 		get

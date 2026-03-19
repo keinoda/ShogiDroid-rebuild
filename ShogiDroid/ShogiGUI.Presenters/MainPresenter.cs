@@ -277,6 +277,7 @@ public class MainPresenter : PresenterBase<IMainView>
 			}
 			else
 			{
+				CaptureConsiderEval();
 				Domain.Game.NotationModel.Prev();
 			}
 		}
@@ -292,7 +293,32 @@ public class MainPresenter : PresenterBase<IMainView>
 			}
 			else
 			{
+				CaptureConsiderEval();
 				Domain.Game.NotationModel.Next();
+			}
+		}
+	}
+
+	/// <summary>
+	/// 検討モード中に手を進める前に、現在の解析結果をMoveNodeに保存する。
+	/// これにより評価値グラフにリアルタイムで反映される。
+	/// </summary>
+	private void CaptureConsiderEval()
+	{
+		if (Domain.Game.GameMode != GameMode.Consider) return;
+		var pvinfos = Domain.Game.PvInfos;
+		if (pvinfos == null || !pvinfos.ContainsKey(1)) return;
+
+		var best = pvinfos[1];
+		var current = Domain.Game.Notation.MoveCurrent;
+		if (current == null || current.Number == 0) return;
+
+		if (best.HasScore)
+		{
+			current.Score = best.Score;
+			if (!current.HasEval)
+			{
+				current.Eval = best.Eval;
 			}
 		}
 	}

@@ -7,4 +7,5 @@
     <item android:id="@id/cmd_auto_play" android:title="@string/MenuAutoPlay_Text" />
     <item android:id="@id/cmd_joint_board" android:title="@string/MenuJointBoard_Text" />
     <item android:id="@id/cmd_kyokumen" android:title="@string/MenuKyokumen_Text" />
+    <item android:id="@id/cmd_export_board_image" android:title="盤面画像を保存" />
 </menu>
