@@ -23,28 +23,28 @@ DOTNET_ROOT=/usr/local/share/dotnet /usr/local/share/dotnet/dotnet build -c Rele
 
 ```bash
 # インストール
-adb install -r ShogiDroid/bin/Debug/net9.0-android/android-arm64/com.siganus.ShogiDroid.rebuild-Signed.apk
+adb install -r ShogiDroid/bin/Debug/net9.0-android/android-arm64/com.ngs436.ShogiDroidR-Signed.apk
 
 # 起動
-adb shell am start -n com.siganus.ShogiDroid.rebuild/crc64721063ab64a94a2e.MainActivity
+adb shell am start -n com.ngs436.ShogiDroidR/crc64721063ab64a94a2e.MainActivity
 
 # ログ確認
 adb logcat -s ShogiDroid
 
 # ストレージ権限付与（API 30+）
-adb shell appops set com.siganus.ShogiDroid.rebuild MANAGE_EXTERNAL_STORAGE allow
+adb shell appops set com.ngs436.ShogiDroidR MANAGE_EXTERNAL_STORAGE allow
 
 # デバッグコマンド（Debug ビルドのみ）
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd analyze
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd next
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd prev
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd first
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd last
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd reverse
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd menu
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd stop
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd screenshot
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd book_load --es path /sdcard/book.db
+adb shell am broadcast -a com.ngs436.ShogiDroidR.DEBUG --es cmd analyze
+adb shell am broadcast -a com.ngs436.ShogiDroidR.DEBUG --es cmd next
+adb shell am broadcast -a com.ngs436.ShogiDroidR.DEBUG --es cmd prev
+adb shell am broadcast -a com.ngs436.ShogiDroidR.DEBUG --es cmd first
+adb shell am broadcast -a com.ngs436.ShogiDroidR.DEBUG --es cmd last
+adb shell am broadcast -a com.ngs436.ShogiDroidR.DEBUG --es cmd reverse
+adb shell am broadcast -a com.ngs436.ShogiDroidR.DEBUG --es cmd menu
+adb shell am broadcast -a com.ngs436.ShogiDroidR.DEBUG --es cmd stop
+adb shell am broadcast -a com.ngs436.ShogiDroidR.DEBUG --es cmd screenshot
+adb shell am broadcast -a com.ngs436.ShogiDroidR.DEBUG --es cmd book_load --es path /sdcard/book.db
 ```
 
 ## プロジェクト構成
@@ -78,8 +78,8 @@ ShogiDroid/
 - chmod 値: 484 (10進) = 0744 (8進) = rwxr--r--
 
 ### アプリ識別
-- ApplicationId: `com.siganus.ShogiDroid.rebuild`（元の `com.siganus.ShogiDroid` と共存可能）
-- ContentProvider authority: `com.siganus.ShogiDroid.rebuild.provider`
+- ApplicationId: `com.ngs436.ShogiDroidR`（元の `com.siganus.ShogiDroid` と共存可能）
+- ContentProvider authority: `com.ngs436.ShogiDroidR.provider`
 
 ## 元のアプリとの差分
 - 広告関連クラス（MyInterstitialAd 等）は意図的に除外

@@ -2448,7 +2448,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	{
 		if (debugReceiver != null) return;
 		debugReceiver = new DebugCommandReceiver(this);
-		var filter = new IntentFilter("com.siganus.ShogiDroid.rebuild.DEBUG");
+		var filter = new IntentFilter("com.ngs436.ShogiDroidR.DEBUG");
 		if ((int)Build.VERSION.SdkInt >= 33)
 			RegisterReceiver(debugReceiver, filter, (ActivityFlags)0x2 /* RECEIVER_EXPORTED */);
 		else

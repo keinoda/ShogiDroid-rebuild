@@ -16,7 +16,7 @@
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/SettingsVastAi_Text">
         <EditTextPreference android:singleLine="true" android:title="@string/SettingsVastAiApiKey_Text" android:key="Engine.VastAiApiKey" android:defaultValue="" android:inputType="textPassword" />
-        <EditTextPreference android:singleLine="true" android:title="@string/SettingsVastAiDockerImage_Text" android:key="Engine.VastAiDockerImage" android:defaultValue="keinoda/shogi:v9.0" />
+        <EditTextPreference android:singleLine="true" android:title="@string/SettingsVastAiDockerImage_Text" android:key="Engine.VastAiDockerImage" android:defaultValue="" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/SettingsAppearance_Text">
         <CheckBoxPreference android:title="@string/SettingsShowHintArrow_Text" android:key="App.ShowHintArrow" android:defaultValue="true" />
