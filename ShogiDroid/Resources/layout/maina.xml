@@ -3,10 +3,10 @@
   android:fitsSystemWindows="true"
   xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
     <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent">
-        <!-- Top bar: menu + space for future additions -->
-        <FrameLayout android:layout_width="fill_parent" android:layout_height="wrap_content">
-            <ImageButton android:id="@id/menu_button" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@drawable/ic_overflow" android:layout_gravity="start|center_vertical" />
-            <ImageButton android:id="@id/camera_read" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@drawable/ic_camera" android:background="?attr/selectableItemBackgroundBorderless" android:contentDescription="@string/Menu_CameraRead_Text" android:layout_gravity="center" />
+        <!-- Top bar: menu + camera -->
+        <FrameLayout android:layout_width="fill_parent" android:layout_height="36.0dip">
+            <ImageButton android:id="@id/menu_button" android:layout_width="36.0dip" android:layout_height="36.0dip" android:src="@drawable/ic_menu_hamburger" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="6.0dip" android:layout_gravity="start|center_vertical" />
+            <ImageButton android:id="@id/camera_read" android:layout_width="36.0dip" android:layout_height="36.0dip" android:src="@drawable/ic_camera" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="6.0dip" android:contentDescription="@string/Menu_CameraRead_Text" android:layout_gravity="center" />
         </FrameLayout>
         <!-- Board area -->
         <RelativeLayout android:layout_width="fill_parent" android:layout_height="wrap_content">

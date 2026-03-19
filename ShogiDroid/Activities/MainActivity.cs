@@ -507,7 +507,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		mainMenuListView.ItemClick += MainMenuListView_ItemClick;
 		TextView textView = FindViewById<TextView>(Resource.Id.app_name);
 		AssemblyName name = Assembly.GetExecutingAssembly().GetName();
-		textView.Text = name.Name + " ver " + name.Version;
+		textView.Text = "ShogiDroidR ver " + name.Version;
 		topName = FindViewById<TextView>(Resource.Id.top_name);
 		topTime = FindViewById<TextView>(Resource.Id.top_time);
 		bottomName = FindViewById<TextView>(Resource.Id.bottom_name);
@@ -989,6 +989,10 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		case Resource.Id.engine_folder:
 			ShowSelectEngineFolderDialog();
 			break;
+		case Resource.Id.cmd_export_board_image:
+			ExportBoardImage();
+			drawerLayout.CloseDrawers();
+			break;
 		case Resource.Id.menu_about:
 			ShowUrl("http://shogidroid.siganus.com");
 			break;
@@ -1220,13 +1224,55 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		}
 		else
 		{
-			menuButton.SetImageResource(Resource.Drawable.ic_overflow);
+			menuButton.SetImageResource(Resource.Drawable.ic_menu_hamburger);
 		}
 	}
 
 	public void ShowInterstitial()
 	{
 		// Removed: AdMob dependency not available
+	}
+
+	private void ExportBoardImage()
+	{
+		try
+		{
+			var notation = presenter.Notation;
+			if (notation == null)
+			{
+				Toast.MakeText(this, "局面がありません", ToastLength.Short).Show();
+				return;
+			}
+
+			string blackName = notation.BlackName ?? "先手";
+			string whiteName = notation.WhiteName ?? "後手";
+			string header = notation.MoveCurrent.Number > 0
+				? $"第{notation.MoveCurrent.Number}手"
+				: null;
+
+			var bmp = BoardImageExporter.Generate(
+				notation.Position, blackName, whiteName, header, 1200, FontUtil.Normal);
+
+			// Pictures/ShogiDroid に保存
+			string dir = System.IO.Path.Combine(
+				Android.OS.Environment.GetExternalStoragePublicDirectory(
+					Android.OS.Environment.DirectoryPictures).AbsolutePath,
+				"ShogiDroid");
+			string timestamp = DateTime.Now.ToString("yyyyMMdd_HHmmss");
+			string path = BoardImageExporter.SaveToFile(bmp, dir, $"board_{timestamp}.png");
+			bmp.Recycle();
+
+			// メディアスキャンで通知
+			var mediaScanIntent = new Intent(Intent.ActionMediaScannerScanFile);
+			mediaScanIntent.SetData(Android.Net.Uri.FromFile(new Java.IO.File(path)));
+			SendBroadcast(mediaScanIntent);
+
+			Toast.MakeText(this, $"保存: {path}", ToastLength.Long).Show();
+		}
+		catch (Exception ex)
+		{
+			Toast.MakeText(this, $"エラー: {ex.Message}", ToastLength.Long).Show();
+		}
 	}
 
 	private void IntentRecive(Intent intent)
@@ -1980,7 +2026,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		}
 		else
 		{
-			menuButton.SetImageResource(Resource.Drawable.ic_overflow);
+			menuButton.SetImageResource(Resource.Drawable.ic_menu_hamburger);
 		}
 		UpdateWindowSettings();
 		UpdateState();
