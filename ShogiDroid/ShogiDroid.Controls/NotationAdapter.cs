@@ -2,7 +2,6 @@ using Android.App;
 using Android.Graphics;
 using Android.Views;
 using Android.Widget;
-using AndroidX.Core.Content;
 using Java.Lang;
 using ShogiGUI;
 using ShogiLib;
@@ -10,7 +9,7 @@ using Object = Java.Lang.Object;
 
 namespace ShogiDroid.Controls;
 
-public class NotatinAdapter : BaseAdapter
+public class NotationAdapter : BaseAdapter
 {
 	private Activity activity;
 
@@ -36,7 +35,7 @@ public class NotatinAdapter : BaseAdapter
 		}
 	}
 
-	public NotatinAdapter(Activity activity)
+	public NotationAdapter(Activity activity)
 	{
 		this.activity = activity;
 		notation = new SNotation();
@@ -121,24 +120,24 @@ public class NotatinAdapter : BaseAdapter
 			textView6.SetTextColor(Color.Green);
 			break;
 		default:
-			textView6.SetTextColor(Color.DarkSlateGray);
+			textView6.SetTextColor(ColorUtils.Get(activity, Resource.Color.secondary_text));
 			break;
 		}
 		if (moveNode == notation.MoveCurrent)
 		{
-			view.SetBackgroundColor(new Color(ContextCompat.GetColor(activity, Resource.Color.notation_select)));
+			view.SetBackgroundColor(ColorUtils.Get(activity, Resource.Color.notation_select));
 		}
 		else if (moveNode.Parent != null && moveNode != moveNode.Parent.Children[0])
 		{
-			view.SetBackgroundColor(new Color(ContextCompat.GetColor(activity, Resource.Color.notation_select_branch)));
+			view.SetBackgroundColor(ColorUtils.Get(activity, Resource.Color.notation_select_branch));
 		}
 		else if (moveNode.Number == 0 || moveNode.Turn == PlayerColor.White)
 		{
-			view.SetBackgroundColor(new Color(ContextCompat.GetColor(activity, Resource.Color.notation_white_back)));
+			view.SetBackgroundColor(ColorUtils.Get(activity, Resource.Color.notation_white_back));
 		}
 		else
 		{
-			view.SetBackgroundColor(new Color(ContextCompat.GetColor(activity, Resource.Color.notation_black_back)));
+			view.SetBackgroundColor(ColorUtils.Get(activity, Resource.Color.notation_black_back));
 		}
 		return view;
 	}
