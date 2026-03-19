@@ -39,5 +39,6 @@ public enum CmdNo
 	MangeEgien = 53,
 	ShogiWars = 54,
 	CameraRead = 55,
-	BookLoad = 56
+	BookLoad = 56,
+	BookBrowse = 57
 }

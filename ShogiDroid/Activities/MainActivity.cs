@@ -170,11 +170,11 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		new MainMenuItem(Resource.Id.notation_analysis, Resource.String.Menu_Analysis_Text),
 		new MainMenuItem(),
 		new MainMenuItem(Resource.Id.menu_file, Resource.String.Menu_File_Text),
+		new MainMenuItem(Resource.Id.menu_book, Resource.String.Menu_Book_Text),
 		new MainMenuItem(Resource.Id.menu_edit, Resource.String.MenuEdit_Text),
 		new MainMenuItem(Resource.Id.menu_disp, Resource.String.MenuDisp_Text),
 		new MainMenuItem(Resource.Id.menu_engine, Resource.String.Menu_EngineManage_Text),
 		new MainMenuItem(Resource.Id.menu_vastai, Resource.String.Menu_VastAi_Text),
-		new MainMenuItem(Resource.Id.book_load, Resource.String.Menu_BookLoad_Text),
 		new MainMenuItem(),
 		new MainMenuItem(Resource.Id.action_settings, Resource.String.action_settings),
 		new MainMenuItem(Resource.Id.menu_about, Resource.String.Menu_About_Text)
@@ -246,7 +246,8 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		commands.Add(CmdNo.Consider, Resource.Id.consider, ConsiderStart, presenter.CanConsiderStart);
 		commands.Add(CmdNo.BoardEdit, Resource.Id.menu_board_edit, BoardEdit, presenter.CanEditBoard);
 		commands.Add(CmdNo.CameraRead, Resource.Id.camera_read, CameraRead, presenter.CanEditBoard);
-		commands.Add(CmdNo.BookLoad, Resource.Id.book_load, BookLoad, presenter.CanLoadNotaton);
+		commands.Add(CmdNo.BookLoad, Resource.Id.book_load, BookLoadTree, presenter.CanLoadNotaton);
+		commands.Add(CmdNo.BookBrowse, Resource.Id.book_browse, BookBrowse, presenter.CanLoadNotaton);
 		commands.Add(CmdNo.MangeEgien, Resource.Id.menu_engine, PopupEngineMenu, presenter.CanManageEngine);
 	}
 
@@ -336,9 +337,20 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		}
 	}
 
-	private void BookLoad()
+	/// <summary>
+	/// ファイル → 定跡ファイルを開く（ツリー展開モード、大きさ制限あり）
+	/// </summary>
+	private void BookLoadTree()
 	{
-		ShowOpenBookDialog(LocalFile.BookPath);
+		ShowOpenBookDialog(LocalFile.BookPath, browseMode: false);
+	}
+
+	/// <summary>
+	/// メインメニュー → 定跡閲覧モード（サイズ制限なし）
+	/// </summary>
+	private void BookBrowse()
+	{
+		ShowOpenBookDialog(LocalFile.BookPath, browseMode: true);
 	}
 
 	private void StopBookBrowse()
@@ -348,22 +360,22 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		presenter.InitNotation();
 	}
 
-	private void ShowOpenBookDialog(string path)
+	private void ShowOpenBookDialog(string path, bool browseMode)
 	{
 		OpenNotationDialog openDialog = OpenNotationDialog.NewInstance(path);
 		OpenNotationDialog openNotationDialog = openDialog;
 		openNotationDialog.OKClick = (EventHandler<EventArgs>)Delegate.Combine(openNotationDialog.OKClick, (EventHandler<EventArgs>)delegate
 		{
-			LoadBookAsync(openDialog.FileName);
+			LoadBookAsync(openDialog.FileName, browseMode);
 		});
 		openDialog.Show(FragmentManager, "OpenNotationDialog");
 	}
 
 	private CancellationTokenSource bookLoadCts;
 
-	private const int BookBrowseThreshold = 100000;
+	private const int TreeExpandMaxPositions = 100000;
 
-	private void LoadBookAsync(string filename)
+	private void LoadBookAsync(string filename, bool browseMode)
 	{
 		var book = presenter.ParseBookFile(filename);
 		if (book == null)
@@ -382,15 +394,14 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		{
 			try
 			{
-				// Phase 0: HashKey辞書構築
 				var hashBook = ShogiLib.BookExpander.BuildHashBook(book);
-				AppDebug.Log.Info($"BookLoad: {hashBook.Count} positions hashed");
+				AppDebug.Log.Info($"BookLoad: {hashBook.Count} positions hashed, browseMode={browseMode}");
 
 				if (ct.IsCancellationRequested) return;
 
-				if (hashBook.Count <= BookBrowseThreshold)
+				if (!browseMode)
 				{
-					// ★ 小規模: ツリー展開モード
+					// ★ ツリー展開モード
 					RunOnUiThread(() =>
 					{
 						try { progressDialog.SetMessage("ツリー展開中..."); } catch { }
@@ -404,7 +415,6 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 						});
 					};
 
-					// 直接ツリー構築（旧Expand方式）
 					ExpandTreeDirect(Domain.Game.NotationModel.Notation, hashBook, ct);
 					ShogiLib.BookExpander.OnProgress = null;
 
@@ -417,20 +427,21 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 				}
 				else
 				{
-					// ★ 大規模: 定跡閲覧モード
-					AppDebug.Log.Info($"BookLoad: {hashBook.Count} positions -> browse mode");
-
-					RunOnUiThread(() =>
+					// ★ 定跡閲覧モード
+					if (!browseMode)
 					{
-						try { progressDialog.SetMessage("定跡閲覧モードで開きます..."); } catch { }
-					});
+						AppDebug.Log.Info($"BookLoad: {hashBook.Count} positions exceeds limit -> browse mode");
+					}
 
 					RunOnUiThread(() =>
 					{
 						presenter.StartBookBrowse(hashBook);
 						bookBrowseCloseButton.Visibility = Android.Views.ViewStates.Visible;
 						try { progressDialog.Progress = 100; progressDialog.Dismiss(); } catch { }
-						MessagePopup("定跡が大きいため、閲覧モードで開きました");
+						if (!browseMode)
+						{
+							MessagePopup("定跡が大きいため、閲覧モードで開きました");
+						}
 					});
 				}
 			}
@@ -1292,6 +1303,9 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		case Resource.Id.menu_file:
 			PopupFileMenu();
 			break;
+		case Resource.Id.menu_book:
+			PopupBookMenu();
+			break;
 		case Resource.Id.menu_edit:
 			PopupEditMenu();
 			break;
@@ -1909,6 +1923,22 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		dialog.Show(FragmentManager, "UserNameDialog");
 	}
 
+	private void PopupBookMenu()
+	{
+		PopupMenu popupMenu = new PopupMenu(this, bottomName);
+		popupMenu.Inflate(Resource.Menu.book_menu);
+		MenuGrayout(popupMenu.Menu);
+		popupMenu.MenuItemClick += delegate(object sender, PopupMenu.MenuItemClickEventArgs e)
+		{
+			MenuItemSelected(e.Item.ItemId);
+		};
+		popupMenu.DismissEvent += delegate
+		{
+			drawerLayout.CloseDrawers();
+		};
+		popupMenu.Show();
+	}
+
 	private void PopupFileMenu()
 	{
 		PopupMenu popupMenu = new PopupMenu(this, bottomName);
@@ -2471,9 +2501,11 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		case "book_load":
 			{
 				string bookPath = intent.GetStringExtra("path");
+				string mode = intent.GetStringExtra("mode");
+				bool browse = mode == "browse";
 				if (!string.IsNullOrEmpty(bookPath))
 				{
-					LoadBookAsync(bookPath);
+					LoadBookAsync(bookPath, browse);
 				}
 				else
 				{

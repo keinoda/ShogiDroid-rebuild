@@ -427,5 +427,7 @@
     <item type="id" name="engine_settings_all_options" />
     <item type="id" name="engine_settings_engine_name" />
     <item type="id" name="book_load" />
+    <item type="id" name="menu_book" />
+    <item type="id" name="book_browse" />
     <item type="id" name="book_browse_close" />
 </resources>

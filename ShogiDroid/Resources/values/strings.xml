@@ -99,7 +99,9 @@
     <string name="Menu_NotaitonCopy_Text">棋譜コピー</string>
     <string name="Menu_NotaitonPaste_Text">棋譜貼り付け</string>
     <string name="Menu_OpenKifuFolder_Text">棋譜保存フォルダを開く</string>
-    <string name="Menu_BookLoad_Text">定跡を開く</string>
+    <string name="Menu_Book_Text">定跡</string>
+    <string name="Menu_BookLoad_Text">定跡ファイルを開く</string>
+    <string name="Menu_BookBrowse_Text">定跡閲覧モード</string>
     <string name="BookLoading_Text">定跡展開中</string>
     <string name="BookBrowseClose_Text">定跡閲覧終了</string>
     <string name="Menu_ResignGame_Text">投了</string>
