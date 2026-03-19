@@ -6,6 +6,7 @@
 
 ```bash
 # /usr/local/share/dotnet を使用（android workload 必要）
+# Debug は arm64 単一アーキテクチャでビルド（高速化）
 DOTNET_ROOT=/usr/local/share/dotnet /usr/local/share/dotnet/dotnet build -c Debug
 
 # Release ビルド（AOT GUID不一致の問題あり、当面 Debug を使用）
@@ -22,7 +23,7 @@ DOTNET_ROOT=/usr/local/share/dotnet /usr/local/share/dotnet/dotnet build -c Rele
 
 ```bash
 # インストール
-adb install -r ShogiDroid/bin/Debug/net9.0-android/com.siganus.ShogiDroid.rebuild-Signed.apk
+adb install -r ShogiDroid/bin/Debug/net9.0-android/android-arm64/com.siganus.ShogiDroid.rebuild-Signed.apk
 
 # 起動
 adb shell am start -n com.siganus.ShogiDroid.rebuild/crc64721063ab64a94a2e.MainActivity
@@ -32,6 +33,17 @@ adb logcat -s ShogiDroid
 
 # ストレージ権限付与（API 30+）
 adb shell appops set com.siganus.ShogiDroid.rebuild MANAGE_EXTERNAL_STORAGE allow
+
+# デバッグコマンド（Debug ビルドのみ）
+adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd analyze
+adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd next
+adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd prev
+adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd first
+adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd last
+adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd reverse
+adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd menu
+adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd stop
+adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd screenshot
 ```
 
 ## プロジェクト構成
