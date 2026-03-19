@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using ShogiGUI.Engine;
 using ShogiGUI.Events;
@@ -430,6 +431,29 @@ public class MainPresenter : PresenterBase<IMainView>
 		}
 		return result;
 	}
+
+	public Dictionary<string, List<BookMove>> ParseBookFile(string filename)
+	{
+		if (Busy || !CanLoadNotaton())
+		{
+			return null;
+		}
+		try
+		{
+			return Domain.Game.NotationModel.ParseBookFile(filename);
+		}
+		catch (Exception ex)
+		{
+			view.MessageError(ex.Message);
+			return null;
+		}
+	}
+
+	public void StartBookBrowse(Dictionary<HashKey, List<BookMove>> hashBook)
+	{
+		Domain.Game.NotationModel.StartBookBrowse(hashBook);
+	}
+
 
 	public bool CanLoadNotaton()
 	{
