@@ -25,6 +25,15 @@
     <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
   </PropertyGroup>
 
+  <!-- Release ビルド -->
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'">
+    <RuntimeIdentifier>android-arm64</RuntimeIdentifier>
+    <AndroidPackageFormat>apk</AndroidPackageFormat>
+    <RunAOTCompilation>false</RunAOTCompilation>
+    <AndroidEnableProfiledAot>false</AndroidEnableProfiledAot>
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+
   <ItemGroup>
     <PackageReference Include="System.Text.Encoding.CodePages" Version="9.*" />
     <PackageReference Include="Xamarin.AndroidX.AppCompat" Version="1.*" />
