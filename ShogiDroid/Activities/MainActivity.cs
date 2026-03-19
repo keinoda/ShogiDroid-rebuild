@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
@@ -95,6 +98,8 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	private ImageButton menuButton;
 
+	private Button bookBrowseCloseButton;
+
 	private ImageButton inputCancelButton;
 
 	private TextView stateText;
@@ -156,7 +161,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	// private MyInterstitialAd interstitial; // Removed: AdMob dependency not available
 
-	private readonly MainMenuItem[] menuItems = new MainMenuItem[14]
+	private readonly MainMenuItem[] menuItems = new MainMenuItem[15]
 	{
 		new MainMenuItem(Resource.Id.game_start, Resource.String.Menu_NewGame_Text),
 		new MainMenuItem(Resource.Id.game_continue, Resource.String.Menu_ContinuedGame_Text),
@@ -169,6 +174,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		new MainMenuItem(Resource.Id.menu_disp, Resource.String.MenuDisp_Text),
 		new MainMenuItem(Resource.Id.menu_engine, Resource.String.Menu_EngineManage_Text),
 		new MainMenuItem(Resource.Id.menu_vastai, Resource.String.Menu_VastAi_Text),
+		new MainMenuItem(Resource.Id.book_load, Resource.String.Menu_BookLoad_Text),
 		new MainMenuItem(),
 		new MainMenuItem(Resource.Id.action_settings, Resource.String.action_settings),
 		new MainMenuItem(Resource.Id.menu_about, Resource.String.Menu_About_Text)
@@ -240,6 +246,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		commands.Add(CmdNo.Consider, Resource.Id.consider, ConsiderStart, presenter.CanConsiderStart);
 		commands.Add(CmdNo.BoardEdit, Resource.Id.menu_board_edit, BoardEdit, presenter.CanEditBoard);
 		commands.Add(CmdNo.CameraRead, Resource.Id.camera_read, CameraRead, presenter.CanEditBoard);
+		commands.Add(CmdNo.BookLoad, Resource.Id.book_load, BookLoad, presenter.CanLoadNotaton);
 		commands.Add(CmdNo.MangeEgien, Resource.Id.menu_engine, PopupEngineMenu, presenter.CanManageEngine);
 	}
 
@@ -327,6 +334,281 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		{
 			PopupNotationInfo();
 		}
+	}
+
+	private void BookLoad()
+	{
+		ShowOpenBookDialog(LocalFile.BookPath);
+	}
+
+	private void StopBookBrowse()
+	{
+		Domain.Game.NotationModel.StopBookBrowse();
+		bookBrowseCloseButton.Visibility = Android.Views.ViewStates.Gone;
+		presenter.InitNotation();
+	}
+
+	private void ShowOpenBookDialog(string path)
+	{
+		OpenNotationDialog openDialog = OpenNotationDialog.NewInstance(path);
+		OpenNotationDialog openNotationDialog = openDialog;
+		openNotationDialog.OKClick = (EventHandler<EventArgs>)Delegate.Combine(openNotationDialog.OKClick, (EventHandler<EventArgs>)delegate
+		{
+			LoadBookAsync(openDialog.FileName);
+		});
+		openDialog.Show(FragmentManager, "OpenNotationDialog");
+	}
+
+	private CancellationTokenSource bookLoadCts;
+
+	private const int BookBrowseThreshold = 100000;
+
+	private void LoadBookAsync(string filename)
+	{
+		var book = presenter.ParseBookFile(filename);
+		if (book == null)
+		{
+			return;
+		}
+
+		var progressDialog = MyProgressDialog.NewInstance(Resource.String.BookLoading_Text);
+		progressDialog.Show(FragmentManager, "BookLoadProgress");
+
+		bookLoadCts?.Cancel();
+		bookLoadCts = new CancellationTokenSource();
+		var ct = bookLoadCts.Token;
+
+		Task.Run(() =>
+		{
+			try
+			{
+				// Phase 0: HashKey辞書構築
+				var hashBook = ShogiLib.BookExpander.BuildHashBook(book);
+				AppDebug.Log.Info($"BookLoad: {hashBook.Count} positions hashed");
+
+				if (ct.IsCancellationRequested) return;
+
+				if (hashBook.Count <= BookBrowseThreshold)
+				{
+					// ★ 小規模: ツリー展開モード
+					RunOnUiThread(() =>
+					{
+						try { progressDialog.SetMessage("ツリー展開中..."); } catch { }
+					});
+
+					ShogiLib.BookExpander.OnProgress = (nodes) =>
+					{
+						RunOnUiThread(() =>
+						{
+							try { progressDialog.SetMessage($"展開中: {nodes} ノード"); } catch { }
+						});
+					};
+
+					// 直接ツリー構築（旧Expand方式）
+					ExpandTreeDirect(Domain.Game.NotationModel.Notation, hashBook, ct);
+					ShogiLib.BookExpander.OnProgress = null;
+
+					RunOnUiThread(() =>
+					{
+						Domain.Game.NotationModel.OnBookLoaded();
+						try { progressDialog.Progress = 100; progressDialog.Dismiss(); } catch { }
+						PopupNotationInfo();
+					});
+				}
+				else
+				{
+					// ★ 大規模: 定跡閲覧モード
+					AppDebug.Log.Info($"BookLoad: {hashBook.Count} positions -> browse mode");
+
+					RunOnUiThread(() =>
+					{
+						try { progressDialog.SetMessage("定跡閲覧モードで開きます..."); } catch { }
+					});
+
+					RunOnUiThread(() =>
+					{
+						presenter.StartBookBrowse(hashBook);
+						bookBrowseCloseButton.Visibility = Android.Views.ViewStates.Visible;
+						try { progressDialog.Progress = 100; progressDialog.Dismiss(); } catch { }
+						MessagePopup("定跡が大きいため、閲覧モードで開きました");
+					});
+				}
+			}
+			catch (Exception ex)
+			{
+				AppDebug.Log.Error($"BookLoad: {ex.Message}");
+				RunOnUiThread(() =>
+				{
+					try { progressDialog.Dismiss(); } catch { }
+				});
+			}
+		}, ct);
+	}
+
+	/// <summary>
+	/// 小規模定跡: DFSで直接ツリー構築（再帰版、10万局面以下用）
+	/// </summary>
+	private static void ExpandTreeDirect(
+		ShogiLib.SNotation notation,
+		Dictionary<ShogiLib.HashKey, List<ShogiLib.BookMove>> hashBook,
+		CancellationToken ct)
+	{
+		notation.Init();
+		notation.InitHashKey();
+
+		int nodeCount = 0;
+		var visited = new HashSet<ShogiLib.HashKey>();
+		visited.Add(notation.Position.HashKey);
+
+		ExpandDFS(notation, hashBook, visited, ref nodeCount, 0, ct);
+		notation.First();
+
+		AppDebug.Log.Info($"ExpandTreeDirect: {nodeCount} nodes");
+	}
+
+	private static void ExpandDFS(
+		ShogiLib.SNotation notation,
+		Dictionary<ShogiLib.HashKey, List<ShogiLib.BookMove>> book,
+		HashSet<ShogiLib.HashKey> visited,
+		ref int nodeCount,
+		int depth,
+		CancellationToken ct)
+	{
+		if (ct.IsCancellationRequested) return;
+
+		ShogiLib.HashKey posKey = notation.Position.HashKey;
+
+		if (book.TryGetValue(posKey, out var bookMoves))
+		{
+			var sorted = bookMoves.OrderBy(m => m.Count).ToList();
+			foreach (var bm in sorted)
+			{
+				if (ct.IsCancellationRequested) return;
+
+				var moveData = ShogiLib.Sfen.ParseMove(notation.Position, bm.UsiMove);
+				if (moveData == null || moveData.MoveType == ShogiLib.MoveType.NoMove) continue;
+
+				moveData.Score = bm.Eval;
+				if (bm.Count > 0 || bm.Depth > 0)
+				{
+					moveData.CommentList = new System.Collections.Generic.List<string>();
+					moveData.CommentList.Add($"出現回数: {bm.Count}  評価値: {bm.Eval}  深さ: {bm.Depth}");
+				}
+
+				bool added = notation.AddMove(moveData, ShogiLib.MoveAddMode.MERGE, changeChildCurrent: true);
+				if (!added) continue;
+
+				nodeCount++;
+				if (nodeCount % 1000 == 0)
+					ShogiLib.BookExpander.OnProgress?.Invoke(nodeCount);
+
+				var nextKey = notation.Position.HashKey;
+				if (!visited.Contains(nextKey))
+				{
+					visited.Add(nextKey);
+					ExpandDFS(notation, book, visited, ref nodeCount, depth + 1, ct);
+					visited.Remove(nextKey);
+				}
+
+				notation.MoveParent();
+			}
+		}
+		else
+		{
+			// 橋渡し
+			BridgeDFS(notation, book, visited, ref nodeCount, depth, ct);
+		}
+	}
+
+	private static void BridgeDFS(
+		ShogiLib.SNotation notation,
+		Dictionary<ShogiLib.HashKey, List<ShogiLib.BookMove>> book,
+		HashSet<ShogiLib.HashKey> visited,
+		ref int nodeCount,
+		int depth,
+		CancellationToken ct)
+	{
+		var pos = notation.Position;
+		var turn = pos.Turn;
+		var turnFlag = ShogiLib.PieceExtensions.PieceFlagFromColor(turn);
+		var bridgeMoves = new List<ShogiLib.MoveDataEx>();
+
+		for (int from = 0; from < 81; from++)
+		{
+			var piece = pos.GetPiece(from);
+			if (piece == ShogiLib.Piece.NoPiece || piece.ColorOf() != turn) continue;
+
+			for (int to = 0; to < 81; to++)
+			{
+				if (from == to) continue;
+				var target = pos.GetPiece(to);
+				if (target != ShogiLib.Piece.NoPiece && target.ColorOf() == turn) continue;
+
+				var baseMove = new ShogiLib.MoveData(ShogiLib.MoveType.MoveFlag, from, to, piece, target);
+				bool canProm = ShogiLib.MoveCheck.CanPromota(baseMove);
+				bool forceProm = canProm && ShogiLib.MoveCheck.ForcePromotion(piece, to);
+
+				if (canProm)
+				{
+					var pm = new ShogiLib.MoveData(ShogiLib.MoveType.MoveMask, from, to, piece, target);
+					if (ShogiLib.MoveCheck.IsValidLight(pos, pm))
+						TryBridgeCollect(pos, book, bridgeMoves, pm);
+				}
+				if (!forceProm)
+				{
+					if (ShogiLib.MoveCheck.IsValidLight(pos, baseMove))
+						TryBridgeCollect(pos, book, bridgeMoves, baseMove);
+				}
+			}
+		}
+
+		for (int pt = (int)ShogiLib.PieceType.HI; pt >= (int)ShogiLib.PieceType.FU; pt--)
+		{
+			var pieceType = (ShogiLib.PieceType)pt;
+			if (!pos.IsHand(turn, pieceType)) continue;
+			var dropPiece = (ShogiLib.Piece)((uint)pieceType | (uint)turnFlag);
+			for (int to = 0; to < 81; to++)
+			{
+				if (pos.GetPiece(to) != ShogiLib.Piece.NoPiece) continue;
+				var move = new ShogiLib.MoveData(ShogiLib.MoveType.DropFlag, 0, to, dropPiece, ShogiLib.Piece.NoPiece);
+				if (ShogiLib.MoveCheck.IsValidLight(pos, move))
+					TryBridgeCollect(pos, book, bridgeMoves, move);
+			}
+		}
+
+		foreach (var moveData in bridgeMoves)
+		{
+			if (ct.IsCancellationRequested) return;
+			bool added = notation.AddMove(moveData, ShogiLib.MoveAddMode.MERGE, changeChildCurrent: true);
+			if (!added) continue;
+			nodeCount++;
+			if (nodeCount % 1000 == 0)
+				ShogiLib.BookExpander.OnProgress?.Invoke(nodeCount);
+
+			var nextKey = notation.Position.HashKey;
+			if (!visited.Contains(nextKey))
+			{
+				visited.Add(nextKey);
+				ExpandDFS(notation, book, visited, ref nodeCount, depth + 1, ct);
+				visited.Remove(nextKey);
+			}
+			notation.MoveParent();
+		}
+	}
+
+	private static void TryBridgeCollect(
+		ShogiLib.SPosition pos, Dictionary<ShogiLib.HashKey, List<ShogiLib.BookMove>> book,
+		List<ShogiLib.MoveDataEx> result, ShogiLib.MoveData move)
+	{
+		if (move.MoveType.HasFlag(ShogiLib.MoveType.MoveFlag) && !move.MoveType.HasFlag(ShogiLib.MoveType.DropFlag))
+			move.CapturePiece = pos.GetPiece(move.ToSquare);
+
+		pos.Move(move);
+		bool hit = book.ContainsKey(pos.HashKey);
+		pos.UnMove(move, null);
+
+		if (hit)
+			result.Add(new ShogiLib.MoveDataEx(move));
 	}
 
 	private void FileSave()
@@ -502,6 +784,8 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		menuButton = FindViewById<ImageButton>(Resource.Id.menu_button);
 		menuButton.Click += MenuButton_Click;
 		FindViewById<ImageButton>(Resource.Id.camera_read).Click += (s, e) => CameraRead();
+		bookBrowseCloseButton = FindViewById<Button>(Resource.Id.book_browse_close);
+		bookBrowseCloseButton.Click += (s, e) => StopBookBrowse();
 		reverseButton = FindViewById<ImageButton>(Resource.Id.reverse_button);
 		reverseButton.Click += ReverseButton_Click;
 		inputCancelButton = FindViewById<ImageButton>(Resource.Id.input_cancel_button);
@@ -2183,6 +2467,19 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 			break;
 		case "screenshot":
 			TakeDebugScreenshot();
+			break;
+		case "book_load":
+			{
+				string bookPath = intent.GetStringExtra("path");
+				if (!string.IsNullOrEmpty(bookPath))
+				{
+					LoadBookAsync(bookPath);
+				}
+				else
+				{
+					AppDebug.Log.Warning("DebugReceiver: book_load requires --es path <file>");
+				}
+			}
 			break;
 		default:
 			AppDebug.Log.Warning($"DebugReceiver: unknown cmd '{cmd}'");
