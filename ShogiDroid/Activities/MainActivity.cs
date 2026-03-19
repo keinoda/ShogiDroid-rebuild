@@ -596,21 +596,19 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	protected override void OnResume()
 	{
 		base.OnResume();
-		// if (barnerView != null)
-		// {
-		// 	barnerView.Resume();
-		// }
 		PlaySE.Initialize(this);
 		presenter.Resume();
+#if DEBUG
+		RegisterDebugReceiver();
+#endif
 	}
 
 	protected override void OnPause()
 	{
+#if DEBUG
+		UnregisterDebugReceiver();
+#endif
 		base.OnPause();
-		// if (barnerView != null)
-		// {
-		// 	barnerView.Pause();
-		// }
 		shogiBoard.AnimationStop();
 		StoreSettings();
 		presenter.Pause();
@@ -2128,4 +2126,106 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		}
 		return result;
 	}
+
+#if DEBUG
+	private BroadcastReceiver debugReceiver;
+
+	private void RegisterDebugReceiver()
+	{
+		if (debugReceiver != null) return;
+		debugReceiver = new DebugCommandReceiver(this);
+		var filter = new IntentFilter("com.siganus.ShogiDroid.rebuild.DEBUG");
+		if ((int)Build.VERSION.SdkInt >= 33)
+			RegisterReceiver(debugReceiver, filter, (ActivityFlags)0x2 /* RECEIVER_EXPORTED */);
+		else
+			RegisterReceiver(debugReceiver, filter);
+	}
+
+	private void UnregisterDebugReceiver()
+	{
+		if (debugReceiver != null)
+		{
+			UnregisterReceiver(debugReceiver);
+			debugReceiver = null;
+		}
+	}
+
+	private void DispatchDebugCommand(string cmd, Intent intent)
+	{
+		switch (cmd)
+		{
+		case "analyze":
+			AnalyzeButton_Click(this, EventArgs.Empty);
+			break;
+		case "next":
+			presenter.Next();
+			break;
+		case "prev":
+			presenter.Prev();
+			break;
+		case "first":
+			presenter.First();
+			break;
+		case "last":
+			presenter.Last();
+			break;
+		case "reverse":
+			MenuExceute(CmdNo.Reverse);
+			break;
+		case "menu":
+			MenuButton_Click(this, EventArgs.Empty);
+			break;
+		case "stop":
+			presenter.Stop();
+			break;
+		case "cancel":
+			presenter.InputCancel();
+			break;
+		case "screenshot":
+			TakeDebugScreenshot();
+			break;
+		default:
+			AppDebug.Log.Warning($"DebugReceiver: unknown cmd '{cmd}'");
+			break;
+		}
+	}
+
+	private void TakeDebugScreenshot()
+	{
+		try
+		{
+			var rootView = Window.DecorView.RootView;
+			rootView.DrawingCacheEnabled = true;
+			var bmp = Bitmap.CreateBitmap(rootView.DrawingCache);
+			rootView.DrawingCacheEnabled = false;
+			string path = System.IO.Path.Combine(
+				Android.OS.Environment.GetExternalStoragePublicDirectory(
+					Android.OS.Environment.DirectoryPictures).AbsolutePath,
+				"ShogiDroid", "debug_screenshot.png");
+			System.IO.Directory.CreateDirectory(System.IO.Path.GetDirectoryName(path));
+			using var fs = new System.IO.FileStream(path, System.IO.FileMode.Create);
+			bmp.Compress(Bitmap.CompressFormat.Png, 100, fs);
+			bmp.Dispose();
+			AppDebug.Log.Info($"Screenshot saved: {path}");
+		}
+		catch (Exception ex)
+		{
+			AppDebug.Log.Warning($"Screenshot failed: {ex.Message}");
+		}
+	}
+
+	private class DebugCommandReceiver : BroadcastReceiver
+	{
+		private readonly MainActivity activity;
+		public DebugCommandReceiver(MainActivity a) { activity = a; }
+
+		public override void OnReceive(Context context, Intent intent)
+		{
+			string cmd = intent.GetStringExtra("cmd");
+			if (string.IsNullOrEmpty(cmd)) return;
+			AppDebug.Log.Info($"DebugReceiver: cmd={cmd}");
+			activity.RunOnUiThread(() => activity.DispatchDebugCommand(cmd, intent));
+		}
+	}
+#endif
 }
