@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using ShogiGUI.Events;
 using ShogiLib;
 
@@ -225,6 +226,66 @@ public class NotationModel
 		}
 	}
 
+	private Dictionary<HashKey, List<BookMove>> activeBook;
+
+	/// <summary>
+	/// 定跡閲覧モードが有効かどうか
+	/// </summary>
+	public bool IsBookBrowseMode => activeBook != null && activeBook.Count > 0;
+
+	public Dictionary<string, List<BookMove>> ParseBookFile(string filename)
+	{
+		string ext = Path.GetExtension(filename).ToLower();
+		if (ext == ".sbk")
+		{
+			return BookParser.LoadSbk(filename);
+		}
+		return BookParser.LoadDb(filename);
+	}
+
+	/// <summary>
+	/// 定跡閲覧モード開始: HashKey辞書を保持して現在局面に適用
+	/// </summary>
+	public void StartBookBrowse(Dictionary<HashKey, List<BookMove>> hashBook)
+	{
+		activeBook = hashBook;
+		notation.Init();
+		notation.InitHashKey();
+		ApplyBookAtCurrentPosition();
+		undoManager.Reset();
+		kifuFilename = string.Empty;
+		changeState = ChangeState.Modified;
+		OnNotationChanged(new NotationEventArgs(NotationEventId.LOAD));
+	}
+
+	/// <summary>
+	/// 現在局面に定跡候補手を分岐として追加する
+	/// </summary>
+	public bool ApplyBookAtCurrentPosition()
+	{
+		if (activeBook == null)
+		{
+			return false;
+		}
+		return BookExpander.ApplyBookAtPosition(notation, activeBook);
+	}
+
+	/// <summary>
+	/// 定跡閲覧モード終了
+	/// </summary>
+	public void StopBookBrowse()
+	{
+		activeBook = null;
+	}
+
+	public void OnBookLoaded()
+	{
+		undoManager.Reset();
+		kifuFilename = string.Empty;
+		changeState = ChangeState.Modified;
+		OnNotationChanged(new NotationEventArgs(NotationEventId.LOAD));
+	}
+
 	public void Save(string filename)
 	{
 		try
@@ -262,6 +323,7 @@ public class NotationModel
 		changeState = ChangeState.Modified;
 		if (num)
 		{
+			ApplyBookAtCurrentPosition();
 			OnNotationChanged(new NotationEventArgs(NotationEventId.MAKE_MOVE));
 		}
 		return num;
@@ -284,6 +346,7 @@ public class NotationModel
 	public bool Prev()
 	{
 		bool result = notation.Prev(1);
+		ApplyBookAtCurrentPosition();
 		OnNotationChanged(new NotationEventArgs(NotationEventId.PREV));
 		return result;
 	}
@@ -291,6 +354,7 @@ public class NotationModel
 	public bool Next()
 	{
 		bool result = notation.Next(1);
+		ApplyBookAtCurrentPosition();
 		OnNotationChanged(new NotationEventArgs(NotationEventId.NEXT));
 		return result;
 	}
@@ -298,6 +362,7 @@ public class NotationModel
 	public void Jump(int number)
 	{
 		notation.ChangeCurrent(number);
+		ApplyBookAtCurrentPosition();
 		OnNotationChanged(new NotationEventArgs(NotationEventId.OTHER));
 	}
 
@@ -312,6 +377,7 @@ public class NotationModel
 	public void First()
 	{
 		notation.First();
+		ApplyBookAtCurrentPosition();
 		OnNotationChanged(new NotationEventArgs(NotationEventId.OTHER));
 	}
 
@@ -325,6 +391,7 @@ public class NotationModel
 	{
 		notation.ChangeCurrent(number);
 		notation.ChangeChildCurrent(child);
+		ApplyBookAtCurrentPosition();
 		OnNotationChanged(new NotationEventArgs(NotationEventId.OTHER));
 	}
 
@@ -332,6 +399,7 @@ public class NotationModel
 	{
 		notation.MoveCurrent.ChangeChildCurrent(child);
 		notation.Next(1);
+		ApplyBookAtCurrentPosition();
 		OnNotationChanged(new NotationEventArgs(NotationEventId.OTHER));
 	}
 
