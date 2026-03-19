@@ -14,6 +14,7 @@
     <item android:id="@id/menu_disp" android:title="@string/MenuDisp_Text" />
     <item android:id="@id/menu_engine" android:title="@string/Menu_EngineManage_Text" />
     <item android:id="@id/menu_vastai" android:title="@string/Menu_VastAi_Text" />
+    <item android:id="@id/book_load" android:title="@string/Menu_BookLoad_Text" />
     <group android:id="@id/grp2">
         <item android:id="@id/action_settings" android:title="@string/action_settings" />
         <item android:id="@id/menu_about" android:title="@string/Menu_About_Text" />
