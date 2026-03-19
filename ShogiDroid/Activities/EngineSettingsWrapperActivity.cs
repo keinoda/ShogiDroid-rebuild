@@ -9,7 +9,6 @@ using Android.OS;
 using Android.Text;
 using Android.Views;
 using Android.Widget;
-using AndroidX.Core.Content;
 using ShogiGUI;
 using ShogiGUI.Engine;
 using ShogiGUI.Presenters;
@@ -273,7 +272,7 @@ public class EngineSettingsWrapperActivity : Activity, IEngineOptions
 		header.Text = category;
 		header.SetTextSize(Android.Util.ComplexUnitType.Sp, 16);
 		header.SetTypeface(null, TypefaceStyle.Bold);
-		header.SetTextColor(new Color(ContextCompat.GetColor(this, Resource.Color.title_background)));
+		header.SetTextColor(ColorUtils.Get(this, Resource.Color.title_background));
 		var lp = new LinearLayout.LayoutParams(
 			LinearLayout.LayoutParams.MatchParent,
 			LinearLayout.LayoutParams.WrapContent);
@@ -283,7 +282,7 @@ public class EngineSettingsWrapperActivity : Activity, IEngineOptions
 		container.AddView(header);
 
 		var divider = new View(this);
-		divider.SetBackgroundColor(new Color(ContextCompat.GetColor(this, Resource.Color.title_background)));
+		divider.SetBackgroundColor(ColorUtils.Get(this, Resource.Color.title_background));
 		divider.LayoutParameters = new LinearLayout.LayoutParams(
 			LinearLayout.LayoutParams.MatchParent, DpToPx(2));
 		container.AddView(divider);
@@ -301,7 +300,7 @@ public class EngineSettingsWrapperActivity : Activity, IEngineOptions
 		cardLp.TopMargin = DpToPx(8);
 		card.LayoutParameters = cardLp;
 		card.SetPadding(DpToPx(8), DpToPx(8), DpToPx(8), DpToPx(8));
-		card.SetBackgroundColor(Color.ParseColor("#F5F5F5"));
+		card.SetBackgroundColor(ColorUtils.Get(this, Resource.Color.card_background));
 
 		switch (opt.Type)
 		{
@@ -394,7 +393,7 @@ public class EngineSettingsWrapperActivity : Activity, IEngineOptions
 		editText.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
 		if (opt.Value != opt.DefaultValue)
 		{
-			editText.SetTextColor(new Color(ContextCompat.GetColor(this, Resource.Color.option_change_text_color)));
+			editText.SetTextColor(ColorUtils.Get(this, Resource.Color.option_change_text_color));
 		}
 
 		editText.FocusChange += (s, e) =>
@@ -407,9 +406,9 @@ public class EngineSettingsWrapperActivity : Activity, IEngineOptions
 					opt.SetValue(result);
 					editText.Text = result.ToString();
 					if (opt.Value != opt.DefaultValue)
-						editText.SetTextColor(new Color(ContextCompat.GetColor(this, Resource.Color.option_change_text_color)));
+						editText.SetTextColor(ColorUtils.Get(this, Resource.Color.option_change_text_color));
 					else
-						editText.SetTextColor(new Color(ContextCompat.GetColor(this, Resource.Color.option_normal_text_color)));
+						editText.SetTextColor(ColorUtils.Get(this, Resource.Color.option_normal_text_color));
 				}
 			}
 		};
@@ -492,7 +491,7 @@ public class EngineSettingsWrapperActivity : Activity, IEngineOptions
 
 		if (opt.Value != opt.DefaultValue)
 		{
-			editText.SetTextColor(new Color(ContextCompat.GetColor(this, Resource.Color.option_change_text_color)));
+			editText.SetTextColor(ColorUtils.Get(this, Resource.Color.option_change_text_color));
 		}
 
 		editText.FocusChange += (s, e) =>
@@ -501,9 +500,9 @@ public class EngineSettingsWrapperActivity : Activity, IEngineOptions
 			{
 				opt.SetValue(editText.Text);
 				if (opt.Value != opt.DefaultValue)
-					editText.SetTextColor(new Color(ContextCompat.GetColor(this, Resource.Color.option_change_text_color)));
+					editText.SetTextColor(ColorUtils.Get(this, Resource.Color.option_change_text_color));
 				else
-					editText.SetTextColor(new Color(ContextCompat.GetColor(this, Resource.Color.option_normal_text_color)));
+					editText.SetTextColor(ColorUtils.Get(this, Resource.Color.option_normal_text_color));
 			}
 		};
 		card.AddView(editText);

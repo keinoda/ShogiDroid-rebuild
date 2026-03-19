@@ -3,7 +3,6 @@ using Android.App;
 using Android.Graphics;
 using Android.Views;
 using Android.Widget;
-using AndroidX.Core.Content;
 using Java.Lang;
 using ShogiGUI;
 using Object = Java.Lang.Object;
@@ -61,11 +60,11 @@ public class MainMenuAdapter : BaseAdapter
 			textView.Text = activity.GetString(mainMenuItem.TextId);
 			if (mainMenuItem.Enable)
 			{
-				textView.SetTextColor(new Color(ContextCompat.GetColor(activity, Resource.Color.primary_text_default_material_light)));
+				textView.SetTextColor(ColorUtils.Get(activity, Resource.Color.primary_text));
 			}
 			else
 			{
-				textView.SetTextColor(new Color(ContextCompat.GetColor(activity, Resource.Color.primary_text_disabled_material_light)));
+				textView.SetTextColor(ColorUtils.Get(activity, Resource.Color.secondary_text));
 			}
 		}
 		return view;
