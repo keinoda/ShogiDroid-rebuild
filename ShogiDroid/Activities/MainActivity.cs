@@ -47,6 +47,7 @@ namespace ShogiDroid;
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT" }, DataMimeType = "*/*", DataScheme = "file", DataHost = "*", DataPathPattern = "/.*.kif")]
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT" }, DataMimeType = "*/*", DataScheme = "file", DataHost = "*", DataPathPattern = "/.*.ki2")]
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT" }, DataMimeType = "*/*", DataScheme = "file", DataHost = "*", DataPathPattern = ".*\\\\.csa")]
+[IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT", "android.intent.category.BROWSABLE" }, DataScheme = "https", DataHost = "kishin-analytics.heroz.jp")]
 [IntentFilter(new string[] { "android.intent.action.SEND" }, Categories = new string[] { "android.intent.category.DEFAULT" }, DataMimeType = "message/rfc822")]
 public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermissionsResultCallback, IJavaObject, IDisposable, IJavaPeerable
 {
@@ -100,6 +101,8 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	private Button bookBrowseCloseButton;
 
+	private ImageButton passButton;
+
 	private ImageButton inputCancelButton;
 
 	private TextView stateText;
@@ -139,6 +142,8 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	private InfoPagerAdapter infoPageAdepter;
 
 	private EvalGraph evalGraphView;
+
+	private ShogiGUI.Engine.RemoteMonitor remoteMonitor_;
 
 	// private AdView barnerView; // Removed: AdMob dependency not available
 
@@ -716,6 +721,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		AppDebug.Log.Info("MainActivity.OnCreate started");
 		RequestWindowFeature(WindowFeatures.NoTitle);
 		Settings.Load();
+		ThemeHelper.ApplyTheme(Settings.AppSettings.ThemeMode);
 		InitUI();
 		PlaySE.Initialize(this);
 		presenter = new MainPresenter(this);
@@ -799,6 +805,9 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		bookBrowseCloseButton.Click += (s, e) => StopBookBrowse();
 		reverseButton = FindViewById<ImageButton>(Resource.Id.reverse_button);
 		reverseButton.Click += ReverseButton_Click;
+		passButton = FindViewById<ImageButton>(Resource.Id.pass_button);
+		passButton.Click += (s, e) => presenter.Pass();
+		FindViewById<ImageButton>(Resource.Id.board_edit_button).Click += (s, e) => BoardEdit();
 		inputCancelButton = FindViewById<ImageButton>(Resource.Id.input_cancel_button);
 		inputCancelButton.Click += InputCancelButton_Click;
 		if (Settings.AppSettings.ReverseButotn != 50)
@@ -862,6 +871,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 			infoPageAdepter.CommentLongClick += InfoPageAdepter_CommentLongClick;
 		}
 		infoPageAdepter.DispEvalGraph = evalGraphView == null;
+		infoPager.OffscreenPageLimit = 3;
 		infoPager.Adapter = infoPageAdepter;
 		if (num != 0)
 		{
@@ -886,6 +896,17 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	private void DrawerLayout_LayoutChange(object sender, View.LayoutChangeEventArgs e)
 	{
 		UpdatePlayerInfoPosition();
+	}
+
+	public override bool DispatchTouchEvent(Android.Views.MotionEvent e)
+	{
+#if DEBUG
+		if (e.GetToolType(0) == Android.Views.MotionEventToolType.Stylus)
+		{
+			AppDebug.Log.Info($"SPen: action={e.Action} x={e.GetX():F0} y={e.GetY():F0}");
+		}
+#endif
+		return base.DispatchTouchEvent(e);
 	}
 
 	protected override void OnResume()
@@ -913,10 +934,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	protected override void OnDestroy()
 	{
 		base.OnDestroy();
-		// if (barnerView != null)
-		// {
-		// 	barnerView.Destroy();
-		// }
+		StopRemoteMonitor();
 		presenter.Destory();
 		PlaySE.Destory();
 	}
@@ -2006,6 +2024,44 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	private const int VASTAI_ACTIVITY_CODE = 120;
 
+	public void OnEngineInitialized()
+	{
+		// リモートエンジンの場合、RemoteMonitorを起動/確認
+		if (Settings.EngineSettings.EngineNo == ShogiGUI.Engine.RemoteEnginePlayer.RemoteEngineNo)
+			StartRemoteMonitor();
+		else
+			StopRemoteMonitor();
+	}
+
+	private void StartRemoteMonitor()
+	{
+		// 既に動作中なら何もしない
+		if (remoteMonitor_ != null && remoteMonitor_.IsMonitoring)
+			return;
+
+		string host = Settings.EngineSettings.RemoteHost;
+		int sshPort = Settings.EngineSettings.VastAiSshPort;
+		string keyPath = Settings.EngineSettings.VastAiSshKeyPath;
+
+		if (string.IsNullOrEmpty(host) || sshPort <= 0 || string.IsNullOrEmpty(keyPath))
+			return;
+
+		remoteMonitor_?.Dispose();
+		remoteMonitor_ = new ShogiGUI.Engine.RemoteMonitor();
+		remoteMonitor_.Updated += (cpu, gpu) =>
+		{
+			RunOnUiThread(() => infoPageAdepter?.SetRemoteStats(cpu, gpu));
+		};
+		remoteMonitor_.Start(host, sshPort, keyPath);
+	}
+
+	private void StopRemoteMonitor()
+	{
+		remoteMonitor_?.Dispose();
+		remoteMonitor_ = null;
+		RunOnUiThread(() => infoPageAdepter?.HideRemoteStats());
+	}
+
 	private void ShowEngineSelectDialog()
 	{
 		EngineSelectDialog selectDialog = EngineSelectDialog.NewInstance(Settings.EngineSettings.GetExternalEngineFolder(), Settings.EngineSettings.EngineNo, Settings.EngineSettings.EngineName);
@@ -2409,20 +2465,28 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	{
 		if (Settings.AppSettings.DispToolbar)
 		{
-			// Show system bars (status bar + navigation bar)
+			// ステータスバー・ナビゲーションバーを表示
 			Window.DecorView.SystemUiVisibility = (StatusBarVisibility)SystemUiFlags.Visible;
 			Window.ClearFlags(WindowManagerFlags.Fullscreen);
+			AndroidX.Core.View.WindowCompat.SetDecorFitsSystemWindows(Window, true);
+			var drawer = FindViewById<Android.Views.View>(Resource.Id.drawer_layout);
+			if (drawer != null) drawer.SetFitsSystemWindows(true);
 		}
 		else
 		{
-			// Hide system bars (immersive sticky mode)
+			// ステータスバー・ナビゲーションバーを非表示、アプリを全画面に広げる
 			Window.DecorView.SystemUiVisibility = (StatusBarVisibility)(
 				SystemUiFlags.ImmersiveSticky |
 				SystemUiFlags.HideNavigation |
-				SystemUiFlags.Fullscreen);
+				SystemUiFlags.Fullscreen |
+				SystemUiFlags.LayoutStable |
+				SystemUiFlags.LayoutHideNavigation |
+				SystemUiFlags.LayoutFullscreen);
 			Window.Attributes.Flags |= WindowManagerFlags.Fullscreen;
+			AndroidX.Core.View.WindowCompat.SetDecorFitsSystemWindows(Window, false);
+			var drawer = FindViewById<Android.Views.View>(Resource.Id.drawer_layout);
+			if (drawer != null) drawer.SetFitsSystemWindows(false);
 		}
-		AndroidX.Core.View.WindowCompat.SetDecorFitsSystemWindows(Window, Settings.AppSettings.DispToolbar);
 	}
 
 	private string LoadTextFile(Android.Net.Uri uri)
