@@ -104,6 +104,7 @@
     <string name="Menu_BookBrowse_Text">定跡閲覧モード</string>
     <string name="BookLoading_Text">定跡展開中</string>
     <string name="BookBrowseClose_Text">定跡閲覧終了</string>
+    <string name="SettingsTheme_Text">テーマ</string>
     <string name="Menu_ResignGame_Text">投了</string>
     <string name="Menu_StopGame_Text">中断</string>
     <string name="Menu_Text">メニュー</string>
@@ -151,7 +152,7 @@
     <string name="SettingsCountdown_Default">10000</string>
     <string name="SettingsCountdown_Text">秒読み</string>
     <string name="SettingsCustom_Text">カスタマイズ</string>
-    <string name="SettingsDispToolbar_Text">ナビゲーションの表示</string>
+    <string name="SettingsDispToolbar_Text">ステータスバーを表示</string>
     <string name="SettingsEnablePieceSounds_Text">駒音</string>
     <string name="SettingsEngineHashTable_Text">ハッシュ</string>
     <string name="SettingsEngineOwnBook_Text">定跡</string>
