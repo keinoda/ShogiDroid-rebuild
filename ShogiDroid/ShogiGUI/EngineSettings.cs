@@ -25,7 +25,7 @@ public class EngineSettings
 
 	public string VastAiDockerImage = "keinoda/shogi:v9.0";
 
-	public string VastAiOnStartCmd = "env >> /etc/environment; touch ~/.no_auto_tmux; for engine in /workspace/*/; do exe=$(find \"$engine\" -maxdepth 1 -type f -executable 2>/dev/null | head -1); [ -n \"$exe\" ] && echo -e 'usi\\nisready\\nquit' | timeout 120 \"$exe\" > /dev/null 2>&1; done &";
+	public string VastAiOnStartCmd = "env >> /etc/environment; touch ~/.no_auto_tmux;";
 
 	// SSH接続設定
 	public string VastAiSshKeyPath = string.Empty;
