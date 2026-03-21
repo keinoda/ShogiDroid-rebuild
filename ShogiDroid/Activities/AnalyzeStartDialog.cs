@@ -68,12 +68,13 @@ public class AnalyzeStartDialog : DialogFragment
 			}
 			dialog.Dismiss();
 		};
-		// 並列解析ボタン: リモートSSH接続時のみ表示
-		var parallelBtn = (Button)view.FindViewById(Resource.Id.ParallelAnalyzeButton);
+		// 並列解析: リモートSSH接続時のみ表示
+		var parallelContainer = view.FindViewById<Android.Widget.LinearLayout>(Resource.Id.ParallelSettingsContainer);
 		if (Settings.EngineSettings.EngineNo == ShogiGUI.Engine.RemoteEnginePlayer.RemoteEngineNo
 			&& Settings.EngineSettings.VastAiSshPort > 0)
 		{
-			parallelBtn.Visibility = Android.Views.ViewStates.Visible;
+			parallelContainer.Visibility = Android.Views.ViewStates.Visible;
+			var parallelBtn = (Button)view.FindViewById(Resource.Id.ParallelAnalyzeButton);
 			parallelBtn.Click += delegate(object sender, EventArgs e)
 			{
 				saveSettings();
@@ -112,6 +113,11 @@ public class AnalyzeStartDialog : DialogFragment
 			rangeRadio.Check(Resource.Id.AnalyzeStartDialogRangeNow);
 		}
 		reverseCheckBox.Checked = Settings.AnalyzeSettings.Reverse;
+		// 並列解析設定
+		var workersEdit = Activity.FindViewById<EditText>(Resource.Id.ParallelWorkersEdit);
+		var nodesEdit = Activity.FindViewById<EditText>(Resource.Id.ParallelNodesEdit);
+		if (workersEdit != null) workersEdit.Text = Settings.AnalyzeSettings.ParallelWorkers.ToString();
+		if (nodesEdit != null) nodesEdit.Text = Settings.AnalyzeSettings.ParallelNodesMillions.ToString();
 		// 初期表示時もラベルを反映
 		if (Settings.AnalyzeSettings.Reverse)
 		{
@@ -141,5 +147,12 @@ public class AnalyzeStartDialog : DialogFragment
 			Settings.AnalyzeSettings.AnalyzePositon = GameStartPosition.NowPosition;
 		}
 		Settings.AnalyzeSettings.Reverse = reverseCheckBox.Checked;
+		// 並列解析設定
+		var workersEdit = Activity.FindViewById<EditText>(Resource.Id.ParallelWorkersEdit);
+		var nodesEdit = Activity.FindViewById<EditText>(Resource.Id.ParallelNodesEdit);
+		if (workersEdit != null && int.TryParse(workersEdit.Text, out int w) && w > 0)
+			Settings.AnalyzeSettings.ParallelWorkers = w;
+		if (nodesEdit != null && int.TryParse(nodesEdit.Text, out int n) && n > 0)
+			Settings.AnalyzeSettings.ParallelNodesMillions = n;
 	}
 }

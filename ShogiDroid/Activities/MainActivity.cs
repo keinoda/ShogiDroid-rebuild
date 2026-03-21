@@ -2168,8 +2168,8 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	private async void StartParallelAnalysis()
 	{
-		int workers = System.Math.Max(4, Settings.EngineSettings.VastAiCpuCores / 2);
-		long nodesPerMove = 10000000L;
+		int workers = Settings.AnalyzeSettings.ParallelWorkers;
+		long nodesPerMove = (long)Settings.AnalyzeSettings.ParallelNodesMillions * 1000000L;
 
 		parallelAnalyzeCts_ = new CancellationTokenSource();
 		var game = ShogiGUI.Domain.Game;

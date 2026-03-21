@@ -435,4 +435,7 @@
     <item type="id" name="remote_stats" />
     <item type="id" name="AnalyzeStartDialogReverse" />
     <item type="id" name="ParallelAnalyzeButton" />
+    <item type="id" name="ParallelSettingsContainer" />
+    <item type="id" name="ParallelWorkersEdit" />
+    <item type="id" name="ParallelNodesEdit" />
 </resources>
