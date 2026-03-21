@@ -1,0 +1,166 @@
+using System;
+using System.Collections.Generic;
+using Android.App;
+using Android.Graphics;
+using Android.Views;
+using Android.Widget;
+using ShogiGUI;
+
+namespace ShogiDroid.Controls;
+
+/// <summary>
+/// ドロワーアイテムの種類
+/// </summary>
+public enum DrawerItemKind
+{
+	Action,      // 即時実行
+	Navigate,    // 画面遷移
+	Divider      // 区切り線
+}
+
+/// <summary>
+/// ドロワーの1項目
+/// </summary>
+public class DrawerItemModel
+{
+	public int Id;
+	public string Label;
+	public DrawerItemKind Kind;
+	public Func<bool> IsEnabled;
+
+	public DrawerItemModel(int id, string label, DrawerItemKind kind = DrawerItemKind.Action, Func<bool> isEnabled = null)
+	{
+		Id = id;
+		Label = label;
+		Kind = kind;
+		IsEnabled = isEnabled;
+	}
+}
+
+/// <summary>
+/// ドロワーのセクション
+/// </summary>
+public class DrawerSectionModel
+{
+	public string Title;
+	public List<DrawerItemModel> Items;
+	public bool IsQuickAction; // クイック操作（常時展開）
+
+	public DrawerSectionModel(string title, bool isQuickAction = false)
+	{
+		Title = title;
+		Items = new List<DrawerItemModel>();
+		IsQuickAction = isQuickAction;
+	}
+
+	public DrawerSectionModel Add(int id, string label, DrawerItemKind kind = DrawerItemKind.Action, Func<bool> isEnabled = null)
+	{
+		Items.Add(new DrawerItemModel(id, label, kind, isEnabled));
+		return this;
+	}
+}
+
+/// <summary>
+/// ExpandableListView用のドロワーアダプター
+/// </summary>
+public class DrawerSectionAdapter : BaseExpandableListAdapter
+{
+	private readonly Activity activity_;
+	private readonly List<DrawerSectionModel> sections_;
+
+	public DrawerSectionAdapter(Activity activity, List<DrawerSectionModel> sections)
+	{
+		activity_ = activity;
+		sections_ = sections;
+	}
+
+	public override int GroupCount => sections_.Count;
+
+	public override bool HasStableIds => true;
+
+	public override Java.Lang.Object GetGroup(int groupPosition) => null;
+
+	public override long GetGroupId(int groupPosition) => groupPosition;
+
+	public override int GetChildrenCount(int groupPosition) => sections_[groupPosition].Items.Count;
+
+	public override Java.Lang.Object GetChild(int groupPosition, int childPosition) => null;
+
+	public override long GetChildId(int groupPosition, int childPosition) => childPosition;
+
+	public override bool IsChildSelectable(int groupPosition, int childPosition) => true;
+
+	public DrawerItemModel GetItemModel(int groupPosition, int childPosition)
+	{
+		return sections_[groupPosition].Items[childPosition];
+	}
+
+	public DrawerSectionModel GetSectionModel(int groupPosition)
+	{
+		return sections_[groupPosition];
+	}
+
+	public override View GetGroupView(int groupPosition, bool isExpanded, View convertView, ViewGroup parent)
+	{
+		var section = sections_[groupPosition];
+
+		var tv = convertView as TextView;
+		if (tv == null)
+		{
+			tv = new TextView(activity_);
+			tv.SetPadding(Dp(16), Dp(12), Dp(16), Dp(12));
+			tv.SetTypeface(null, TypefaceStyle.Bold);
+			tv.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
+		}
+
+		tv.Text = section.Title;
+		tv.SetTextColor(ColorUtils.Get(activity_, Resource.Color.title_background));
+
+		// クイック操作セクションは背景を少し変える
+		if (section.IsQuickAction)
+			tv.SetBackgroundColor(Color.Transparent);
+
+		return tv;
+	}
+
+	public override View GetChildView(int groupPosition, int childPosition, bool isLastChild, View convertView, ViewGroup parent)
+	{
+		var item = sections_[groupPosition].Items[childPosition];
+
+		var tv = convertView as TextView;
+		if (tv == null)
+		{
+			tv = new TextView(activity_);
+			tv.SetPadding(Dp(32), Dp(10), Dp(16), Dp(10));
+			tv.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
+		}
+
+		tv.Text = item.Label;
+
+		bool enabled = item.IsEnabled?.Invoke() ?? true;
+		tv.Enabled = enabled;
+		if (enabled)
+		{
+			var typedValue = new Android.Util.TypedValue();
+			activity_.Theme.ResolveAttribute(Android.Resource.Attribute.TextColorPrimary, typedValue, true);
+			tv.SetTextColor(activity_.Resources.GetColorStateList(typedValue.ResourceId, activity_.Theme));
+		}
+		else
+		{
+			tv.SetTextColor(Color.Gray);
+		}
+
+		FontUtil.ApplyFont(tv);
+		return tv;
+	}
+
+	public void NotifyChanged()
+	{
+		NotifyDataSetChanged();
+	}
+
+	private int Dp(int dp)
+	{
+		return (int)(dp * activity_.Resources.DisplayMetrics.Density + 0.5f);
+	}
+}
