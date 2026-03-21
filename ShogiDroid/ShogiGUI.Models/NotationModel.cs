@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using ShogiGUI.Events;
+using ShogiGUI.Engine;
 using ShogiLib;
 
 namespace ShogiGUI.Models;
@@ -183,6 +184,7 @@ public class NotationModel
 				kifuFilename = string.Empty;
 				changeState = ChangeState.Modified;
 			}
+			RestoreScoresFromComments();
 			OnNotationChanged(new NotationEventArgs(NotationEventId.LOAD));
 		}
 	}
@@ -222,7 +224,29 @@ public class NotationModel
 		{
 			kifuFilename = string.Empty;
 			changeState = ChangeState.Modified;
+			RestoreScoresFromComments();
 			OnNotationChanged(new NotationEventArgs(NotationEventId.LOAD));
+		}
+	}
+
+	/// <summary>
+	/// 解析コメントからMoveNode.Scoreを復元（棋譜再読み込み時の評価グラフ表示用）
+	/// </summary>
+	private void RestoreScoresFromComments()
+	{
+		foreach (MoveNode moveNode in notation.MoveNodes)
+		{
+			if (moveNode.HasScore) continue;
+			foreach (string comment in moveNode.CommentList)
+			{
+				if (string.IsNullOrEmpty(comment) || comment[0] != '*') continue;
+				var pvInfo = AnalyzeInfoList.Parse(comment);
+				if (pvInfo.HasEval)
+				{
+					moveNode.Score = pvInfo.Eval;
+					break;
+				}
+			}
 		}
 	}
 
