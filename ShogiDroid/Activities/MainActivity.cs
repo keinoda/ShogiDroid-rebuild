@@ -280,6 +280,17 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	private bool storagePermission;
 
+	private void InitDrawer()
+	{
+		var sections = BuildDrawerSections();
+		drawerAdapter_ = new DrawerSectionAdapter(this, sections);
+		drawerListView_.SetAdapter(drawerAdapter_);
+		drawerListView_.ExpandGroup(0);
+		drawerListView_.SetOnGroupExpandListener(new SingleExpandListener(drawerListView_));
+		drawerListView_.ChildClick += DrawerChildClick;
+		drawerListView_.GroupClick += DrawerGroupClick;
+	}
+
 	private void InitCommand()
 	{
 		commands.Add(CmdNo.Reverse, Resource.Id.cmd_reverse, Reverse, null);
@@ -783,6 +794,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		presenter = new MainPresenter(this);
 		presenter.Initialize();
 		InitCommand();
+		InitDrawer();
 
 		// vast.ai watchdog: notify user when instance is auto-suspended
 		VastAiWatchdog.Instance.InstanceAutoSuspended += (instanceId) =>
@@ -877,18 +889,8 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		drawerLayout.DrawerSlide += DrawerLayout_DrawerSlide;
 		drawerLayout.LayoutChange += DrawerLayout_LayoutChange;
 		leftDrawer = FindViewById<LinearLayout>(Resource.Id.left_drawer);
-		var sections = BuildDrawerSections();
-		drawerAdapter_ = new DrawerSectionAdapter(this, sections);
 		drawerListView_ = FindViewById<ExpandableListView>(Resource.Id.main_manu_lsist_view);
-		drawerListView_.SetAdapter(drawerAdapter_);
-		// クイック操作セクションはデフォルト展開
-		drawerListView_.ExpandGroup(0);
-		// 同時に1セクションだけ展開
-		drawerListView_.SetOnGroupExpandListener(new SingleExpandListener(drawerListView_));
-		// 子項目クリック
-		drawerListView_.ChildClick += DrawerChildClick;
-		// 子項目なしのセクション（クラウド/設定/情報）はグループクリックで処理
-		drawerListView_.GroupClick += DrawerGroupClick;
+		// ドロワーのアダプター設定はpresenter初期化後にInitDrawer()で行う
 		TextView textView = FindViewById<TextView>(Resource.Id.app_name);
 		AssemblyName name = Assembly.GetExecutingAssembly().GetName();
 		textView.Text = "ShogiDroidR ver " + name.Version;
