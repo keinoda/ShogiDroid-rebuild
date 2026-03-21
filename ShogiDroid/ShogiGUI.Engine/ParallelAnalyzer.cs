@@ -56,6 +56,8 @@ public class ParallelAnalyzer
 		string host, int sshPort, string keyPath,
 		string engineCommand, SNotation notation,
 		int workers, long nodesPerMove,
+		int threadsPerWorker, int hashPerWorker,
+		List<string> extraSetOptions,
 		CancellationToken ct = default)
 	{
 		// 棋譜をUSIコマンドに変換
@@ -66,11 +68,7 @@ public class ParallelAnalyzer
 		// エンジンパスと作業ディレクトリを解析
 		ParseEngineCommand(engineCommand, out string enginePath, out string engineCwd);
 
-		// ワーカーあたりのスレッド数とHash
-		int threadsPerWorker = System.Math.Max(1, Settings.EngineSettings.VastAiCpuCores / workers);
-		int hashPerWorker = 1024;
-
-		Report($"並列解析開始: {workers}並列, {nodesPerMove}ノード/手");
+		Report($"並列解析開始: {workers}並列, {threadsPerWorker}スレッド/ワーカー, Hash={hashPerWorker}MB, {nodesPerMove}ノード/手");
 
 		return await Task.Run(() =>
 		{
@@ -92,6 +90,10 @@ public class ParallelAnalyzer
 			Report("解析スクリプトをアップロード完了");
 
 			// 実行コマンド構築
+			string setoptionsArg = "";
+			if (extraSetOptions != null && extraSetOptions.Count > 0)
+				setoptionsArg = $" --setoptions \"{string.Join(";", extraSetOptions)}\"";
+
 			string remoteCmd =
 				$"python3 /tmp/shogi_parallel_analyze.py " +
 				$"--cmd \"{usiCmd}\" " +
@@ -100,7 +102,8 @@ public class ParallelAnalyzer
 				$"--move_nodes {nodesPerMove} " +
 				$"--workers {workers} " +
 				$"--threads_per_worker {threadsPerWorker} " +
-				$"--hash_per_worker {hashPerWorker}";
+				$"--hash_per_worker {hashPerWorker}" +
+				setoptionsArg;
 
 			AppDebug.Log.Info($"ParallelAnalyzer: executing: {remoteCmd}");
 			Report("リモートで解析実行中...");

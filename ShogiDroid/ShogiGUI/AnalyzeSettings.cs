@@ -17,6 +17,8 @@ public class AnalyzeSettings
 	// 並列解析設定
 	public int ParallelWorkers = 8;
 	public int ParallelNodesMillions = 10;
+	public int ParallelThreadsPerWorker = 4;
+	public int ParallelHashPerWorker = 2048;
 
 	public int GetAnalyzeDepth()
 	{
