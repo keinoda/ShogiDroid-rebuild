@@ -2159,7 +2159,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		});
 		analyzeStartDialog.ParallelClick = (EventHandler<EventArgs>)Delegate.Combine(analyzeStartDialog.ParallelClick, (EventHandler<EventArgs>)delegate
 		{
-			StartParallelAnalysis();
+			ShowParallelSettingsDialog();
 		});
 		analyzeStartDialog.Show(FragmentManager, "AnalyzeStartDialog");
 	}
@@ -2169,7 +2169,62 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	private TextView parallelProgressText_;
 	private ProgressBar parallelProgressBar_;
 
-	private async void StartParallelAnalysis()
+	private void ShowParallelSettingsDialog()
+	{
+		var layout = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Vertical };
+		layout.SetPadding(48, 32, 48, 16);
+
+		var title = new TextView(this) { Text = "並列解析設定" };
+		title.SetTextSize(Android.Util.ComplexUnitType.Sp, 16);
+		title.SetTypeface(null, Android.Graphics.TypefaceStyle.Bold);
+		layout.AddView(title);
+
+		var workersEdit = AddSettingRow(layout, "並列数", Settings.AnalyzeSettings.ParallelWorkers.ToString());
+		var nodesEdit = AddSettingRow(layout, "ノード数(百万)", Settings.AnalyzeSettings.ParallelNodesMillions.ToString());
+		var threadsEdit = AddSettingRow(layout, "スレッド/ワーカー", Settings.AnalyzeSettings.ParallelThreadsPerWorker.ToString());
+		var hashEdit = AddSettingRow(layout, "Hash/ワーカー(MB)", Settings.AnalyzeSettings.ParallelHashPerWorker.ToString());
+
+		new AlertDialog.Builder(this)
+			.SetView(layout)
+			.SetPositiveButton("解析開始", (s, e) =>
+			{
+				if (int.TryParse(workersEdit.Text, out int w) && w > 0)
+					Settings.AnalyzeSettings.ParallelWorkers = w;
+				if (int.TryParse(nodesEdit.Text, out int n) && n > 0)
+					Settings.AnalyzeSettings.ParallelNodesMillions = n;
+				if (int.TryParse(threadsEdit.Text, out int t) && t > 0)
+					Settings.AnalyzeSettings.ParallelThreadsPerWorker = t;
+				if (int.TryParse(hashEdit.Text, out int h) && h > 0)
+					Settings.AnalyzeSettings.ParallelHashPerWorker = h;
+				Settings.Save();
+				RunParallelAnalysis();
+			})
+			.SetNegativeButton("キャンセル", (s, e) => { })
+			.Show();
+	}
+
+	private EditText AddSettingRow(LinearLayout parent, string label, string value)
+	{
+		var row = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Horizontal };
+		var lp = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+		lp.TopMargin = 8;
+		row.LayoutParameters = lp;
+
+		var tv = new TextView(this) { Text = label };
+		tv.LayoutParameters = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WrapContent, 1f);
+		row.AddView(tv);
+
+		var et = new EditText(this) { Text = value };
+		et.InputType = Android.Text.InputTypes.ClassNumber;
+		et.LayoutParameters = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WrapContent, 1f);
+		row.AddView(et);
+
+		parent.AddView(row);
+		return et;
+	}
+
+	private async void RunParallelAnalysis()
 	{
 		int workers = Settings.AnalyzeSettings.ParallelWorkers;
 		long nodesPerMove = (long)Settings.AnalyzeSettings.ParallelNodesMillions * 1000000L;
