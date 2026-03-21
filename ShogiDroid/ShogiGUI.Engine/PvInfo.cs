@@ -36,6 +36,8 @@ public class PvInfo
 
 	private int bounds;
 
+	private int? hashfull;
+
 	private static string rankText = Application.Context.GetString(Resource.String.Rank_Text);
 
 	private static string timeText = Application.Context.GetString(Resource.String.Time_Text);
@@ -179,6 +181,17 @@ public class PvInfo
 			}
 			return true;
 		}
+	}
+
+	public bool HasHashFull => hashfull.HasValue;
+
+	/// <summary>
+	/// ハッシュ使用率（0-1000、千分率）
+	/// </summary>
+	public int HashFull
+	{
+		get { return hashfull.GetValueOrDefault(); }
+		set { hashfull = value; }
 	}
 
 	public bool HasNPS => nps.HasValue;
@@ -386,9 +399,9 @@ public class PvInfo
 	public static string NodesToString(long nodes)
 	{
 		if (nodes >= 1000000000L)
-			return FormatWithSuffix(nodes, 1000000000L, "B");
+			return FormatWithSuffix(nodes, 1000000000L, "b");
 		if (nodes >= 1000000)
-			return FormatWithSuffix(nodes, 1000000, "M");
+			return FormatWithSuffix(nodes, 1000000, "m");
 		if (nodes >= 1000)
 			return FormatWithSuffix(nodes, 1000, "k");
 		return nodes.ToString();
@@ -397,7 +410,7 @@ public class PvInfo
 	public static string NpsToString(long nodes)
 	{
 		if (nodes >= 1000000)
-			return FormatWithSuffix(nodes, 1000000, "M");
+			return FormatWithSuffix(nodes, 1000000, "m");
 		if (nodes >= 1000)
 			return FormatWithSuffix(nodes, 1000, "k");
 		return nodes.ToString();

@@ -426,4 +426,18 @@
     <item type="id" name="engine_settings_container" />
     <item type="id" name="engine_settings_all_options" />
     <item type="id" name="engine_settings_engine_name" />
+    <item type="id" name="book_load" />
+    <item type="id" name="menu_book" />
+    <item type="id" name="book_browse" />
+    <item type="id" name="pass_button" />
+    <item type="id" name="board_edit_button" />
+    <item type="id" name="book_browse_close" />
+    <item type="id" name="remote_stats" />
+    <item type="id" name="AnalyzeStartDialogReverse" />
+    <item type="id" name="ParallelAnalyzeButton" />
+    <item type="id" name="ParallelSettingsContainer" />
+    <item type="id" name="ParallelWorkersEdit" />
+    <item type="id" name="ParallelNodesEdit" />
+    <item type="id" name="ParallelThreadsEdit" />
+    <item type="id" name="ParallelHashEdit" />
 </resources>

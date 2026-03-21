@@ -4,6 +4,7 @@ using System.Diagnostics;
 using System.IO;
 using System.Net.Sockets;
 using System.Threading;
+using Renci.SshNet;
 
 namespace ShogiGUI.Engine;
 
@@ -27,6 +28,9 @@ public class USIEngine : IDisposable
 
 	private Thread tcpReceiveThread_;
 
+	private SshClient sshClient_;
+	private Renci.SshNet.ShellStream sshStream_;
+
 	public USIOptions Options => options_;
 
 	public void Dispose()
@@ -45,6 +49,16 @@ public class USIEngine : IDisposable
 			{
 				try { tcpClient_.Close(); } catch { }
 				tcpClient_ = null;
+			}
+			if (sshStream_ != null)
+			{
+				try { sshStream_.Close(); } catch { }
+				sshStream_ = null;
+			}
+			if (sshClient_ != null)
+			{
+				try { sshClient_.Disconnect(); } catch { }
+				sshClient_ = null;
 			}
 			string_queue_ = null;
 			process_ = null;
@@ -189,6 +203,102 @@ public class USIEngine : IDisposable
 		return true;
 	}
 
+	public bool InitializeRemoteSsh(string host, int sshPort, string keyPath, string engineCommand)
+	{
+		AppDebug.Log.Info($"USIEngine.InitializeRemoteSsh: host={host}, sshPort={sshPort}, cmd={engineCommand}");
+		lock (lockObj)
+		{
+			if (initialized_)
+			{
+				return false;
+			}
+			isRemote_ = true;
+			string_queue_ = new StringQueue();
+			try
+			{
+				PrivateKeyFile keyFile;
+				try
+				{
+					keyFile = new PrivateKeyFile(keyPath);
+				}
+				catch (Exception ex)
+				{
+					AppDebug.Log.ErrorException(ex, $"USIEngine: SSH秘密鍵の読み込みに失敗: {keyPath}");
+					string_queue_.Dispose();
+					string_queue_ = null;
+					return false;
+				}
+
+				sshClient_ = new SshClient(host, sshPort, "root", keyFile);
+				sshClient_.ConnectionInfo.Timeout = TimeSpan.FromSeconds(30);
+				sshClient_.KeepAliveInterval = TimeSpan.FromSeconds(15);
+				sshClient_.Connect();
+
+				// シェルストリーム作成（pty無し: エンジンの標準入出力を直接扱う）
+				sshStream_ = sshClient_.CreateShellStream("xterm", 0, 0, 0, 0, 4096);
+
+				// エンジン起動コマンドを送信
+				sshStream_.WriteLine(engineCommand);
+
+				// ShellStream → StringQueue の受信ループ
+				var reader = new StreamReader(sshStream_);
+				tcpWriter_ = new StreamWriter(sshStream_) { AutoFlush = true };
+
+				tcpReceiveThread_ = new Thread(() =>
+				{
+					try
+					{
+						string line;
+						while ((line = reader.ReadLine()) != null)
+						{
+							// シェルのエコーバック（起動コマンド自体）をスキップ
+							if (line.Contains("exec ./") || line.Contains("cd /workspace"))
+								continue;
+							// シェルプロンプトをスキップ
+							if (line.StartsWith("root@") || line.StartsWith("#") || line.StartsWith("$"))
+								continue;
+							lock (lockObj)
+							{
+								if (string_queue_ != null)
+									string_queue_.Push(line.Replace("\r", string.Empty));
+							}
+						}
+					}
+					catch (Exception ex)
+					{
+						AppDebug.Log.Info($"USIEngine: SSH receive ended: {ex.Message}");
+					}
+					finally
+					{
+						lock (lockObj)
+						{
+							if (string_queue_ != null)
+								string_queue_.Close();
+						}
+					}
+				});
+				tcpReceiveThread_.IsBackground = true;
+				tcpReceiveThread_.Start();
+
+				initialized_ = true;
+				AppDebug.Log.Info($"USIEngine: SSH connected to {host}:{sshPort}");
+			}
+			catch (Exception ex)
+			{
+				AppDebug.Log.ErrorException(ex, $"USIEngine: SSH接続に失敗: {host}:{sshPort}");
+				try { sshStream_?.Close(); } catch { }
+				try { sshClient_?.Disconnect(); } catch { }
+				sshStream_ = null;
+				sshClient_ = null;
+				tcpWriter_ = null;
+				string_queue_.Dispose();
+				string_queue_ = null;
+				return false;
+			}
+		}
+		return true;
+	}
+
 	public void Terminate()
 	{
 		if (!initialized_)
@@ -203,6 +313,10 @@ public class USIEngine : IDisposable
 			{
 				try { tcpClient_?.Close(); } catch { }
 				tcpClient_ = null;
+				try { sshStream_?.Close(); } catch { }
+				sshStream_ = null;
+				try { sshClient_?.Disconnect(); } catch { }
+				sshClient_ = null;
 				tcpWriter_ = null;
 				tcpReceiveThread_?.Join(5000);
 				tcpReceiveThread_ = null;

@@ -1,7 +1,10 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Reflection;
+using System.Threading;
+using System.Threading.Tasks;
 using Android.App;
 using Android.Content;
 using Android.Content.PM;
@@ -44,6 +47,7 @@ namespace ShogiDroid;
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT" }, DataMimeType = "*/*", DataScheme = "file", DataHost = "*", DataPathPattern = "/.*.kif")]
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT" }, DataMimeType = "*/*", DataScheme = "file", DataHost = "*", DataPathPattern = "/.*.ki2")]
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT" }, DataMimeType = "*/*", DataScheme = "file", DataHost = "*", DataPathPattern = ".*\\\\.csa")]
+[IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT", "android.intent.category.BROWSABLE" }, DataScheme = "https", DataHost = "kishin-analytics.heroz.jp")]
 [IntentFilter(new string[] { "android.intent.action.SEND" }, Categories = new string[] { "android.intent.category.DEFAULT" }, DataMimeType = "message/rfc822")]
 public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermissionsResultCallback, IJavaObject, IDisposable, IJavaPeerable
 {
@@ -95,6 +99,10 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	private ImageButton menuButton;
 
+	private Button bookBrowseCloseButton;
+
+	private ImageButton passButton;
+
 	private ImageButton inputCancelButton;
 
 	private TextView stateText;
@@ -135,6 +143,8 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	private EvalGraph evalGraphView;
 
+	private ShogiGUI.Engine.RemoteMonitor remoteMonitor_;
+
 	// private AdView barnerView; // Removed: AdMob dependency not available
 
 	private MainPresenter presenter;
@@ -156,7 +166,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	// private MyInterstitialAd interstitial; // Removed: AdMob dependency not available
 
-	private readonly MainMenuItem[] menuItems = new MainMenuItem[14]
+	private readonly MainMenuItem[] menuItems = new MainMenuItem[15]
 	{
 		new MainMenuItem(Resource.Id.game_start, Resource.String.Menu_NewGame_Text),
 		new MainMenuItem(Resource.Id.game_continue, Resource.String.Menu_ContinuedGame_Text),
@@ -165,6 +175,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		new MainMenuItem(Resource.Id.notation_analysis, Resource.String.Menu_Analysis_Text),
 		new MainMenuItem(),
 		new MainMenuItem(Resource.Id.menu_file, Resource.String.Menu_File_Text),
+		new MainMenuItem(Resource.Id.menu_book, Resource.String.Menu_Book_Text),
 		new MainMenuItem(Resource.Id.menu_edit, Resource.String.MenuEdit_Text),
 		new MainMenuItem(Resource.Id.menu_disp, Resource.String.MenuDisp_Text),
 		new MainMenuItem(Resource.Id.menu_engine, Resource.String.Menu_EngineManage_Text),
@@ -240,6 +251,8 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		commands.Add(CmdNo.Consider, Resource.Id.consider, ConsiderStart, presenter.CanConsiderStart);
 		commands.Add(CmdNo.BoardEdit, Resource.Id.menu_board_edit, BoardEdit, presenter.CanEditBoard);
 		commands.Add(CmdNo.CameraRead, Resource.Id.camera_read, CameraRead, presenter.CanEditBoard);
+		commands.Add(CmdNo.BookLoad, Resource.Id.book_load, BookLoadTree, presenter.CanLoadNotaton);
+		commands.Add(CmdNo.BookBrowse, Resource.Id.book_browse, BookBrowse, presenter.CanLoadNotaton);
 		commands.Add(CmdNo.MangeEgien, Resource.Id.menu_engine, PopupEngineMenu, presenter.CanManageEngine);
 	}
 
@@ -327,6 +340,291 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		{
 			PopupNotationInfo();
 		}
+	}
+
+	/// <summary>
+	/// ファイル → 定跡ファイルを開く（ツリー展開モード、大きさ制限あり）
+	/// </summary>
+	private void BookLoadTree()
+	{
+		ShowOpenBookDialog(LocalFile.BookPath, browseMode: false);
+	}
+
+	/// <summary>
+	/// メインメニュー → 定跡閲覧モード（サイズ制限なし）
+	/// </summary>
+	private void BookBrowse()
+	{
+		ShowOpenBookDialog(LocalFile.BookPath, browseMode: true);
+	}
+
+	private void StopBookBrowse()
+	{
+		Domain.Game.NotationModel.StopBookBrowse();
+		bookBrowseCloseButton.Visibility = Android.Views.ViewStates.Gone;
+		presenter.InitNotation();
+	}
+
+	private void ShowOpenBookDialog(string path, bool browseMode)
+	{
+		OpenNotationDialog openDialog = OpenNotationDialog.NewInstance(path);
+		OpenNotationDialog openNotationDialog = openDialog;
+		openNotationDialog.OKClick = (EventHandler<EventArgs>)Delegate.Combine(openNotationDialog.OKClick, (EventHandler<EventArgs>)delegate
+		{
+			LoadBookAsync(openDialog.FileName, browseMode);
+		});
+		openDialog.Show(FragmentManager, "OpenNotationDialog");
+	}
+
+	private CancellationTokenSource bookLoadCts;
+
+	private const int TreeExpandMaxPositions = 100000;
+
+	private void LoadBookAsync(string filename, bool browseMode)
+	{
+		var book = presenter.ParseBookFile(filename);
+		if (book == null)
+		{
+			return;
+		}
+
+		var progressDialog = MyProgressDialog.NewInstance(Resource.String.BookLoading_Text);
+		progressDialog.Show(FragmentManager, "BookLoadProgress");
+
+		bookLoadCts?.Cancel();
+		bookLoadCts = new CancellationTokenSource();
+		var ct = bookLoadCts.Token;
+
+		Task.Run(() =>
+		{
+			try
+			{
+				var hashBook = ShogiLib.BookExpander.BuildHashBook(book);
+				AppDebug.Log.Info($"BookLoad: {hashBook.Count} positions hashed, browseMode={browseMode}");
+
+				if (ct.IsCancellationRequested) return;
+
+				if (!browseMode)
+				{
+					// ★ ツリー展開モード
+					RunOnUiThread(() =>
+					{
+						try { progressDialog.SetMessage("ツリー展開中..."); } catch { }
+					});
+
+					ShogiLib.BookExpander.OnProgress = (nodes) =>
+					{
+						RunOnUiThread(() =>
+						{
+							try { progressDialog.SetMessage($"展開中: {nodes} ノード"); } catch { }
+						});
+					};
+
+					ExpandTreeDirect(Domain.Game.NotationModel.Notation, hashBook, ct);
+					ShogiLib.BookExpander.OnProgress = null;
+
+					RunOnUiThread(() =>
+					{
+						Domain.Game.NotationModel.OnBookLoaded();
+						try { progressDialog.Progress = 100; progressDialog.Dismiss(); } catch { }
+						PopupNotationInfo();
+					});
+				}
+				else
+				{
+					// ★ 定跡閲覧モード
+					if (!browseMode)
+					{
+						AppDebug.Log.Info($"BookLoad: {hashBook.Count} positions exceeds limit -> browse mode");
+					}
+
+					RunOnUiThread(() =>
+					{
+						presenter.StartBookBrowse(hashBook);
+						bookBrowseCloseButton.Visibility = Android.Views.ViewStates.Visible;
+						try { progressDialog.Progress = 100; progressDialog.Dismiss(); } catch { }
+						if (!browseMode)
+						{
+							MessagePopup("定跡が大きいため、閲覧モードで開きました");
+						}
+					});
+				}
+			}
+			catch (Exception ex)
+			{
+				AppDebug.Log.Error($"BookLoad: {ex.Message}");
+				RunOnUiThread(() =>
+				{
+					try { progressDialog.Dismiss(); } catch { }
+				});
+			}
+		}, ct);
+	}
+
+	/// <summary>
+	/// 小規模定跡: DFSで直接ツリー構築（再帰版、10万局面以下用）
+	/// </summary>
+	private static void ExpandTreeDirect(
+		ShogiLib.SNotation notation,
+		Dictionary<ShogiLib.HashKey, List<ShogiLib.BookMove>> hashBook,
+		CancellationToken ct)
+	{
+		notation.Init();
+		notation.InitHashKey();
+
+		int nodeCount = 0;
+		var visited = new HashSet<ShogiLib.HashKey>();
+		visited.Add(notation.Position.HashKey);
+
+		ExpandDFS(notation, hashBook, visited, ref nodeCount, 0, ct);
+		notation.First();
+
+		AppDebug.Log.Info($"ExpandTreeDirect: {nodeCount} nodes");
+	}
+
+	private static void ExpandDFS(
+		ShogiLib.SNotation notation,
+		Dictionary<ShogiLib.HashKey, List<ShogiLib.BookMove>> book,
+		HashSet<ShogiLib.HashKey> visited,
+		ref int nodeCount,
+		int depth,
+		CancellationToken ct)
+	{
+		if (ct.IsCancellationRequested) return;
+
+		ShogiLib.HashKey posKey = notation.Position.HashKey;
+
+		if (book.TryGetValue(posKey, out var bookMoves))
+		{
+			var sorted = bookMoves.OrderBy(m => m.Count).ToList();
+			foreach (var bm in sorted)
+			{
+				if (ct.IsCancellationRequested) return;
+
+				var moveData = ShogiLib.Sfen.ParseMove(notation.Position, bm.UsiMove);
+				if (moveData == null || moveData.MoveType == ShogiLib.MoveType.NoMove) continue;
+
+				moveData.Score = bm.Eval;
+				if (bm.Count > 0 || bm.Depth > 0)
+				{
+					moveData.CommentList = new System.Collections.Generic.List<string>();
+					moveData.CommentList.Add($"出現回数: {bm.Count}  評価値: {bm.Eval}  深さ: {bm.Depth}");
+				}
+
+				bool added = notation.AddMove(moveData, ShogiLib.MoveAddMode.MERGE, changeChildCurrent: true);
+				if (!added) continue;
+
+				nodeCount++;
+				if (nodeCount % 1000 == 0)
+					ShogiLib.BookExpander.OnProgress?.Invoke(nodeCount);
+
+				var nextKey = notation.Position.HashKey;
+				if (!visited.Contains(nextKey))
+				{
+					visited.Add(nextKey);
+					ExpandDFS(notation, book, visited, ref nodeCount, depth + 1, ct);
+					visited.Remove(nextKey);
+				}
+
+				notation.MoveParent();
+			}
+		}
+		else
+		{
+			// 橋渡し
+			BridgeDFS(notation, book, visited, ref nodeCount, depth, ct);
+		}
+	}
+
+	private static void BridgeDFS(
+		ShogiLib.SNotation notation,
+		Dictionary<ShogiLib.HashKey, List<ShogiLib.BookMove>> book,
+		HashSet<ShogiLib.HashKey> visited,
+		ref int nodeCount,
+		int depth,
+		CancellationToken ct)
+	{
+		var pos = notation.Position;
+		var turn = pos.Turn;
+		var turnFlag = ShogiLib.PieceExtensions.PieceFlagFromColor(turn);
+		var bridgeMoves = new List<ShogiLib.MoveDataEx>();
+
+		for (int from = 0; from < 81; from++)
+		{
+			var piece = pos.GetPiece(from);
+			if (piece == ShogiLib.Piece.NoPiece || piece.ColorOf() != turn) continue;
+
+			for (int to = 0; to < 81; to++)
+			{
+				if (from == to) continue;
+				var target = pos.GetPiece(to);
+				if (target != ShogiLib.Piece.NoPiece && target.ColorOf() == turn) continue;
+
+				var baseMove = new ShogiLib.MoveData(ShogiLib.MoveType.MoveFlag, from, to, piece, target);
+				bool canProm = ShogiLib.MoveCheck.CanPromota(baseMove);
+				bool forceProm = canProm && ShogiLib.MoveCheck.ForcePromotion(piece, to);
+
+				if (canProm)
+				{
+					var pm = new ShogiLib.MoveData(ShogiLib.MoveType.MoveMask, from, to, piece, target);
+					if (ShogiLib.MoveCheck.IsValidLight(pos, pm))
+						TryBridgeCollect(pos, book, bridgeMoves, pm);
+				}
+				if (!forceProm)
+				{
+					if (ShogiLib.MoveCheck.IsValidLight(pos, baseMove))
+						TryBridgeCollect(pos, book, bridgeMoves, baseMove);
+				}
+			}
+		}
+
+		for (int pt = (int)ShogiLib.PieceType.HI; pt >= (int)ShogiLib.PieceType.FU; pt--)
+		{
+			var pieceType = (ShogiLib.PieceType)pt;
+			if (!pos.IsHand(turn, pieceType)) continue;
+			var dropPiece = (ShogiLib.Piece)((uint)pieceType | (uint)turnFlag);
+			for (int to = 0; to < 81; to++)
+			{
+				if (pos.GetPiece(to) != ShogiLib.Piece.NoPiece) continue;
+				var move = new ShogiLib.MoveData(ShogiLib.MoveType.DropFlag, 0, to, dropPiece, ShogiLib.Piece.NoPiece);
+				if (ShogiLib.MoveCheck.IsValidLight(pos, move))
+					TryBridgeCollect(pos, book, bridgeMoves, move);
+			}
+		}
+
+		foreach (var moveData in bridgeMoves)
+		{
+			if (ct.IsCancellationRequested) return;
+			bool added = notation.AddMove(moveData, ShogiLib.MoveAddMode.MERGE, changeChildCurrent: true);
+			if (!added) continue;
+			nodeCount++;
+			if (nodeCount % 1000 == 0)
+				ShogiLib.BookExpander.OnProgress?.Invoke(nodeCount);
+
+			var nextKey = notation.Position.HashKey;
+			if (!visited.Contains(nextKey))
+			{
+				visited.Add(nextKey);
+				ExpandDFS(notation, book, visited, ref nodeCount, depth + 1, ct);
+				visited.Remove(nextKey);
+			}
+			notation.MoveParent();
+		}
+	}
+
+	private static void TryBridgeCollect(
+		ShogiLib.SPosition pos, Dictionary<ShogiLib.HashKey, List<ShogiLib.BookMove>> book,
+		List<ShogiLib.MoveDataEx> result, ShogiLib.MoveData move)
+	{
+		if (move.MoveType.HasFlag(ShogiLib.MoveType.MoveFlag) && !move.MoveType.HasFlag(ShogiLib.MoveType.DropFlag))
+			move.CapturePiece = pos.GetPiece(move.ToSquare);
+
+		pos.Move(move);
+		bool hit = book.ContainsKey(pos.HashKey);
+		pos.UnMove(move, null);
+
+		if (hit)
+			result.Add(new ShogiLib.MoveDataEx(move));
 	}
 
 	private void FileSave()
@@ -423,6 +721,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		AppDebug.Log.Info("MainActivity.OnCreate started");
 		RequestWindowFeature(WindowFeatures.NoTitle);
 		Settings.Load();
+		ThemeHelper.ApplyTheme(Settings.AppSettings.ThemeMode);
 		InitUI();
 		PlaySE.Initialize(this);
 		presenter = new MainPresenter(this);
@@ -502,8 +801,13 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		menuButton = FindViewById<ImageButton>(Resource.Id.menu_button);
 		menuButton.Click += MenuButton_Click;
 		FindViewById<ImageButton>(Resource.Id.camera_read).Click += (s, e) => CameraRead();
+		bookBrowseCloseButton = FindViewById<Button>(Resource.Id.book_browse_close);
+		bookBrowseCloseButton.Click += (s, e) => StopBookBrowse();
 		reverseButton = FindViewById<ImageButton>(Resource.Id.reverse_button);
 		reverseButton.Click += ReverseButton_Click;
+		passButton = FindViewById<ImageButton>(Resource.Id.pass_button);
+		passButton.Click += (s, e) => presenter.Pass();
+		FindViewById<ImageButton>(Resource.Id.board_edit_button).Click += (s, e) => BoardEdit();
 		inputCancelButton = FindViewById<ImageButton>(Resource.Id.input_cancel_button);
 		inputCancelButton.Click += InputCancelButton_Click;
 		if (Settings.AppSettings.ReverseButotn != 50)
@@ -567,6 +871,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 			infoPageAdepter.CommentLongClick += InfoPageAdepter_CommentLongClick;
 		}
 		infoPageAdepter.DispEvalGraph = evalGraphView == null;
+		infoPager.OffscreenPageLimit = 3;
 		infoPager.Adapter = infoPageAdepter;
 		if (num != 0)
 		{
@@ -591,6 +896,17 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	private void DrawerLayout_LayoutChange(object sender, View.LayoutChangeEventArgs e)
 	{
 		UpdatePlayerInfoPosition();
+	}
+
+	public override bool DispatchTouchEvent(Android.Views.MotionEvent e)
+	{
+#if DEBUG
+		if (e.GetToolType(0) == Android.Views.MotionEventToolType.Stylus)
+		{
+			AppDebug.Log.Info($"SPen: action={e.Action} x={e.GetX():F0} y={e.GetY():F0}");
+		}
+#endif
+		return base.DispatchTouchEvent(e);
 	}
 
 	protected override void OnResume()
@@ -618,10 +934,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	protected override void OnDestroy()
 	{
 		base.OnDestroy();
-		// if (barnerView != null)
-		// {
-		// 	barnerView.Destroy();
-		// }
+		StopRemoteMonitor();
 		presenter.Destory();
 		PlaySE.Destory();
 	}
@@ -1007,6 +1320,9 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 			break;
 		case Resource.Id.menu_file:
 			PopupFileMenu();
+			break;
+		case Resource.Id.menu_book:
+			PopupBookMenu();
 			break;
 		case Resource.Id.menu_edit:
 			PopupEditMenu();
@@ -1625,6 +1941,22 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		dialog.Show(FragmentManager, "UserNameDialog");
 	}
 
+	private void PopupBookMenu()
+	{
+		PopupMenu popupMenu = new PopupMenu(this, bottomName);
+		popupMenu.Inflate(Resource.Menu.book_menu);
+		MenuGrayout(popupMenu.Menu);
+		popupMenu.MenuItemClick += delegate(object sender, PopupMenu.MenuItemClickEventArgs e)
+		{
+			MenuItemSelected(e.Item.ItemId);
+		};
+		popupMenu.DismissEvent += delegate
+		{
+			drawerLayout.CloseDrawers();
+		};
+		popupMenu.Show();
+	}
+
 	private void PopupFileMenu()
 	{
 		PopupMenu popupMenu = new PopupMenu(this, bottomName);
@@ -1691,6 +2023,44 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	}
 
 	private const int VASTAI_ACTIVITY_CODE = 120;
+
+	public void OnEngineInitialized()
+	{
+		// リモートエンジンの場合、RemoteMonitorを起動/確認
+		if (Settings.EngineSettings.EngineNo == ShogiGUI.Engine.RemoteEnginePlayer.RemoteEngineNo)
+			StartRemoteMonitor();
+		else
+			StopRemoteMonitor();
+	}
+
+	private void StartRemoteMonitor()
+	{
+		// 既に動作中なら何もしない
+		if (remoteMonitor_ != null && remoteMonitor_.IsMonitoring)
+			return;
+
+		string host = Settings.EngineSettings.RemoteHost;
+		int sshPort = Settings.EngineSettings.VastAiSshPort;
+		string keyPath = Settings.EngineSettings.VastAiSshKeyPath;
+
+		if (string.IsNullOrEmpty(host) || sshPort <= 0 || string.IsNullOrEmpty(keyPath))
+			return;
+
+		remoteMonitor_?.Dispose();
+		remoteMonitor_ = new ShogiGUI.Engine.RemoteMonitor();
+		remoteMonitor_.Updated += (cpu, gpu) =>
+		{
+			RunOnUiThread(() => infoPageAdepter?.SetRemoteStats(cpu, gpu));
+		};
+		remoteMonitor_.Start(host, sshPort, keyPath);
+	}
+
+	private void StopRemoteMonitor()
+	{
+		remoteMonitor_?.Dispose();
+		remoteMonitor_ = null;
+		RunOnUiThread(() => infoPageAdepter?.HideRemoteStats());
+	}
 
 	private void ShowEngineSelectDialog()
 	{
@@ -1787,7 +2157,176 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		{
 			presenter.AnalyzerStart();
 		});
+		analyzeStartDialog.ParallelClick = (EventHandler<EventArgs>)Delegate.Combine(analyzeStartDialog.ParallelClick, (EventHandler<EventArgs>)delegate
+		{
+			ShowParallelSettingsDialog();
+		});
 		analyzeStartDialog.Show(FragmentManager, "AnalyzeStartDialog");
+	}
+
+	private CancellationTokenSource parallelAnalyzeCts_;
+	private AlertDialog parallelProgressDialog_;
+	private TextView parallelProgressText_;
+	private ProgressBar parallelProgressBar_;
+
+	private void ShowParallelSettingsDialog()
+	{
+		var layout = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Vertical };
+		layout.SetPadding(48, 32, 48, 16);
+
+		var title = new TextView(this) { Text = "並列解析設定" };
+		title.SetTextSize(Android.Util.ComplexUnitType.Sp, 16);
+		title.SetTypeface(null, Android.Graphics.TypefaceStyle.Bold);
+		layout.AddView(title);
+
+		var workersEdit = AddSettingRow(layout, "並列数", Settings.AnalyzeSettings.ParallelWorkers.ToString());
+		var nodesEdit = AddSettingRow(layout, "ノード数(百万)", Settings.AnalyzeSettings.ParallelNodesMillions.ToString());
+		var threadsEdit = AddSettingRow(layout, "スレッド/ワーカー", Settings.AnalyzeSettings.ParallelThreadsPerWorker.ToString());
+		var hashEdit = AddSettingRow(layout, "Hash/ワーカー(MB)", Settings.AnalyzeSettings.ParallelHashPerWorker.ToString());
+
+		new AlertDialog.Builder(this)
+			.SetView(layout)
+			.SetPositiveButton("解析開始", (s, e) =>
+			{
+				if (int.TryParse(workersEdit.Text, out int w) && w > 0)
+					Settings.AnalyzeSettings.ParallelWorkers = w;
+				if (int.TryParse(nodesEdit.Text, out int n) && n > 0)
+					Settings.AnalyzeSettings.ParallelNodesMillions = n;
+				if (int.TryParse(threadsEdit.Text, out int t) && t > 0)
+					Settings.AnalyzeSettings.ParallelThreadsPerWorker = t;
+				if (int.TryParse(hashEdit.Text, out int h) && h > 0)
+					Settings.AnalyzeSettings.ParallelHashPerWorker = h;
+				Settings.Save();
+				RunParallelAnalysis();
+			})
+			.SetNegativeButton("キャンセル", (s, e) => { })
+			.Show();
+	}
+
+	private EditText AddSettingRow(LinearLayout parent, string label, string value)
+	{
+		var row = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Horizontal };
+		var lp = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+		lp.TopMargin = 8;
+		row.LayoutParameters = lp;
+
+		var tv = new TextView(this) { Text = label };
+		tv.LayoutParameters = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WrapContent, 1f);
+		row.AddView(tv);
+
+		var et = new EditText(this) { Text = value };
+		et.InputType = Android.Text.InputTypes.ClassNumber;
+		et.LayoutParameters = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WrapContent, 1f);
+		row.AddView(et);
+
+		parent.AddView(row);
+		return et;
+	}
+
+	private async void RunParallelAnalysis()
+	{
+		int workers = Settings.AnalyzeSettings.ParallelWorkers;
+		long nodesPerMove = (long)Settings.AnalyzeSettings.ParallelNodesMillions * 1000000L;
+
+		parallelAnalyzeCts_ = new CancellationTokenSource();
+		var game = ShogiGUI.Domain.Game;
+
+		// 進捗ダイアログ作成
+		ShowParallelProgressDialog();
+
+		game.ParallelAnalyzeProgress += OnParallelProgress;
+
+		try
+		{
+			await game.ParallelAnalyzeAsync(workers, nodesPerMove, parallelAnalyzeCts_.Token);
+			RunOnUiThread(() =>
+			{
+				DismissParallelProgressDialog();
+				Toast.MakeText(this, "並列解析完了", ToastLength.Short).Show();
+				UpdateNotation(ShogiGUI.Events.NotationEventId.OBJECT_CHANGED);
+			});
+		}
+		catch (System.OperationCanceledException)
+		{
+			RunOnUiThread(() =>
+			{
+				DismissParallelProgressDialog();
+				Toast.MakeText(this, "解析キャンセル", ToastLength.Short).Show();
+			});
+		}
+		catch (Exception ex)
+		{
+			RunOnUiThread(() =>
+			{
+				DismissParallelProgressDialog();
+				Toast.MakeText(this, $"解析エラー: {ex.Message}", ToastLength.Long).Show();
+			});
+		}
+		finally
+		{
+			game.ParallelAnalyzeProgress -= OnParallelProgress;
+			parallelAnalyzeCts_ = null;
+		}
+	}
+
+	private void ShowParallelProgressDialog()
+	{
+		var layout = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Vertical };
+		layout.SetPadding(48, 32, 48, 16);
+
+		parallelProgressText_ = new TextView(this) { Text = "並列解析を準備中..." };
+		parallelProgressText_.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
+		layout.AddView(parallelProgressText_);
+
+		parallelProgressBar_ = new ProgressBar(this, null, Android.Resource.Attribute.ProgressBarStyleHorizontal);
+		parallelProgressBar_.Indeterminate = true;
+		var barLp = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+		barLp.TopMargin = 16;
+		parallelProgressBar_.LayoutParameters = barLp;
+		layout.AddView(parallelProgressBar_);
+
+		parallelProgressDialog_ = new AlertDialog.Builder(this)
+			.SetTitle("並列解析")
+			.SetView(layout)
+			.SetNegativeButton("キャンセル", (s, e) =>
+			{
+				parallelAnalyzeCts_?.Cancel();
+			})
+			.SetCancelable(false)
+			.Create();
+		parallelProgressDialog_.Show();
+	}
+
+	private void DismissParallelProgressDialog()
+	{
+		try { parallelProgressDialog_?.Dismiss(); } catch { }
+		parallelProgressDialog_ = null;
+		parallelProgressText_ = null;
+		parallelProgressBar_ = null;
+	}
+
+	private void OnParallelProgress(string msg)
+	{
+		RunOnUiThread(() =>
+		{
+			if (parallelProgressText_ != null)
+				parallelProgressText_.Text = msg;
+
+			// "解析中... 15/68" のような進捗からプログレスバーを更新
+			if (parallelProgressBar_ != null)
+			{
+				var m = System.Text.RegularExpressions.Regex.Match(msg, @"(\d+)/(\d+)");
+				if (m.Success && int.TryParse(m.Groups[1].Value, out int done)
+					&& int.TryParse(m.Groups[2].Value, out int total) && total > 0)
+				{
+					parallelProgressBar_.Indeterminate = false;
+					parallelProgressBar_.Max = total;
+					parallelProgressBar_.Progress = done;
+				}
+			}
+		});
 	}
 
 	private void CreateShortcutMenu(IMenu menu)
@@ -2095,20 +2634,28 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	{
 		if (Settings.AppSettings.DispToolbar)
 		{
-			// Show system bars (status bar + navigation bar)
+			// ステータスバー・ナビゲーションバーを表示
 			Window.DecorView.SystemUiVisibility = (StatusBarVisibility)SystemUiFlags.Visible;
 			Window.ClearFlags(WindowManagerFlags.Fullscreen);
+			AndroidX.Core.View.WindowCompat.SetDecorFitsSystemWindows(Window, true);
+			var drawer = FindViewById<Android.Views.View>(Resource.Id.drawer_layout);
+			if (drawer != null) drawer.SetFitsSystemWindows(true);
 		}
 		else
 		{
-			// Hide system bars (immersive sticky mode)
+			// ステータスバー・ナビゲーションバーを非表示、アプリを全画面に広げる
 			Window.DecorView.SystemUiVisibility = (StatusBarVisibility)(
 				SystemUiFlags.ImmersiveSticky |
 				SystemUiFlags.HideNavigation |
-				SystemUiFlags.Fullscreen);
+				SystemUiFlags.Fullscreen |
+				SystemUiFlags.LayoutStable |
+				SystemUiFlags.LayoutHideNavigation |
+				SystemUiFlags.LayoutFullscreen);
 			Window.Attributes.Flags |= WindowManagerFlags.Fullscreen;
+			AndroidX.Core.View.WindowCompat.SetDecorFitsSystemWindows(Window, false);
+			var drawer = FindViewById<Android.Views.View>(Resource.Id.drawer_layout);
+			if (drawer != null) drawer.SetFitsSystemWindows(false);
 		}
-		AndroidX.Core.View.WindowCompat.SetDecorFitsSystemWindows(Window, Settings.AppSettings.DispToolbar);
 	}
 
 	private string LoadTextFile(Android.Net.Uri uri)
@@ -2183,6 +2730,21 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 			break;
 		case "screenshot":
 			TakeDebugScreenshot();
+			break;
+		case "book_load":
+			{
+				string bookPath = intent.GetStringExtra("path");
+				string mode = intent.GetStringExtra("mode");
+				bool browse = mode == "browse";
+				if (!string.IsNullOrEmpty(bookPath))
+				{
+					LoadBookAsync(bookPath, browse);
+				}
+				else
+				{
+					AppDebug.Log.Warning("DebugReceiver: book_load requires --es path <file>");
+				}
+			}
 			break;
 		default:
 			AppDebug.Log.Warning($"DebugReceiver: unknown cmd '{cmd}'");

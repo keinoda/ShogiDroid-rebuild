@@ -2,7 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using ShogiGUI.Events;
+using ShogiGUI.Engine;
 using ShogiLib;
 
 namespace ShogiGUI.Models;
@@ -59,6 +61,11 @@ public class NotationModel
 		kifuFilename = string.Empty;
 		notation.KifuInfos["開始日時"] = DateTime.Now.ToString();
 		changeState = ChangeState.Initialized;
+	}
+
+	public void OnNotationChangedPublic(NotationEventArgs e)
+	{
+		OnNotationChanged(e);
 	}
 
 	protected virtual void OnNotationChanged(NotationEventArgs e)
@@ -182,6 +189,7 @@ public class NotationModel
 				kifuFilename = string.Empty;
 				changeState = ChangeState.Modified;
 			}
+			RestoreScoresFromComments();
 			OnNotationChanged(new NotationEventArgs(NotationEventId.LOAD));
 		}
 	}
@@ -221,8 +229,106 @@ public class NotationModel
 		{
 			kifuFilename = string.Empty;
 			changeState = ChangeState.Modified;
+			RestoreScoresFromComments();
 			OnNotationChanged(new NotationEventArgs(NotationEventId.LOAD));
 		}
+	}
+
+	/// <summary>
+	/// 解析コメントからMoveNode.Scoreを復元（棋譜再読み込み時の評価グラフ表示用）
+	/// 複数候補手がある場合、最初の解析コメント（=最善手）の評価値を使用する
+	/// </summary>
+	private void RestoreScoresFromComments()
+	{
+		foreach (MoveNode moveNode in notation.MoveNodes)
+		{
+			if (moveNode.HasScore) continue;
+			foreach (string comment in moveNode.CommentList)
+			{
+				if (string.IsNullOrEmpty(comment) || comment[0] != '*') continue;
+				var pvInfo = AnalyzeInfoList.Parse(comment);
+				if (pvInfo.Kind == AnalyzeCommentKind.Analysis && pvInfo.HasEval)
+				{
+					// 最初に見つかった解析コメントが候補1（最善手）
+					moveNode.Score = pvInfo.Eval;
+					break;
+				}
+			}
+		}
+	}
+
+	private Dictionary<HashKey, List<BookMove>> activeBook;
+
+	/// <summary>
+	/// 定跡閲覧モードが有効かどうか
+	/// </summary>
+	public bool IsBookBrowseMode => activeBook != null && activeBook.Count > 0;
+
+	public Dictionary<string, List<BookMove>> ParseBookFile(string filename)
+	{
+		string ext = Path.GetExtension(filename).ToLower();
+		if (ext == ".sbk")
+		{
+			// 同名のdbファイルがあればそちらを使用
+			string dbPath = Path.ChangeExtension(filename, ".db");
+			if (System.IO.File.Exists(dbPath))
+			{
+				return BookParser.LoadDb(dbPath);
+			}
+
+			// sbkを読み込み→db形式で保存
+			var book = BookParser.LoadSbk(filename);
+			try
+			{
+				BookParser.SaveDb(book, dbPath);
+			}
+			catch { }
+			return book;
+		}
+		return BookParser.LoadDb(filename);
+	}
+
+	/// <summary>
+	/// 定跡閲覧モード開始: HashKey辞書を保持して現在局面に適用
+	/// </summary>
+	public void StartBookBrowse(Dictionary<HashKey, List<BookMove>> hashBook)
+	{
+		activeBook = hashBook;
+		notation.Init();
+		notation.InitHashKey();
+		ApplyBookAtCurrentPosition();
+		undoManager.Reset();
+		kifuFilename = string.Empty;
+		changeState = ChangeState.Modified;
+		OnNotationChanged(new NotationEventArgs(NotationEventId.LOAD));
+	}
+
+	/// <summary>
+	/// 現在局面に定跡候補手を分岐として追加する
+	/// </summary>
+	public bool ApplyBookAtCurrentPosition()
+	{
+		if (activeBook == null)
+		{
+			return false;
+		}
+		return BookExpander.ApplyBookAtPosition(notation, activeBook);
+	}
+
+	/// <summary>
+	/// 定跡閲覧モード終了
+	/// </summary>
+	public void StopBookBrowse()
+	{
+		activeBook = null;
+	}
+
+	public void OnBookLoaded()
+	{
+		undoManager.Reset();
+		kifuFilename = string.Empty;
+		changeState = ChangeState.Modified;
+		OnNotationChanged(new NotationEventArgs(NotationEventId.LOAD));
 	}
 
 	public void Save(string filename)
@@ -262,6 +368,7 @@ public class NotationModel
 		changeState = ChangeState.Modified;
 		if (num)
 		{
+			ApplyBookAtCurrentPosition();
 			OnNotationChanged(new NotationEventArgs(NotationEventId.MAKE_MOVE));
 		}
 		return num;
@@ -284,6 +391,7 @@ public class NotationModel
 	public bool Prev()
 	{
 		bool result = notation.Prev(1);
+		ApplyBookAtCurrentPosition();
 		OnNotationChanged(new NotationEventArgs(NotationEventId.PREV));
 		return result;
 	}
@@ -291,6 +399,7 @@ public class NotationModel
 	public bool Next()
 	{
 		bool result = notation.Next(1);
+		ApplyBookAtCurrentPosition();
 		OnNotationChanged(new NotationEventArgs(NotationEventId.NEXT));
 		return result;
 	}
@@ -298,6 +407,7 @@ public class NotationModel
 	public void Jump(int number)
 	{
 		notation.ChangeCurrent(number);
+		ApplyBookAtCurrentPosition();
 		OnNotationChanged(new NotationEventArgs(NotationEventId.OTHER));
 	}
 
@@ -312,6 +422,7 @@ public class NotationModel
 	public void First()
 	{
 		notation.First();
+		ApplyBookAtCurrentPosition();
 		OnNotationChanged(new NotationEventArgs(NotationEventId.OTHER));
 	}
 
@@ -325,6 +436,7 @@ public class NotationModel
 	{
 		notation.ChangeCurrent(number);
 		notation.ChangeChildCurrent(child);
+		ApplyBookAtCurrentPosition();
 		OnNotationChanged(new NotationEventArgs(NotationEventId.OTHER));
 	}
 
@@ -332,6 +444,7 @@ public class NotationModel
 	{
 		notation.MoveCurrent.ChangeChildCurrent(child);
 		notation.Next(1);
+		ApplyBookAtCurrentPosition();
 		OnNotationChanged(new NotationEventArgs(NotationEventId.OTHER));
 	}
 
