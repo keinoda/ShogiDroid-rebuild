@@ -111,6 +111,13 @@ public class AnalyzeInfoList : SortedList<int, AnalyzeInfo>
 					analyzeInfo.Items.Add(pvInfo);
 				}
 				Add(moveNode.Number, analyzeInfo);
+
+				// コメントから復元したScoreをMoveNodeに反映（評価グラフ用）
+				PvInfo best = pvInfo ?? pvInfo2;
+				if (best != null && best.HasEval && !moveNode.HasScore)
+				{
+					moveNode.Score = best.Eval;
+				}
 			}
 		}
 		Total();
