@@ -1951,6 +1951,8 @@ public class ShogiBoard : View
 		int height = num2 * 19 / 2 + 10;
 		pieceWidth = num * 62 / 62;
 		pieceHeight = num2 * 68 / 68;
+		int num5 = squareWidth * 7;
+		int num6 = squareHeight;
 		if (shogiBoardMode == ShogiBoardMode.EDIT)
 		{
 			boardRect.X = num;
@@ -1965,8 +1967,6 @@ public class ShogiBoard : View
 		boardRect.Height = height;
 		boardMarginX = squareWidth / 4 + 5;
 		boardMarginY = squareHeight / 4 + 5;
-		int num5 = squareWidth * 7;
-		int num6 = squareHeight;
 		pieceStandTop.Left = boardRect.Left + boardMarginX + squareWidth * 2;
 		pieceStandTop.Top = 0;
 		pieceStandTop.Right = pieceStandTop.Left + num5 - 1;
@@ -2020,6 +2020,8 @@ public class ShogiBoard : View
 		int height = num2 * 19 / 2 + 10;
 		pieceWidth = num * 62 / 62;
 		pieceHeight = num2 * 68 / 68;
+		int num5 = squareWidth * 7;
+		int num6 = squareHeight;
 		if (shogiBoardMode == ShogiBoardMode.EDIT)
 		{
 			boardRect.X = num;
@@ -2034,8 +2036,6 @@ public class ShogiBoard : View
 		boardRect.Height = height;
 		boardMarginX = squareWidth / 4 + 5;
 		boardMarginY = squareHeight / 4 + 5;
-		int num5 = squareWidth * 7;
-		int num6 = squareHeight;
 		pieceStandTop.Left = boardRect.Left + boardMarginX + squareWidth * 2;
 		pieceStandTop.Top = 0;
 		pieceStandTop.Right = pieceStandTop.Left + num5 - 1;
@@ -2252,7 +2252,7 @@ public class ShogiBoard : View
 		if (Resources.Configuration.Orientation != Orientation.Landscape)
 		{
 			int measuredWidth = base.MeasuredWidth;
-			int h = base.MeasuredHeight * 15 / 20;
+			int h = base.MeasuredHeight * 14 / 20;
 			CalcSize(measuredWidth, h);
 			SetMeasuredDimension(base.MeasuredWidth, screenHeight);
 		}
