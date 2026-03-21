@@ -13,6 +13,8 @@ public class AnalyzeStartDialog : DialogFragment
 
 	public EventHandler<EventArgs> CancelClick;
 
+	public EventHandler<EventArgs> ParallelClick;
+
 	private Spinner timeSpinner;
 
 	private CheckBox depthCheckBox;
@@ -66,6 +68,22 @@ public class AnalyzeStartDialog : DialogFragment
 			}
 			dialog.Dismiss();
 		};
+		// 並列解析ボタン: リモートSSH接続時のみ表示
+		var parallelBtn = (Button)view.FindViewById(Resource.Id.ParallelAnalyzeButton);
+		if (Settings.EngineSettings.EngineNo == ShogiGUI.Engine.RemoteEnginePlayer.RemoteEngineNo
+			&& Settings.EngineSettings.VastAiSshPort > 0)
+		{
+			parallelBtn.Visibility = Android.Views.ViewStates.Visible;
+			parallelBtn.Click += delegate(object sender, EventArgs e)
+			{
+				saveSettings();
+				if (ParallelClick != null)
+				{
+					ParallelClick(sender, e);
+				}
+				dialog.Dismiss();
+			};
+		}
 		loadSettings();
 		depthEditText.Enabled = Settings.AnalyzeSettings.AnalyzeDepthEnable;
 		depthCheckBox.Click += delegate

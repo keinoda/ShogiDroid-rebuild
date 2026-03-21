@@ -9,6 +9,7 @@
     <string name="AnalyzeRangeNow_Text">現在の局面から解析</string>
     <string name="AnalyzeRange_Text">範囲</string>
     <string name="AnalyzeReverse_Text">逆順解析（終局側から）</string>
+    <string name="ParallelAnalyze_Text">並列解析（リモート）</string>
     <string name="AnalyzeStartDialog_Text">棋譜解析</string>
     <string name="AnalyzeTime_Text">時間</string>
     <string name="Analyzing_Text">解析中</string>

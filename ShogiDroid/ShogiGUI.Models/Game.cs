@@ -429,6 +429,111 @@ public class Game
 		}
 	}
 
+	/// <summary>
+	/// 並列解析の進捗通知
+	/// </summary>
+	public event Action<string> ParallelAnalyzeProgress;
+
+	/// <summary>
+	/// リモートサーバーで並列棋譜解析を実行
+	/// </summary>
+	public async System.Threading.Tasks.Task ParallelAnalyzeAsync(int workers, long nodesPerMove, CancellationToken ct)
+	{
+		string host = Settings.EngineSettings.RemoteHost;
+		int sshPort = Settings.EngineSettings.VastAiSshPort;
+		string keyPath = Settings.EngineSettings.VastAiSshKeyPath;
+		string engineCmd = Settings.EngineSettings.VastAiSshEngineCommand;
+
+		if (string.IsNullOrEmpty(host) || sshPort <= 0 || string.IsNullOrEmpty(keyPath) || string.IsNullOrEmpty(engineCmd))
+			throw new InvalidOperationException("SSH接続設定が不完全です");
+
+		var analyzer = new ParallelAnalyzer();
+		analyzer.Progress += (msg) => ParallelAnalyzeProgress?.Invoke(msg);
+
+		gameMode = GameMode.Analyzer;
+		busy = true;
+
+		try
+		{
+			var results = await analyzer.ExecuteAsync(host, sshPort, keyPath, engineCmd, Notation, workers, nodesPerMove, ct);
+			ApplyParallelResults(results);
+			ParallelAnalyzeProgress?.Invoke($"解析完了: {results.Count}手");
+		}
+		catch (Exception ex)
+		{
+			AppDebug.Log.ErrorException(ex, "ParallelAnalyze failed");
+			ParallelAnalyzeProgress?.Invoke($"解析エラー: {ex.Message}");
+			throw;
+		}
+		finally
+		{
+			gameMode = GameMode.Input;
+			busy = false;
+			OnGameEvent(new GameEventArgs(GameEventId.NotationAnalyzeEnd));
+		}
+	}
+
+	/// <summary>
+	/// 並列解析結果をNotationに反映
+	/// </summary>
+	private void ApplyParallelResults(List<ParallelAnalyzer.MoveResult> results)
+	{
+		string analysisText = Android.App.Application.Context.GetString(Resource.String.Analysis_Text);
+
+		// 各手に結果を適用
+		int moveIndex = 0;
+		foreach (MoveNode moveNode in Notation.MoveNodes)
+		{
+			if (!moveNode.MoveType.IsMove()) continue;
+			moveIndex++;
+
+			var result = results.Find(r => r.Index == moveIndex);
+			if (result == null) continue;
+
+			// 評価値をセット（手番を考慮: 後手の場合は符号反転）
+			if (result.Score.HasValue)
+			{
+				int score = result.Score.Value;
+				if (moveNode.Turn == PlayerColor.White)
+					score = -score;
+				moveNode.Score = score;
+			}
+			else if (result.Mate.HasValue)
+			{
+				int mateScore = (result.Mate.Value > 0 ? 1 : -1) * (32000 - System.Math.Abs(result.Mate.Value));
+				if (moveNode.Turn == PlayerColor.White)
+					mateScore = -mateScore;
+				moveNode.Score = mateScore;
+			}
+
+			// 最善手判定
+			if (result.BestMove == result.MoveUsi)
+				moveNode.BestMove = MoveMatche.Best;
+			else
+				moveNode.BestMove = MoveMatche.None;
+
+			// コメント生成
+			string evalStr = result.Mate.HasValue
+				? PvInfo.ValueToString(result.Mate.Value > 0 ? 1 : -1, System.Math.Abs(result.Mate.Value), 0)
+				: (result.Score.HasValue ? result.Score.Value.ToString() : "?");
+			string depthStr = result.Depth.HasValue
+				? $"{result.Depth.Value}" + (result.SelDepth.HasValue ? $"/{result.SelDepth.Value}" : "")
+				: "";
+			string nodesStr = result.Nodes.HasValue ? PvInfo.NodesToString(result.Nodes.Value) : "";
+
+			string bestMark = (moveNode.BestMove == MoveMatche.Best) ? " ○" : "";
+			string comment = $"*{analysisText}{bestMark} 評価値 {evalStr}";
+			if (!string.IsNullOrEmpty(depthStr)) comment += $" 深さ {depthStr}";
+			if (!string.IsNullOrEmpty(nodesStr)) comment += $" ノード数 {nodesStr}";
+			if (!string.IsNullOrEmpty(result.PvString)) comment += $" 読み筋 {result.PvString}";
+
+			moveNode.CommentAdd(comment);
+		}
+
+		// 棋譜変更を通知
+		NotationModel.OnNotationChangedPublic(new ShogiGUI.Events.NotationEventArgs(ShogiGUI.Events.NotationEventId.OBJECT_CHANGED));
+	}
+
 	private void AnalyzeEnd()
 	{
 		if (gameMode == GameMode.Analyzer)

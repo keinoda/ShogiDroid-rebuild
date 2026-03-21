@@ -63,6 +63,11 @@ public class NotationModel
 		changeState = ChangeState.Initialized;
 	}
 
+	public void OnNotationChangedPublic(NotationEventArgs e)
+	{
+		OnNotationChanged(e);
+	}
+
 	protected virtual void OnNotationChanged(NotationEventArgs e)
 	{
 		if (this.NotationChanged != null)

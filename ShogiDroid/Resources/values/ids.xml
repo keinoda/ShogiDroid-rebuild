@@ -434,4 +434,5 @@
     <item type="id" name="book_browse_close" />
     <item type="id" name="remote_stats" />
     <item type="id" name="AnalyzeStartDialogReverse" />
+    <item type="id" name="ParallelAnalyzeButton" />
 </resources>
