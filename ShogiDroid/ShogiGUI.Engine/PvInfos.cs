@@ -36,6 +36,8 @@ public class PvInfos
 
 	public int Nps { get; set; }
 
+	public int HashFull { get; set; } = -1;
+
 	public void Clear()
 	{
 		infos.Clear();
@@ -45,6 +47,7 @@ public class PvInfos
 		SelDepth = 0;
 		Nodes = 0L;
 		Nps = 0;
+		HashFull = -1;
 	}
 
 	public bool ContainsKey(int pvnum)
@@ -94,6 +97,10 @@ public class PvInfos
 		if (info.HasNPS)
 		{
 			Nps = info.NPS;
+		}
+		if (info.HasHashFull)
+		{
+			HashFull = info.HashFull;
 		}
 		if (info.PvMoves != null && info.PvMoves.Count != 0)
 		{
