@@ -28,6 +28,14 @@
             <TextView android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="ノード数(百万)" android:layout_weight="1.0" />
             <EditText android:id="@id/ParallelNodesEdit" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" android:inputType="number" />
         </LinearLayout>
+        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:weightSum="2.0">
+            <TextView android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="スレッド/ワーカー" android:layout_weight="1.0" />
+            <EditText android:id="@id/ParallelThreadsEdit" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" android:inputType="number" />
+        </LinearLayout>
+        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:weightSum="2.0">
+            <TextView android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="Hash/ワーカー(MB)" android:layout_weight="1.0" />
+            <EditText android:id="@id/ParallelHashEdit" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" android:inputType="number" />
+        </LinearLayout>
         <Button android:id="@id/ParallelAnalyzeButton" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/ParallelAnalyze_Text" />
     </LinearLayout>
     <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">

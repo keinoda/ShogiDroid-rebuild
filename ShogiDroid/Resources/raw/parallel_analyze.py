@@ -31,7 +31,8 @@ def wait_for_line(proc, pattern, timeout, label=""):
         if regex.search(line):
             return line
 
-def analyze_one_position(engine_path, engine_cwd, sfen, moves, index, move_nodes, threads_per_worker, hash_per_worker):
+def analyze_one_position(engine_path, engine_cwd, sfen, moves, index,
+                         move_nodes, threads_per_worker, hash_per_worker, extra_options):
     label = f"W{index}"
     proc = subprocess.Popen(
         [engine_path], stdin=subprocess.PIPE, stdout=subprocess.PIPE,
@@ -41,8 +42,15 @@ def analyze_one_position(engine_path, engine_cwd, sfen, moves, index, move_nodes
         proc.stdin.flush()
     send("usi")
     wait_for_line(proc, r"usiok", timeout=30, label=label)
+
+    # 追加オプションを先に設定（FV_SCALE等）
+    for opt in extra_options:
+        send(opt)
+
+    # Threads/Hashは並列用の値で上書き
     send(f"setoption name Threads value {threads_per_worker}")
     send(f"setoption name USI_Hash value {hash_per_worker}")
+
     send("isready")
     wait_for_line(proc, r"readyok", timeout=120, label=label)
     send("usinewgame")
@@ -80,14 +88,31 @@ def main():
     parser.add_argument("--engine_cwd", default=None)
     parser.add_argument("--move_nodes", type=int, default=10000000)
     parser.add_argument("--workers", type=int, default=4)
-    parser.add_argument("--threads_per_worker", type=int, default=2)
-    parser.add_argument("--hash_per_worker", type=int, default=1024)
+    parser.add_argument("--threads_per_worker", type=int, default=4)
+    parser.add_argument("--hash_per_worker", type=int, default=2048)
+    parser.add_argument("--setoptions", default="",
+                        help="Additional setoption commands separated by semicolons")
     args = parser.parse_args()
+
+    # 追加オプションをパース
+    extra_options = []
+    if args.setoptions:
+        for opt in args.setoptions.split(";"):
+            opt = opt.strip()
+            if opt:
+                extra_options.append(opt)
 
     sfen_base, move_list = parse_usi_position_command(args.cmd)
     if not move_list:
         print("ERROR: No moves to analyze")
         return
+
+    print(f"Analyzing {len(move_list)} moves with {args.workers} workers, "
+          f"{args.threads_per_worker} threads/worker, "
+          f"{args.hash_per_worker}MB hash/worker, "
+          f"{args.move_nodes} nodes/move", file=sys.stderr, flush=True)
+    if extra_options:
+        print(f"Extra options: {extra_options}", file=sys.stderr, flush=True)
 
     tasks = [(i+1, move_list[:i+1]) for i in range(len(move_list))]
     results = []
@@ -99,7 +124,8 @@ def main():
         for (idx, pm) in tasks:
             fut = executor.submit(analyze_one_position,
                 args.engine, args.engine_cwd, sfen_base, pm, idx,
-                args.move_nodes, args.threads_per_worker, args.hash_per_worker)
+                args.move_nodes, args.threads_per_worker, args.hash_per_worker,
+                extra_options)
             fut_map[fut] = idx
         for fut in as_completed(fut_map):
             idx = fut_map[fut]

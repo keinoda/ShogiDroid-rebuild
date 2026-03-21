@@ -454,6 +454,25 @@ public class Game
 		if (string.IsNullOrEmpty(host) || sshPort <= 0 || string.IsNullOrEmpty(keyPath) || string.IsNullOrEmpty(engineCmd))
 			throw new InvalidOperationException("SSH接続設定が不完全です");
 
+		int threadsPerWorker = Settings.AnalyzeSettings.ParallelThreadsPerWorker;
+		int hashPerWorker = Settings.AnalyzeSettings.ParallelHashPerWorker;
+
+		// 保存済みエンジンオプションを読み込む（FV_SCALE等）
+		var extraSetOptions = new List<string>();
+		string settingsFile = System.IO.Path.Combine(EngineFile.EngineFolder, "remote_engine", "remote_engine.xml");
+		if (System.IO.File.Exists(settingsFile))
+		{
+			var savedOptions = EngineOptions.Load(settingsFile);
+			foreach (var opt in savedOptions.OptionList)
+			{
+				string key = opt.Key;
+				// Threads/Hashは並列用の値で上書きするのでスキップ
+				if (key == "Threads" || key == "USI_Hash" || key == "Hash")
+					continue;
+				extraSetOptions.Add($"setoption name {key} value {opt.Value}");
+			}
+		}
+
 		var analyzer = new ParallelAnalyzer();
 		analyzer.Progress += (msg) => ParallelAnalyzeProgress?.Invoke(msg);
 
@@ -462,7 +481,8 @@ public class Game
 
 		try
 		{
-			var results = await analyzer.ExecuteAsync(host, sshPort, keyPath, engineCmd, Notation, workers, nodesPerMove, ct);
+			var results = await analyzer.ExecuteAsync(host, sshPort, keyPath, engineCmd, Notation,
+				workers, nodesPerMove, threadsPerWorker, hashPerWorker, extraSetOptions, ct);
 			ApplyParallelResults(results);
 			ParallelAnalyzeProgress?.Invoke($"解析完了: {results.Count}手");
 		}
