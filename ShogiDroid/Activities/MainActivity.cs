@@ -2165,6 +2165,9 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	}
 
 	private CancellationTokenSource parallelAnalyzeCts_;
+	private AlertDialog parallelProgressDialog_;
+	private TextView parallelProgressText_;
+	private ProgressBar parallelProgressBar_;
 
 	private async void StartParallelAnalysis()
 	{
@@ -2174,6 +2177,9 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		parallelAnalyzeCts_ = new CancellationTokenSource();
 		var game = ShogiGUI.Domain.Game;
 
+		// 進捗ダイアログ作成
+		ShowParallelProgressDialog();
+
 		game.ParallelAnalyzeProgress += OnParallelProgress;
 
 		try
@@ -2181,17 +2187,26 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 			await game.ParallelAnalyzeAsync(workers, nodesPerMove, parallelAnalyzeCts_.Token);
 			RunOnUiThread(() =>
 			{
+				DismissParallelProgressDialog();
 				Toast.MakeText(this, "並列解析完了", ToastLength.Short).Show();
 				UpdateNotation(ShogiGUI.Events.NotationEventId.OBJECT_CHANGED);
 			});
 		}
 		catch (System.OperationCanceledException)
 		{
-			RunOnUiThread(() => Toast.MakeText(this, "解析キャンセル", ToastLength.Short).Show());
+			RunOnUiThread(() =>
+			{
+				DismissParallelProgressDialog();
+				Toast.MakeText(this, "解析キャンセル", ToastLength.Short).Show();
+			});
 		}
 		catch (Exception ex)
 		{
-			RunOnUiThread(() => Toast.MakeText(this, $"解析エラー: {ex.Message}", ToastLength.Long).Show());
+			RunOnUiThread(() =>
+			{
+				DismissParallelProgressDialog();
+				Toast.MakeText(this, $"解析エラー: {ex.Message}", ToastLength.Long).Show();
+			});
 		}
 		finally
 		{
@@ -2200,12 +2215,62 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		}
 	}
 
+	private void ShowParallelProgressDialog()
+	{
+		var layout = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Vertical };
+		layout.SetPadding(48, 32, 48, 16);
+
+		parallelProgressText_ = new TextView(this) { Text = "並列解析を準備中..." };
+		parallelProgressText_.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
+		layout.AddView(parallelProgressText_);
+
+		parallelProgressBar_ = new ProgressBar(this, null, Android.Resource.Attribute.ProgressBarStyleHorizontal);
+		parallelProgressBar_.Indeterminate = true;
+		var barLp = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+		barLp.TopMargin = 16;
+		parallelProgressBar_.LayoutParameters = barLp;
+		layout.AddView(parallelProgressBar_);
+
+		parallelProgressDialog_ = new AlertDialog.Builder(this)
+			.SetTitle("並列解析")
+			.SetView(layout)
+			.SetNegativeButton("キャンセル", (s, e) =>
+			{
+				parallelAnalyzeCts_?.Cancel();
+			})
+			.SetCancelable(false)
+			.Create();
+		parallelProgressDialog_.Show();
+	}
+
+	private void DismissParallelProgressDialog()
+	{
+		try { parallelProgressDialog_?.Dismiss(); } catch { }
+		parallelProgressDialog_ = null;
+		parallelProgressText_ = null;
+		parallelProgressBar_ = null;
+	}
+
 	private void OnParallelProgress(string msg)
 	{
 		RunOnUiThread(() =>
 		{
-			var stateText = FindViewById<TextView>(Resource.Id.state_text);
-			if (stateText != null) stateText.Text = msg;
+			if (parallelProgressText_ != null)
+				parallelProgressText_.Text = msg;
+
+			// "解析中... 15/68" のような進捗からプログレスバーを更新
+			if (parallelProgressBar_ != null)
+			{
+				var m = System.Text.RegularExpressions.Regex.Match(msg, @"(\d+)/(\d+)");
+				if (m.Success && int.TryParse(m.Groups[1].Value, out int done)
+					&& int.TryParse(m.Groups[2].Value, out int total) && total > 0)
+				{
+					parallelProgressBar_.Indeterminate = false;
+					parallelProgressBar_.Max = total;
+					parallelProgressBar_.Progress = done;
+				}
+			}
 		});
 	}
 
