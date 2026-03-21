@@ -281,6 +281,37 @@ public class VastAiManager : IDisposable
 		return result?.Instances ?? new List<VastAiInstance>();
 	}
 
+	/// <summary>
+	/// ユーザーのクレジット残高を取得する
+	/// </summary>
+	public async Task<double?> GetCreditBalanceAsync(CancellationToken ct = default)
+	{
+		try
+		{
+			string url = $"{BaseUrl}/users/current/?api_key={apiKey_}";
+			var response = await httpClient_.GetAsync(url, ct);
+			string body = await response.Content.ReadAsStringAsync();
+			if (!response.IsSuccessStatusCode) return null;
+
+			using var doc = JsonDocument.Parse(body);
+			if (doc.RootElement.TryGetProperty("credit", out var credit))
+			{
+				return credit.GetDouble();
+			}
+			if (doc.RootElement.TryGetProperty("balance", out var balance))
+			{
+				return balance.GetDouble();
+			}
+			if (doc.RootElement.TryGetProperty("balance_threshold_enabled", out _) &&
+				doc.RootElement.TryGetProperty("balance_threshold", out var threshold))
+			{
+				return threshold.GetDouble();
+			}
+		}
+		catch { }
+		return null;
+	}
+
 	public void SetApiKey(string apiKey)
 	{
 		apiKey_ = apiKey;
@@ -301,7 +332,7 @@ public class VastAiManager : IDisposable
 			["rentable"] = new Dictionary<string, object> { ["eq"] = true },
 			["rented"] = new Dictionary<string, object> { ["eq"] = false },
 			["order"] = new object[] { new object[] { sortField, sortDir } },
-			["type"] = "bid"
+			["type"] = criteria.RentType ?? "bid"
 		};
 
 		if (criteria.GpuNames != null && criteria.GpuNames.Length > 0)
@@ -344,6 +375,15 @@ public class VastAiManager : IDisposable
 			query["num_gpus"] = new Dictionary<string, object> { ["eq"] = criteria.NumGpus };
 		}
 
+		if (criteria.MinCudaVersion > 0)
+		{
+			query["cuda_max_good"] = new Dictionary<string, object> { ["gte"] = criteria.MinCudaVersion };
+		}
+
+		// 常にverifiedのみ、信頼度95%以上
+		query["verified"] = new Dictionary<string, object> { ["eq"] = true };
+		query["reliability2"] = new Dictionary<string, object> { ["gte"] = 0.95 };
+
 		return query;
 	}
 
@@ -370,14 +410,16 @@ public class VastAiSearchCriteria
 	public double MinReliability = 0; // % (0-100)
 	public double MinInetDown = 0;   // Mbps
 	public int NumGpus = 0;          // 0 = any
-	public string SortField = "dph_total";  // dph_total, dlperf, cpu_cores_effective, reliability2, inet_down
+	public string SortField = "dph_total";
 	public bool SortAsc = true;
+	public string RentType = "bid"; // "bid" = interruptible, "on-demand" = on-demand
+	public double MinCudaVersion = 0; // 例: 12.4
 }
 
 public class VastAiInstanceConfig
 {
 	public string DockerImage = "keinoda/shogi:v9.0";
-	public int[] Ports = new[] { 6000, 6001 };
+	public int[] Ports = Array.Empty<int>();
 	public double DiskGb = 8.0;
 	public string OnStartCmd = "";
 }
@@ -434,6 +476,18 @@ public class VastAiOffer
 
 	[JsonPropertyName("geolocation")]
 	public string Geolocation { get; set; }
+
+	[JsonPropertyName("cuda_max_good")]
+	public double CudaMaxGood { get; set; }
+
+	[JsonPropertyName("verification")]
+	public string Verification { get; set; }
+
+	[JsonPropertyName("min_bid")]
+	public double MinBid { get; set; }
+
+	[JsonPropertyName("search_price")]
+	public double SearchPrice { get; set; }
 
 	public double GpuRamGb => GpuRam / 1024.0;
 	public double CpuRamGb => CpuRam / 1024.0;

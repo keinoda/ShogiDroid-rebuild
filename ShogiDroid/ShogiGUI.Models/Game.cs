@@ -497,15 +497,33 @@ public class Game
 			if (playerNo == RemoteEnginePlayer.RemoteEngineNo)
 			{
 				string host = Settings.EngineSettings.RemoteHost;
-				int port = 28597;
-				int.TryParse(Settings.EngineSettings.RemotePort, out port);
-				AppDebug.Log.Info($"initEnginePlayer: remote engine host={host}, port={port}");
+				AppDebug.Log.Info($"initEnginePlayer: remote engine host={host}");
 				if (string.IsNullOrEmpty(host))
 				{
 					AppDebug.Log.Error("initEnginePlayer: RemoteHost is empty");
 					return false;
 				}
-				RemoteEnginePlayer remoteEnginePlayer = new RemoteEnginePlayer(PlayerColor.Black, host, port);
+
+				// SSH接続を優先、設定がなければTCPフォールバック
+				string sshKeyPath = Settings.EngineSettings.VastAiSshKeyPath;
+				int sshPort = Settings.EngineSettings.VastAiSshPort;
+				string engineCmd = Settings.EngineSettings.VastAiSshEngineCommand;
+				bool useSsh = !string.IsNullOrEmpty(sshKeyPath) && sshPort > 0 && !string.IsNullOrEmpty(engineCmd);
+
+				RemoteEnginePlayer remoteEnginePlayer;
+				if (useSsh)
+				{
+					AppDebug.Log.Info($"initEnginePlayer: SSH mode sshPort={sshPort}, cmd={engineCmd}");
+					remoteEnginePlayer = new RemoteEnginePlayer(PlayerColor.Black, host, sshPort, sshKeyPath, engineCmd);
+				}
+				else
+				{
+					int port = 28597;
+					int.TryParse(Settings.EngineSettings.RemotePort, out port);
+					AppDebug.Log.Info($"initEnginePlayer: TCP mode port={port}");
+					remoteEnginePlayer = new RemoteEnginePlayer(PlayerColor.Black, host, port);
+				}
+
 				remoteEnginePlayer.CopyFiles();
 				remoteEnginePlayer.LoadSettings();
 				enginePlayer = remoteEnginePlayer;
@@ -516,9 +534,22 @@ public class Game
 				enginePlayer.Stopped += Player_Stopped;
 				enginePlayer.InfoRecieved += Player_InfoRecieved;
 				enginePlayer.ReportError += Player_ReportError;
-				if (!enginePlayer.InitRemote(host, port))
+
+				bool connected;
+				if (useSsh)
 				{
-					AppDebug.Log.Error($"initEnginePlayer: InitRemote failed for {host}:{port}");
+					connected = remoteEnginePlayer.InitSsh();
+				}
+				else
+				{
+					int port = 28597;
+					int.TryParse(Settings.EngineSettings.RemotePort, out port);
+					connected = enginePlayer.InitRemote(host, port);
+				}
+
+				if (!connected)
+				{
+					AppDebug.Log.Error($"initEnginePlayer: remote connection failed for {host}");
 					enginePlayer.Terminate();
 					enginePlayer = null;
 					return false;
@@ -1013,6 +1044,9 @@ public class Game
 	{
 		if (!cancel)
 		{
+			// vast.aiインスタンスのスペックに基づいてThreads/Hashを自動設定
+			ApplyVastAiAutoOptions();
+
 			if (engineMode == EngineMode.None)
 			{
 				busy = false;
@@ -1021,6 +1055,68 @@ public class Game
 			else
 			{
 				enginePlayer.Ready();
+			}
+		}
+	}
+
+	private void ApplyVastAiAutoOptions()
+	{
+		if (Settings.EngineSettings.EngineNo != RemoteEnginePlayer.RemoteEngineNo) return;
+
+		int cores = Settings.EngineSettings.VastAiCpuCores;
+		int ramMb = Settings.EngineSettings.VastAiRamMb;
+		int gpuRamMb = Settings.EngineSettings.VastAiGpuRamMb;
+		if (cores <= 0 && ramMb <= 0) return;
+
+		// USIオプションにDL系の設定があればDEEPエンジンと判定
+		var opts = enginePlayer.Options;
+		bool isDeep = opts.ContainsKey("UCT_NodeLimit") ||
+					  opts.ContainsKey("DNN_Batch_Size") ||
+					  opts.ContainsKey("GPU_Id");
+
+		if (isDeep)
+		{
+			AppDebug.Log.Info($"VastAi auto-option: DEEPエンジン検出 (cores={cores}, RAM={ramMb}MB, VRAM={gpuRamMb}MB)");
+
+			if (cores > 0)
+			{
+				enginePlayer.SetOption("Threads", cores, temp: true);
+				AppDebug.Log.Info($"VastAi auto-option: Threads={cores}");
+			}
+
+			// Hash: DEEPでは1024MBで十分
+			enginePlayer.SetOption("USI_Hash", 1024, temp: true);
+			enginePlayer.SetOption("Hash", 1024, temp: true);
+			AppDebug.Log.Info("VastAi auto-option: Hash=1024MB (DEEP)");
+
+			// UCT_NodeLimit: MCTSツリーのノード上限
+			if (ramMb > 0 && opts.ContainsKey("UCT_NodeLimit"))
+			{
+				long availableBytes = (long)(ramMb - 1024) * 1024L * 1024L;
+				if (availableBytes < 0) availableBytes = (long)ramMb * 512L * 1024L;
+				long nodeLimit = availableBytes / 200;
+				int nodeLimitInt = (int)System.Math.Min(nodeLimit, 50000000L);
+				enginePlayer.SetOption("UCT_NodeLimit", nodeLimitInt, temp: true);
+				AppDebug.Log.Info($"VastAi auto-option: UCT_NodeLimit={nodeLimitInt}");
+			}
+		}
+		else
+		{
+			AppDebug.Log.Info($"VastAi auto-option: NNUEエンジン検出 (cores={cores}, RAM={ramMb}MB)");
+
+			if (cores > 0)
+			{
+				enginePlayer.SetOption("Threads", cores, temp: true);
+				AppDebug.Log.Info($"VastAi auto-option: Threads={cores}");
+			}
+
+			if (ramMb > 0)
+			{
+				// RAMの70%、上限32768MB
+				int hashMb = System.Math.Min((int)(ramMb * 0.7), 32768);
+				enginePlayer.SetOption("USI_Hash", hashMb, temp: true);
+				enginePlayer.SetOption("Hash", hashMb, temp: true);
+				AppDebug.Log.Info($"VastAi auto-option: Hash={hashMb}MB");
 			}
 		}
 	}
