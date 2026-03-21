@@ -19,6 +19,7 @@
         <EditTextPreference android:singleLine="true" android:title="@string/SettingsVastAiDockerImage_Text" android:key="Engine.VastAiDockerImage" android:defaultValue="keinoda/shogi:v9.0" />
     </PreferenceCategory>
     <PreferenceCategory android:title="@string/SettingsAppearance_Text">
+        <ListPreference android:entries="@array/SettingsTheme_Texts" android:title="@string/SettingsTheme_Text" android:key="App.ThemeMode" android:defaultValue="system" android:entryValues="@array/SettingsTheme_Values" />
         <CheckBoxPreference android:title="@string/SettingsShowHintArrow_Text" android:key="App.ShowHintArrow" android:defaultValue="true" />
         <CheckBoxPreference android:title="@string/SettingsShowNextMoveArrow_Text" android:key="App.ShowNextArrow" android:defaultValue="true" />
         <CheckBoxPreference android:title="@string/SettingsShowComputerThinking_Text" android:key="App.ShowComputerThinking" android:defaultValue="true" />

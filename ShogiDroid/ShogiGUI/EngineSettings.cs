@@ -25,7 +25,17 @@ public class EngineSettings
 
 	public string VastAiDockerImage = "keinoda/shogi:v9.0";
 
-	public string VastAiOnStartCmd = "env >> /etc/environment; touch ~/.no_auto_tmux; setsid bash -c 'cd /workspace/Suisho10 && socat TCP-LISTEN:6000,reuseaddr,bind=0.0.0.0,fork,keepalive,tcp-keepidle=60,tcp-keepintvl=10,tcp-keepcnt=3 EXEC:./Suisho10-YaneuraOu-tournament-avx2,pty,raw,echo=0' & setsid bash -c 'cd /workspace/FukauraOu && socat TCP-LISTEN:6001,reuseaddr,bind=0.0.0.0,fork,keepalive,tcp-keepidle=60,tcp-keepintvl=10,tcp-keepcnt=3 EXEC:./FukauraOu-avx2,pty,raw,echo=0' & setsid bash -c 'cd /workspace/FukauraOu && socat TCP-LISTEN:6002,reuseaddr,bind=0.0.0.0,fork,keepalive,tcp-keepidle=60,tcp-keepintvl=10,tcp-keepcnt=3 EXEC:bash' &;";
+	public string VastAiOnStartCmd = "env >> /etc/environment; touch ~/.no_auto_tmux;";
+
+	// SSH接続設定
+	public string VastAiSshKeyPath = string.Empty;
+	public int VastAiSshPort = 0;
+	public string VastAiSshEngineCommand = string.Empty;
+
+	// インスタンススペック（自動オプション設定用）
+	public int VastAiCpuCores = 0;
+	public int VastAiRamMb = 0;
+	public int VastAiGpuRamMb = 0;
 
 	public int VastAiInstanceId = 0;
 
@@ -40,6 +50,7 @@ public class EngineSettings
 	public int VastAiNumGpus = 0;
 	public string VastAiSortField = "dph_total";
 	public bool VastAiSortAsc = true;
+	public double VastAiMinCudaVersion = 0;
 
 	public string GetExternalEngineFolder()
 	{

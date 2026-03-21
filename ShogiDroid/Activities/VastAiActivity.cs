@@ -9,6 +9,7 @@ using Android.Graphics;
 using Android.OS;
 using Android.Views;
 using Android.Widget;
+using Renci.SshNet;
 using ShogiGUI;
 using ShogiGUI.Engine;
 
@@ -17,12 +18,10 @@ namespace ShogiDroid;
 [Activity(Label = "リモートエンジン (vast.ai)", ConfigurationChanges = (Android.Content.PM.ConfigChanges.Orientation | Android.Content.PM.ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
 public class VastAiActivity : Activity
 {
+	private const int SSH_KEY_PICK_CODE = 130;
 	public const string ExtraHost = "vast_ai_host";
 	public const string ExtraPort = "vast_ai_port";
 	public const string ExtraInstanceId = "vast_ai_instance_id";
-	private const int PortNNUE = 6000;
-	private const int PortDEEP = 6001;
-
 	private VastAiManager vastAi_;
 	private CancellationTokenSource cts_;
 
@@ -37,20 +36,22 @@ public class VastAiActivity : Activity
 	private EditText apiKeyEdit_;
 	private EditText dockerImageEdit_;
 	private EditText onStartCmdEdit_;
-	private EditText manualHostEdit_;
-	private EditText manualPortEdit_;
+	private EditText sshKeyPathEdit_;
 
 	// Search criteria UI
-	private EditText gpuNamesEdit_;
 	private EditText minCpuCoresEdit_;
 	private EditText maxDphEdit_;
-	private EditText minGpuRamEdit_;
-	private EditText minDiskSpaceEdit_;
-	private EditText minReliabilityEdit_;
-	private EditText minInetDownEdit_;
 	private EditText numGpusEdit_;
-	private Spinner sortFieldSpinner_;
-	private CheckBox sortAscCheck_;
+	private EditText minCudaEdit_;
+	private CheckBox interruptibleCheck_;
+	private LinearLayout gpuCheckListContainer_;
+	private List<CheckBox> gpuCheckBoxes_ = new List<CheckBox>();
+	private TextView creditText_;
+
+	// 検索結果の表示制御
+	private List<VastAiOffer> currentOffers_;
+	private int displayedOfferCount_;
+	private const int OffersPerPage = 10;
 
 	protected override void OnCreate(Bundle savedInstanceState)
 	{
@@ -73,7 +74,11 @@ public class VastAiActivity : Activity
 	{
 		UpdateWindowSettings();
 
+		var outerFrame = new FrameLayout(this);
+		outerFrame.SetFitsSystemWindows(true);
+
 		var scroll = new ScrollView(this);
+		scroll.SetClipToPadding(false);
 		scroll.SetPadding(DpToPx(16), DpToPx(16), DpToPx(16), DpToPx(16));
 
 		rootLayout_ = new LinearLayout(this) { Orientation = Orientation.Vertical };
@@ -81,14 +86,29 @@ public class VastAiActivity : Activity
 		// === 既存インスタンス ===
 		AddSectionHeader(rootLayout_, "既存インスタンス");
 
+		// 更新ボタン + クレジット残高を同じ行に
+		var refreshRow = new LinearLayout(this) { Orientation = Orientation.Horizontal };
+		refreshRow.SetGravity(GravityFlags.CenterVertical);
+		var refreshRowLp = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+		refreshRowLp.BottomMargin = DpToPx(4);
+		refreshRow.LayoutParameters = refreshRowLp;
+
 		var refreshBtn = new Button(this) { Text = "更新" };
 		refreshBtn.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
-		var refreshLp = new LinearLayout.LayoutParams(
+		refreshBtn.LayoutParameters = new LinearLayout.LayoutParams(
 			LinearLayout.LayoutParams.WrapContent, LinearLayout.LayoutParams.WrapContent);
-		refreshLp.BottomMargin = DpToPx(4);
-		refreshBtn.LayoutParameters = refreshLp;
 		refreshBtn.Click += (s, e) => LoadExistingInstancesAsync();
-		rootLayout_.AddView(refreshBtn);
+		refreshRow.AddView(refreshBtn);
+
+		creditText_ = new TextView(this) { Text = "" };
+		creditText_.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
+		creditText_.Gravity = GravityFlags.Right | GravityFlags.CenterVertical;
+		creditText_.LayoutParameters = new LinearLayout.LayoutParams(
+			0, LinearLayout.LayoutParams.WrapContent, 1f);
+		refreshRow.AddView(creditText_);
+
+		rootLayout_.AddView(refreshRow);
 
 		existingInstancesContainer_ = new LinearLayout(this) { Orientation = Orientation.Vertical };
 		rootLayout_.AddView(existingInstancesContainer_);
@@ -129,66 +149,118 @@ public class VastAiActivity : Activity
 		onStartCmdEdit_.SetMaxLines(3);
 		onStartCmdEdit_.SetSingleLine(false);
 
+		// SSH接続設定
+		AddSectionHeader(rootLayout_, "SSH接続設定");
+
+		var sshKeyLabel = new TextView(this) { Text = "SSH秘密鍵パス" };
+		sshKeyLabel.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
+		sshKeyLabel.SetTypeface(null, TypefaceStyle.Bold);
+		var sshKeyLabelLp = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+		sshKeyLabelLp.TopMargin = DpToPx(8);
+		sshKeyLabel.LayoutParameters = sshKeyLabelLp;
+		rootLayout_.AddView(sshKeyLabel);
+
+		var sshKeyRow = new LinearLayout(this) { Orientation = Orientation.Horizontal };
+		sshKeyRow.SetGravity(GravityFlags.CenterVertical);
+		sshKeyRow.LayoutParameters = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+
+		sshKeyPathEdit_ = new EditText(this);
+		sshKeyPathEdit_.Hint = "/sdcard/.ssh/id_rsa";
+		sshKeyPathEdit_.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
+		sshKeyPathEdit_.SetSingleLine(true);
+		sshKeyPathEdit_.LayoutParameters = new LinearLayout.LayoutParams(
+			0, LinearLayout.LayoutParams.WrapContent, 1f);
+		sshKeyRow.AddView(sshKeyPathEdit_);
+
+		var sshKeyBrowseBtn = new Button(this) { Text = "選択" };
+		sshKeyBrowseBtn.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+		sshKeyBrowseBtn.LayoutParameters = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.WrapContent, LinearLayout.LayoutParams.WrapContent);
+		sshKeyBrowseBtn.Click += (s, e) =>
+		{
+			var intent = new Intent(Intent.ActionOpenDocument);
+			intent.AddCategory(Intent.CategoryOpenable);
+			intent.SetType("*/*");
+			StartActivityForResult(intent, SSH_KEY_PICK_CODE);
+		};
+		sshKeyRow.AddView(sshKeyBrowseBtn);
+
+		rootLayout_.AddView(sshKeyRow);
+
 		// === 検索条件 ===
 		AddSectionHeader(rootLayout_, "検索条件");
 
-		gpuNamesEdit_ = AddEditField(rootLayout_, "GPU名 (カンマ区切り)", "例: RTX 4090, RTX 4090 D");
+		// GPU選択（折りたたみリスト）
+		var gpuHeader = new Button(this) { Text = "▶ GPU選択" };
+		gpuHeader.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
+		gpuHeader.Gravity = GravityFlags.Left | GravityFlags.CenterVertical;
+		gpuHeader.SetBackgroundColor(Android.Graphics.Color.Transparent);
+		gpuHeader.SetTextColor(statusText_.TextColors);
+		gpuHeader.SetTypeface(null, TypefaceStyle.Bold);
 
-		// 2列レイアウトで検索条件を並べる
+		gpuCheckListContainer_ = new LinearLayout(this) { Orientation = Orientation.Vertical };
+		gpuCheckListContainer_.Visibility = ViewStates.Gone;
+		gpuCheckListContainer_.SetPadding(DpToPx(8), 0, 0, DpToPx(4));
+
+		var gpuNames = new[] {
+			"RTX 5090", "RTX 5080", "RTX 5070 Ti",
+			"RTX 4090", "RTX 4090 D", "RTX 4080", "RTX 4070 Ti",
+			"RTX 3090", "RTX 3090 Ti", "RTX 3080",
+			"A100", "A100 SXM4", "H100", "H100 SXM5", "L40S"
+		};
+		foreach (var name in gpuNames)
+		{
+			var cb = new CheckBox(this) { Text = name };
+			cb.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+			gpuCheckBoxes_.Add(cb);
+			gpuCheckListContainer_.AddView(cb);
+		}
+
+		gpuHeader.Click += (s, e) =>
+		{
+			if (gpuCheckListContainer_.Visibility == ViewStates.Gone)
+			{
+				gpuCheckListContainer_.Visibility = ViewStates.Visible;
+				gpuHeader.Text = "▼ GPU選択";
+			}
+			else
+			{
+				gpuCheckListContainer_.Visibility = ViewStates.Gone;
+				gpuHeader.Text = "▶ GPU選択";
+			}
+		};
+		rootLayout_.AddView(gpuHeader);
+		rootLayout_.AddView(gpuCheckListContainer_);
+
+		// 計算条件（2列）
 		var row1 = MakeTwoColumnRow();
 		minCpuCoresEdit_ = AddCompactEditField(row1, "最小CPUコア数", "32", true);
 		maxDphEdit_ = AddCompactEditField(row1, "最大単価 ($/h)", "0.5", false);
 		rootLayout_.AddView(row1);
 
 		var row2 = MakeTwoColumnRow();
-		minGpuRamEdit_ = AddCompactEditField(row2, "最小GPU RAM (GB)", "0", true);
-		minDiskSpaceEdit_ = AddCompactEditField(row2, "最小ディスク (GB)", "0", true);
+		numGpusEdit_ = AddCompactEditField(row2, "最小GPU数 (0=指定なし)", "0", true);
+		// interruptible/on-demand
+		var typeContainer = new LinearLayout(this) { Orientation = Orientation.Vertical };
+		typeContainer.LayoutParameters = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WrapContent, 1f);
+		typeContainer.SetPadding(DpToPx(4), 0, DpToPx(4), 0);
+		var typeLabel = new TextView(this) { Text = "タイプ" };
+		typeLabel.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+		typeLabel.SetTypeface(null, TypefaceStyle.Bold);
+		typeContainer.AddView(typeLabel);
+		interruptibleCheck_ = new CheckBox(this) { Text = "Interruptible", Checked = true };
+		interruptibleCheck_.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+		typeContainer.AddView(interruptibleCheck_);
+		row2.AddView(typeContainer);
 		rootLayout_.AddView(row2);
 
 		var row3 = MakeTwoColumnRow();
-		minReliabilityEdit_ = AddCompactEditField(row3, "最小信頼性 (%)", "0", false);
-		minInetDownEdit_ = AddCompactEditField(row3, "最小DL速度 (Mbps)", "0", false);
+		minCudaEdit_ = AddCompactEditField(row3, "最小CUDA Ver", "0", false);
 		rootLayout_.AddView(row3);
 
-		var row4 = MakeTwoColumnRow();
-		numGpusEdit_ = AddCompactEditField(row4, "GPU数 (0=指定なし)", "0", true);
-		// ソート方向
-		var sortAscContainer = new LinearLayout(this) { Orientation = Orientation.Vertical };
-		sortAscContainer.LayoutParameters = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WrapContent, 1f);
-		sortAscContainer.SetPadding(DpToPx(4), 0, DpToPx(4), 0);
-		var sortAscLabel = new TextView(this) { Text = "ソート順" };
-		sortAscLabel.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
-		sortAscLabel.SetTypeface(null, TypefaceStyle.Bold);
-		sortAscContainer.AddView(sortAscLabel);
-		sortAscCheck_ = new CheckBox(this) { Text = "昇順 (安い順)", Checked = true };
-		sortAscCheck_.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
-		sortAscContainer.AddView(sortAscCheck_);
-		row4.AddView(sortAscContainer);
-		rootLayout_.AddView(row4);
-
-		// ソートフィールド
-		var sortRow = new LinearLayout(this) { Orientation = Orientation.Horizontal };
-		sortRow.SetGravity(GravityFlags.CenterVertical);
-		var sortRowLp = new LinearLayout.LayoutParams(
-			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
-		sortRowLp.TopMargin = DpToPx(4);
-		sortRow.LayoutParameters = sortRowLp;
-
-		var sortLabel = new TextView(this) { Text = "ソート基準: " };
-		sortLabel.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
-		sortLabel.SetTypeface(null, TypefaceStyle.Bold);
-		sortRow.AddView(sortLabel);
-
-		sortFieldSpinner_ = new Spinner(this);
-		var sortItems = new[] { "時間単価", "DLパフォーマンス", "CPUコア数", "信頼性", "DL速度" };
-		var sortAdapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleSpinnerItem, sortItems);
-		sortAdapter.SetDropDownViewResource(Android.Resource.Layout.SimpleSpinnerDropDownItem);
-		sortFieldSpinner_.Adapter = sortAdapter;
-		sortFieldSpinner_.LayoutParameters = new LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WrapContent, 1f);
-		sortRow.AddView(sortFieldSpinner_);
-		rootLayout_.AddView(sortRow);
-
-		searchButton_ = new Button(this) { Text = "オファー検索 (interruptible)" };
+		searchButton_ = new Button(this) { Text = "オファー検索" };
 		searchButton_.Click += (s, e) => SearchOffersAsync();
 		var searchLp = new LinearLayout.LayoutParams(
 			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
@@ -200,26 +272,9 @@ public class VastAiActivity : Activity
 		offerListContainer_ = new LinearLayout(this) { Orientation = Orientation.Vertical };
 		rootLayout_.AddView(offerListContainer_);
 
-		// === 手動接続 ===
-		AddSectionHeader(rootLayout_, "手動接続");
-
-		manualHostEdit_ = AddEditField(rootLayout_, "ホスト (IPアドレス)", "例: 192.168.1.100");
-		manualHostEdit_.Text = Settings.EngineSettings.RemoteHost;
-
-		manualPortEdit_ = AddEditField(rootLayout_, "ポート", "6000");
-		manualPortEdit_.InputType = Android.Text.InputTypes.ClassNumber;
-		manualPortEdit_.Text = string.IsNullOrEmpty(Settings.EngineSettings.RemotePort) ? "6000" : Settings.EngineSettings.RemotePort;
-
-		var manualConnectBtn = new Button(this) { Text = "手動接続" };
-		var manualBtnLp = new LinearLayout.LayoutParams(
-			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
-		manualBtnLp.TopMargin = DpToPx(8);
-		manualConnectBtn.LayoutParameters = manualBtnLp;
-		manualConnectBtn.Click += (s, e) => ConnectManual();
-		rootLayout_.AddView(manualConnectBtn);
-
 		scroll.AddView(rootLayout_);
-		SetContentView(scroll);
+		outerFrame.AddView(scroll);
+		SetContentView(outerFrame);
 	}
 
 	private static readonly string[] SortFieldValues = { "dph_total", "dlperf", "cpu_cores_effective", "reliability2", "inet_down" };
@@ -230,19 +285,24 @@ public class VastAiActivity : Activity
 		dockerImageEdit_.Text = Settings.EngineSettings.VastAiDockerImage;
 		onStartCmdEdit_.Text = Settings.EngineSettings.VastAiOnStartCmd;
 
+		// SSH設定
+		sshKeyPathEdit_.Text = Settings.EngineSettings.VastAiSshKeyPath;
+
 		// Search criteria
-		gpuNamesEdit_.Text = Settings.EngineSettings.VastAiGpuNames;
 		minCpuCoresEdit_.Text = Settings.EngineSettings.VastAiMinCpuCores.ToString();
 		maxDphEdit_.Text = Settings.EngineSettings.VastAiMaxDph.ToString("G");
-		minGpuRamEdit_.Text = Settings.EngineSettings.VastAiMinGpuRam.ToString();
-		minDiskSpaceEdit_.Text = Settings.EngineSettings.VastAiMinDiskSpace.ToString();
-		minReliabilityEdit_.Text = Settings.EngineSettings.VastAiMinReliability.ToString("G");
-		minInetDownEdit_.Text = Settings.EngineSettings.VastAiMinInetDown.ToString("G");
 		numGpusEdit_.Text = Settings.EngineSettings.VastAiNumGpus.ToString();
-		sortAscCheck_.Checked = Settings.EngineSettings.VastAiSortAsc;
+		minCudaEdit_.Text = Settings.EngineSettings.VastAiMinCudaVersion.ToString("G");
+		interruptibleCheck_.Checked = Settings.EngineSettings.VastAiSortField != "on-demand";
 
-		int sortIndex = Array.IndexOf(SortFieldValues, Settings.EngineSettings.VastAiSortField);
-		sortFieldSpinner_.SetSelection(sortIndex >= 0 ? sortIndex : 0);
+		// GPU チェックボックスを設定から復元
+		var savedGpus = (Settings.EngineSettings.VastAiGpuNames ?? "")
+			.Split(',', StringSplitOptions.RemoveEmptyEntries)
+			.Select(g => g.Trim()).ToHashSet(StringComparer.OrdinalIgnoreCase);
+		foreach (var cb in gpuCheckBoxes_)
+		{
+			cb.Checked = savedGpus.Contains(cb.Text);
+		}
 	}
 
 	private void SaveSettings()
@@ -251,26 +311,22 @@ public class VastAiActivity : Activity
 		Settings.EngineSettings.VastAiDockerImage = dockerImageEdit_.Text?.Trim() ?? "";
 		Settings.EngineSettings.VastAiOnStartCmd = onStartCmdEdit_.Text?.Trim() ?? "";
 
+		// SSH設定
+		Settings.EngineSettings.VastAiSshKeyPath = sshKeyPathEdit_.Text?.Trim() ?? "";
+
 		// Search criteria
-		Settings.EngineSettings.VastAiGpuNames = gpuNamesEdit_.Text?.Trim() ?? "";
+		var selectedGpus = gpuCheckBoxes_.Where(cb => cb.Checked).Select(cb => cb.Text);
+		Settings.EngineSettings.VastAiGpuNames = string.Join(", ", selectedGpus);
 		int.TryParse(minCpuCoresEdit_.Text, out int cpuCores);
 		Settings.EngineSettings.VastAiMinCpuCores = cpuCores;
 		double.TryParse(maxDphEdit_.Text, out double maxDph);
 		Settings.EngineSettings.VastAiMaxDph = maxDph;
-		int.TryParse(minGpuRamEdit_.Text, out int gpuRam);
-		Settings.EngineSettings.VastAiMinGpuRam = gpuRam;
-		int.TryParse(minDiskSpaceEdit_.Text, out int diskSpace);
-		Settings.EngineSettings.VastAiMinDiskSpace = diskSpace;
-		double.TryParse(minReliabilityEdit_.Text, out double reliability);
-		Settings.EngineSettings.VastAiMinReliability = reliability;
-		double.TryParse(minInetDownEdit_.Text, out double inetDown);
-		Settings.EngineSettings.VastAiMinInetDown = inetDown;
 		int.TryParse(numGpusEdit_.Text, out int numGpus);
 		Settings.EngineSettings.VastAiNumGpus = numGpus;
-		Settings.EngineSettings.VastAiSortAsc = sortAscCheck_.Checked;
-		int sortPos = sortFieldSpinner_.SelectedItemPosition;
-		Settings.EngineSettings.VastAiSortField = (sortPos >= 0 && sortPos < SortFieldValues.Length)
-			? SortFieldValues[sortPos] : "dph_total";
+		double.TryParse(minCudaEdit_.Text, out double cudaVer);
+		Settings.EngineSettings.VastAiMinCudaVersion = cudaVer;
+		Settings.EngineSettings.VastAiSortField = interruptibleCheck_.Checked ? "dph_total" : "on-demand";
+		Settings.EngineSettings.VastAiSortAsc = true;
 
 		Settings.Save();
 	}
@@ -311,8 +367,15 @@ public class VastAiActivity : Activity
 		{
 			var allInstances = await manager.ListInstancesAsync(cts_.Token);
 
+			// クレジット残高を取得
+			var credit = await manager.GetCreditBalanceAsync(cts_.Token);
+
 			RunOnUiThread(() =>
 			{
+				if (credit.HasValue)
+				{
+					creditText_.Text = $"残高: ${credit.Value:F2}";
+				}
 				existingInstancesContainer_.RemoveAllViews();
 
 				// Show all instances, shogi-labeled first
@@ -423,16 +486,9 @@ public class VastAiActivity : Activity
 
 		if (inst.IsRunning && !string.IsNullOrEmpty(inst.PublicIpAddr))
 		{
-			int nnuePort = inst.GetMappedPort(PortNNUE);
-			int deepPort = inst.GetMappedPort(PortDEEP);
-
-			var nnueBtn = MakeButton("NNUE接続", Resource.Color.vast_btn_green);
-			nnueBtn.Click += (s, e) => ConnectToInstance(inst, nnuePort, "NNUE");
-			btnRow.AddView(nnueBtn);
-
-			var deepBtn = MakeButton("DEEP接続", Resource.Color.vast_btn_blue);
-			deepBtn.Click += (s, e) => ConnectToInstance(inst, deepPort, "DEEP");
-			btnRow.AddView(deepBtn);
+			var connectBtn = MakeButton("接続", Resource.Color.vast_btn_green);
+			connectBtn.Click += (s, e) => ScanAndSelectEngineAsync(inst);
+			btnRow.AddView(connectBtn);
 		}
 
 		// 停止/再開 トグルボタン
@@ -468,23 +524,142 @@ public class VastAiActivity : Activity
 		return btn;
 	}
 
-	private void ConnectToInstance(VastAiInstance inst, int port, string engineType)
+	/// <summary>
+	/// SSHでインスタンスに接続し、/workspace内のエンジンを検出して選択ダイアログを表示
+	/// </summary>
+	private async void ScanAndSelectEngineAsync(VastAiInstance inst)
 	{
+		string sshKeyPath = Settings.EngineSettings.VastAiSshKeyPath;
+		if (string.IsNullOrEmpty(sshKeyPath))
+		{
+			Toast.MakeText(this, "SSH秘密鍵パスを設定してください", ToastLength.Short).Show();
+			return;
+		}
+
+		int sshPort = inst.GetMappedPort(22);
+		SetBusy(true, "エンジンを検出中...");
+
+		List<EngineInfo> engines;
+		try
+		{
+			engines = await Task.Run(() => ScanEngines(inst.PublicIpAddr, sshPort, sshKeyPath));
+		}
+		catch (Exception ex)
+		{
+			RunOnUiThread(() =>
+			{
+				SetBusy(false, $"エンジン検出エラー: {ex.Message}");
+				Toast.MakeText(this, ex.Message, ToastLength.Long).Show();
+			});
+			return;
+		}
+
+		RunOnUiThread(() =>
+		{
+			SetBusy(false, "");
+			if (engines.Count == 0)
+			{
+				Toast.MakeText(this, "/workspace にエンジンが見つかりません", ToastLength.Long).Show();
+				return;
+			}
+			ShowEngineSelectDialog(inst, engines);
+		});
+	}
+
+	private List<EngineInfo> ScanEngines(string host, int sshPort, string keyPath)
+	{
+		var results = new List<EngineInfo>();
+		using var keyFile = new PrivateKeyFile(keyPath);
+		using var client = new SshClient(host, sshPort, "root", keyFile);
+		client.ConnectionInfo.Timeout = TimeSpan.FromSeconds(15);
+		client.Connect();
+
+		// /workspace 直下のディレクトリを列挙し、各ディレクトリ内の実行可能ファイルを検出
+		var cmd = client.RunCommand("find /workspace -maxdepth 2 -type f -executable 2>/dev/null | head -50");
+		string output = cmd.Result ?? "";
+
+		foreach (string line in output.Split('\n', StringSplitOptions.RemoveEmptyEntries))
+		{
+			string path = line.Trim();
+			if (string.IsNullOrEmpty(path)) continue;
+
+			// 明らかにエンジンでないファイルを除外
+			string fileName = System.IO.Path.GetFileName(path);
+			if (fileName.StartsWith(".") || fileName == "python" || fileName == "python3" ||
+				fileName == "pip" || fileName == "pip3" || fileName == "bash" || fileName == "sh" ||
+				fileName.EndsWith(".sh") || fileName.EndsWith(".py"))
+				continue;
+
+			string dir = System.IO.Path.GetDirectoryName(path);
+			string dirName = System.IO.Path.GetFileName(dir);
+			results.Add(new EngineInfo
+			{
+				DisplayName = $"{dirName}/{fileName}",
+				Command = $"cd {dir} && exec ./{fileName}",
+				Path = path
+			});
+		}
+
+		client.Disconnect();
+		return results;
+	}
+
+	private void ShowEngineSelectDialog(VastAiInstance inst, List<EngineInfo> engines)
+	{
+		string[] items = engines.Select(e => e.DisplayName).ToArray();
+
+		new AlertDialog.Builder(this)
+			.SetTitle("エンジンを選択")
+			.SetItems(items, (s, e) =>
+			{
+				var selected = engines[e.Which];
+				ConnectToInstance(inst, selected.Command, selected.DisplayName);
+			})
+			.SetNegativeButton("キャンセル", (s, e) => { })
+			.Show();
+	}
+
+	private class EngineInfo
+	{
+		public string DisplayName;
+		public string Command;
+		public string Path;
+	}
+
+	private void ConnectToInstance(VastAiInstance inst, string engineCommand, string engineType)
+	{
+		string sshKeyPath = Settings.EngineSettings.VastAiSshKeyPath;
+		if (string.IsNullOrEmpty(sshKeyPath))
+		{
+			Toast.MakeText(this, "SSH秘密鍵パスを設定してください", ToastLength.Short).Show();
+			return;
+		}
+		if (string.IsNullOrEmpty(engineCommand))
+		{
+			Toast.MakeText(this, $"{engineType}エンジンコマンドを設定してください", ToastLength.Short).Show();
+			return;
+		}
+
+		int sshPort = inst.GetMappedPort(22);
+
 		Settings.EngineSettings.RemoteHost = inst.PublicIpAddr;
-		Settings.EngineSettings.RemotePort = port.ToString();
+		Settings.EngineSettings.VastAiSshPort = sshPort;
+		Settings.EngineSettings.VastAiSshEngineCommand = engineCommand;
 		Settings.EngineSettings.EngineNo = RemoteEnginePlayer.RemoteEngineNo;
 		Settings.EngineSettings.EngineName = $"{engineType} (vast.ai #{inst.Id})";
 		Settings.EngineSettings.VastAiInstanceId = inst.Id;
+		Settings.EngineSettings.VastAiCpuCores = (int)inst.CpuCoresEffective;
+		Settings.EngineSettings.VastAiRamMb = (int)(inst.CpuRamGb * 1024);
+		Settings.EngineSettings.VastAiGpuRamMb = (int)(inst.GpuRamGb * 1024);
 		Settings.Save();
 
-		// Start auto-suspend watchdog
+		// アイドル自動サスペンド監視
 		VastAiWatchdog.Instance.StartMonitoring(
 			inst.Id,
 			Settings.EngineSettings.VastAiApiKey);
 
 		var resultIntent = new Intent();
 		resultIntent.PutExtra(ExtraHost, inst.PublicIpAddr);
-		resultIntent.PutExtra(ExtraPort, port);
 		resultIntent.PutExtra(ExtraInstanceId, inst.Id);
 		SetResult(Result.Ok, resultIntent);
 		Finish();
@@ -545,8 +720,8 @@ public class VastAiActivity : Activity
 
 			await manager.WaitForReadyAsync(instanceId, progress, cts_.Token);
 
-			RunOnUiThread(() => statusText_.Text = "エンジン起動待機中 (30秒)...");
-			await Task.Delay(30000, cts_.Token);
+			RunOnUiThread(() => statusText_.Text = "SSH起動待機中 (10秒)...");
+			await Task.Delay(10000, cts_.Token);
 
 			RunOnUiThread(() =>
 			{
@@ -624,6 +799,8 @@ public class VastAiActivity : Activity
 			RunOnUiThread(() =>
 			{
 				offerListContainer_.RemoveAllViews();
+				currentOffers_ = offers;
+				displayedOfferCount_ = 0;
 
 				if (offers.Count == 0)
 				{
@@ -634,11 +811,8 @@ public class VastAiActivity : Activity
 					return;
 				}
 
-				int displayCount = Math.Min(offers.Count, 10);
-				for (int i = 0; i < displayCount; i++)
-					AddOfferCard(offers[i]);
-
-				SetBusy(false, $"{offers.Count}件中 上位{displayCount}件表示");
+				ShowMoreOffers();
+				SetBusy(false, $"{offers.Count}件のオファーが見つかりました");
 			});
 		}
 		catch (Exception ex)
@@ -648,6 +822,36 @@ public class VastAiActivity : Activity
 				SetBusy(false, $"エラー: {ex.Message}");
 				Toast.MakeText(this, ex.Message, ToastLength.Long).Show();
 			});
+		}
+	}
+
+	private void ShowMoreOffers()
+	{
+		if (currentOffers_ == null) return;
+
+		// 「もっと表示」ボタンがあれば削除
+		var existingMore = offerListContainer_.FindViewWithTag("more_button");
+		if (existingMore != null) offerListContainer_.RemoveView(existingMore);
+
+		int end = Math.Min(displayedOfferCount_ + OffersPerPage, currentOffers_.Count);
+		for (int i = displayedOfferCount_; i < end; i++)
+		{
+			AddOfferCard(currentOffers_[i]);
+		}
+		displayedOfferCount_ = end;
+
+		// まだ残りがあれば「もっと表示」ボタンを追加
+		if (displayedOfferCount_ < currentOffers_.Count)
+		{
+			var moreBtn = new Button(this) { Text = $"もっと表示 ({currentOffers_.Count - displayedOfferCount_}件)" };
+			moreBtn.Tag = "more_button";
+			moreBtn.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
+			var moreLp = new LinearLayout.LayoutParams(
+				LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+			moreLp.TopMargin = DpToPx(4);
+			moreBtn.LayoutParameters = moreLp;
+			moreBtn.Click += (s, e) => ShowMoreOffers();
+			offerListContainer_.AddView(moreBtn);
 		}
 	}
 
@@ -661,17 +865,19 @@ public class VastAiActivity : Activity
 		cardLp.BottomMargin = DpToPx(6);
 		card.LayoutParameters = cardLp;
 
+		string flag = CountryCodeToFlag(offer.Geolocation);
 		var gpuText = new TextView(this)
 		{
-			Text = $"{offer.GpuName} x{offer.NumGpus} (VRAM {offer.GpuRamGb:F0}GB)"
+			Text = $"{flag} {offer.GpuName} x{offer.NumGpus} (VRAM {offer.GpuRamGb:F0}GB)"
 		};
 		gpuText.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
 		gpuText.SetTypeface(null, TypefaceStyle.Bold);
 		card.AddView(gpuText);
 
+		string cudaStr = offer.CudaMaxGood > 0 ? $" | CUDA {offer.CudaMaxGood:F1}" : "";
 		var cpuText = new TextView(this)
 		{
-			Text = $"CPU: {offer.CpuName} {offer.CpuCoresEffective:F0}cores (割当) | RAM: {offer.CpuRamGb:F0}GB | 信頼性: {offer.Reliability:F1}%"
+			Text = $"CPU {offer.CpuCoresEffective:F0}cores | RAM {offer.CpuRamGb:F0}GB | 信頼性 {offer.Reliability:F1}%{cudaStr}"
 		};
 		cpuText.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
 		cpuText.SetTextColor(ColorUtils.Get(this, Resource.Color.vast_card_sub_text));
@@ -680,7 +886,9 @@ public class VastAiActivity : Activity
 		var row = new LinearLayout(this) { Orientation = Orientation.Horizontal };
 		row.SetGravity(GravityFlags.CenterVertical);
 
-		var priceText = new TextView(this) { Text = $"${offer.DphTotal:F3}/h" };
+		bool isOnDemand = interruptibleCheck_ != null && !interruptibleCheck_.Checked;
+		string priceLabel = isOnDemand ? $"${offer.DphTotal:F3}/h (on-demand)" : $"${offer.DphTotal:F3}/h";
+		var priceText = new TextView(this) { Text = priceLabel };
 		priceText.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
 		priceText.SetTextColor(ColorUtils.Get(this, Resource.Color.title_background));
 		priceText.SetTypeface(null, TypefaceStyle.Bold);
@@ -710,7 +918,7 @@ public class VastAiActivity : Activity
 			var config = new VastAiInstanceConfig
 			{
 				DockerImage = Settings.EngineSettings.VastAiDockerImage,
-				Ports = new[] { PortNNUE, PortDEEP },
+				Ports = Array.Empty<int>(),
 				DiskGb = 8.0,
 				OnStartCmd = Settings.EngineSettings.VastAiOnStartCmd
 			};
@@ -729,8 +937,8 @@ public class VastAiActivity : Activity
 
 			await manager.WaitForReadyAsync(instanceId, progress, cts_.Token);
 
-			RunOnUiThread(() => statusText_.Text = "エンジン起動待機中 (30秒)...");
-			await Task.Delay(30000, cts_.Token);
+			RunOnUiThread(() => statusText_.Text = "SSH起動待機中 (10秒)...");
+			await Task.Delay(10000, cts_.Token);
 
 			RunOnUiThread(() =>
 			{
@@ -758,66 +966,32 @@ public class VastAiActivity : Activity
 		}
 	}
 
-	// ===== Manual Connection =====
-
-	private void ConnectManual()
-	{
-		string host = manualHostEdit_.Text?.Trim();
-		string portStr = manualPortEdit_.Text?.Trim();
-		if (string.IsNullOrEmpty(host))
-		{
-			Toast.MakeText(this, "ホストを入力してください", ToastLength.Short).Show();
-			return;
-		}
-		int port = 6000;
-		int.TryParse(portStr, out port);
-
-		Settings.EngineSettings.RemoteHost = host;
-		Settings.EngineSettings.RemotePort = port.ToString();
-		Settings.EngineSettings.EngineNo = RemoteEnginePlayer.RemoteEngineNo;
-		Settings.EngineSettings.EngineName = $"リモート ({host}:{port})";
-		Settings.Save();
-
-		var resultIntent = new Intent();
-		resultIntent.PutExtra(ExtraHost, host);
-		resultIntent.PutExtra(ExtraPort, port);
-		SetResult(Result.Ok, resultIntent);
-		Finish();
-	}
 
 	// ===== Search Criteria =====
 
 	private VastAiSearchCriteria BuildCriteriaFromUI()
 	{
-		string gpuText = gpuNamesEdit_.Text?.Trim() ?? "";
-		string[] gpuNames = string.IsNullOrEmpty(gpuText)
-			? Array.Empty<string>()
-			: gpuText.Split(',').Select(s => s.Trim()).Where(s => s.Length > 0).ToArray();
+		var selectedGpus = gpuCheckBoxes_
+			.Where(cb => cb.Checked)
+			.Select(cb => cb.Text)
+			.ToArray();
 
 		int.TryParse(minCpuCoresEdit_.Text, out int cpuCores);
 		double.TryParse(maxDphEdit_.Text, out double maxDph);
-		int.TryParse(minGpuRamEdit_.Text, out int gpuRam);
-		int.TryParse(minDiskSpaceEdit_.Text, out int diskSpace);
-		double.TryParse(minReliabilityEdit_.Text, out double reliability);
-		double.TryParse(minInetDownEdit_.Text, out double inetDown);
 		int.TryParse(numGpusEdit_.Text, out int numGpus);
 
-		int sortPos = sortFieldSpinner_.SelectedItemPosition;
-		string sortField = (sortPos >= 0 && sortPos < SortFieldValues.Length)
-			? SortFieldValues[sortPos] : "dph_total";
+		double.TryParse(minCudaEdit_.Text, out double cudaVer);
 
 		return new VastAiSearchCriteria
 		{
-			GpuNames = gpuNames,
+			GpuNames = selectedGpus,
 			MinCpuCoresEffective = cpuCores,
 			MaxDphTotal = maxDph,
-			MinGpuRam = gpuRam,
-			MinDiskSpace = diskSpace,
-			MinReliability = reliability,
-			MinInetDown = inetDown,
 			NumGpus = numGpus,
-			SortField = sortField,
-			SortAsc = sortAscCheck_.Checked
+			MinCudaVersion = cudaVer,
+			SortField = "dph_total",
+			SortAsc = true,
+			RentType = interruptibleCheck_.Checked ? "bid" : "on-demand"
 		};
 	}
 
@@ -908,9 +1082,60 @@ public class VastAiActivity : Activity
 		return editText;
 	}
 
+	/// <summary>
+	/// 2文字の国コード（ISO 3166-1 alpha-2）をUnicode国旗絵文字に変換
+	/// </summary>
+	private static string CountryCodeToFlag(string countryCode)
+	{
+		if (string.IsNullOrEmpty(countryCode) || countryCode.Length < 2)
+			return "";
+		countryCode = countryCode.Trim().ToUpperInvariant();
+		if (countryCode.Length < 2)
+			return "";
+		// Regional Indicator Symbol Letter: U+1F1E6 ('A') ~ U+1F1FF ('Z')
+		int first = 0x1F1E6 + (countryCode[0] - 'A');
+		int second = 0x1F1E6 + (countryCode[1] - 'A');
+		return char.ConvertFromUtf32(first) + char.ConvertFromUtf32(second);
+	}
+
 	private int DpToPx(int dp)
 	{
 		return (int)(dp * Resources.DisplayMetrics.Density + 0.5f);
+	}
+
+	protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)
+	{
+		base.OnActivityResult(requestCode, resultCode, data);
+		if (requestCode == SSH_KEY_PICK_CODE && resultCode == Result.Ok && data?.Data != null)
+		{
+			try
+			{
+				// 選択されたファイルをアプリ内部ストレージにコピー
+				var uri = data.Data;
+				string destDir = System.IO.Path.Combine(FilesDir.AbsolutePath, "ssh");
+				System.IO.Directory.CreateDirectory(destDir);
+				string destPath = System.IO.Path.Combine(destDir, "id_rsa");
+
+				using (var input = ContentResolver.OpenInputStream(uri))
+				using (var output = new System.IO.FileStream(destPath, System.IO.FileMode.Create))
+				{
+					input.CopyTo(output);
+				}
+
+				// パーミッションを制限
+				Java.IO.File file = new Java.IO.File(destPath);
+				file.SetReadable(false, false);
+				file.SetReadable(true, true);
+				file.SetWritable(false, false);
+
+				sshKeyPathEdit_.Text = destPath;
+				Toast.MakeText(this, "SSH秘密鍵をインポートしました", ToastLength.Short).Show();
+			}
+			catch (Exception ex)
+			{
+				Toast.MakeText(this, $"秘密鍵の読み込みに失敗: {ex.Message}", ToastLength.Long).Show();
+			}
+		}
 	}
 
 	private void UpdateWindowSettings()

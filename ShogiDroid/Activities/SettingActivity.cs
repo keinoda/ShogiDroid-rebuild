@@ -16,10 +16,10 @@ public class SettingActivity : PreferenceActivity
 {
 	public class SettingsFragment : PreferenceFragment, ISharedPreferencesOnSharedPreferenceChangeListener, IJavaObject, IDisposable, IJavaPeerable
 	{
-		private static readonly string[] SummeryKeys = new string[21]
+		private static readonly string[] SummeryKeys = new string[22]
 		{
 			"Engine.Time", "Engine.Countdown", "Engine.RemoteHost", "Engine.RemotePort", "Engine.VastAiApiKey", "Engine.VastAiDockerImage", "Analyze.Time", "App.AnimationSpeed", "App.MoveStyle", "App.PlayerName", "App.WarsUserName", "App.PlayInterval",
-			"App.CustomMenuButton", "App.ReverseButotn", "App.PVDisplay", "App.ShortcutMenu1", "App.ShortcutMenu2", "App.ShortcutMenu3", "App.ShortcutMenu4", "App.ShortcutMenu5", "App.ShortcutMenu6"
+			"App.CustomMenuButton", "App.ReverseButotn", "App.PVDisplay", "App.ShortcutMenu1", "App.ShortcutMenu2", "App.ShortcutMenu3", "App.ShortcutMenu4", "App.ShortcutMenu5", "App.ShortcutMenu6", "App.ThemeMode"
 		};
 
 		public override void OnCreate(Bundle savedInstanceState)
@@ -50,6 +50,12 @@ public class SettingActivity : PreferenceActivity
 			if (SummeryKeys.Contains(key))
 			{
 				SetSummary(key);
+			}
+			if (key == "App.ThemeMode")
+			{
+				string mode = sharedPreferences.GetString(key, "system");
+				ThemeHelper.ApplyTheme(mode);
+				Activity?.Recreate();
 			}
 		}
 

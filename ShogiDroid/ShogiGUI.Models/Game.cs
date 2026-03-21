@@ -55,6 +55,8 @@ public class Game
 
 	private AnalyzeInfoList analyzeInfoList = new AnalyzeInfoList();
 
+	private int analyzeStopNumber_ = -1;
+
 	private EngineMode engineMode;
 
 	private static string gameText = Application.Context.GetString(Resource.String.Game_Text);
@@ -378,13 +380,35 @@ public class Game
 	public void AnalyzerStart()
 	{
 		cancel = false;
+		analyzeStopNumber_ = -1;
 		if (comState.IsThinking())
 		{
 			enginePlayer.Stop();
 		}
-		if (Settings.AnalyzeSettings.AnalyzePositon == GameStartPosition.InitialPosition)
+		if (Settings.AnalyzeSettings.Reverse)
 		{
-			NotationModel.First();
+			// 逆順: 終局から開始、NowPositionの場合は現在位置を記録して終局へ
+			if (Settings.AnalyzeSettings.AnalyzePositon == GameStartPosition.InitialPosition)
+			{
+				NotationModel.Last();
+			}
+			else
+			{
+				analyzeStopNumber_ = Notation.MoveCurrent.Number;
+				NotationModel.Last();
+			}
+			// 投了等の結果ノードにいる場合、実際の最終指し手まで戻る
+			while (Notation.MoveCurrent.MoveType.HasFlag(MoveType.ResultFlag)
+				|| !Notation.MoveCurrent.MoveType.IsMove())
+			{
+				if (!NotationModel.Prev()) break;
+			}
+		}
+		else
+		{
+			if (Settings.AnalyzeSettings.AnalyzePositon == GameStartPosition.InitialPosition)
+				NotationModel.First();
+			// NowPosition+Forward: 現在位置から開始（何もしない）
 		}
 		analyzeInfoList.Clear();
 		pvinfos.Clear();
@@ -410,6 +434,170 @@ public class Game
 			gameMode = GameMode.Analyzer;
 			enginePlayer.Ready();
 		}
+	}
+
+	/// <summary>
+	/// 並列解析の進捗通知
+	/// </summary>
+	public event Action<string> ParallelAnalyzeProgress;
+
+	/// <summary>
+	/// リモートサーバーで並列棋譜解析を実行
+	/// </summary>
+	public async System.Threading.Tasks.Task ParallelAnalyzeAsync(int workers, long nodesPerMove, CancellationToken ct)
+	{
+		string host = Settings.EngineSettings.RemoteHost;
+		int sshPort = Settings.EngineSettings.VastAiSshPort;
+		string keyPath = Settings.EngineSettings.VastAiSshKeyPath;
+		string engineCmd = Settings.EngineSettings.VastAiSshEngineCommand;
+
+		if (string.IsNullOrEmpty(host) || sshPort <= 0 || string.IsNullOrEmpty(keyPath) || string.IsNullOrEmpty(engineCmd))
+			throw new InvalidOperationException("SSH接続設定が不完全です");
+
+		int threadsPerWorker = Settings.AnalyzeSettings.ParallelThreadsPerWorker;
+		int hashPerWorker = Settings.AnalyzeSettings.ParallelHashPerWorker;
+
+		// 保存済みエンジンオプションを読み込む（FV_SCALE等）
+		var extraSetOptions = new List<string>();
+		string settingsFile = System.IO.Path.Combine(EngineFile.EngineFolder, "remote_engine", "remote_engine.xml");
+		if (System.IO.File.Exists(settingsFile))
+		{
+			var savedOptions = EngineOptions.Load(settingsFile);
+			foreach (var opt in savedOptions.OptionList)
+			{
+				string key = opt.Key;
+				// Threads/Hashは並列用の値で上書きするのでスキップ
+				if (key == "Threads" || key == "USI_Hash" || key == "Hash")
+					continue;
+				extraSetOptions.Add($"setoption name {key} value {opt.Value}");
+			}
+		}
+
+		var analyzer = new ParallelAnalyzer();
+		analyzer.Progress += (msg) => ParallelAnalyzeProgress?.Invoke(msg);
+
+		gameMode = GameMode.Analyzer;
+		busy = true;
+
+		try
+		{
+			var results = await analyzer.ExecuteAsync(host, sshPort, keyPath, engineCmd, Notation,
+				workers, nodesPerMove, threadsPerWorker, hashPerWorker, extraSetOptions, ct);
+			ApplyParallelResults(results);
+			ParallelAnalyzeProgress?.Invoke($"解析完了: {results.Count}手");
+		}
+		catch (Exception ex)
+		{
+			AppDebug.Log.ErrorException(ex, "ParallelAnalyze failed");
+			ParallelAnalyzeProgress?.Invoke($"解析エラー: {ex.Message}");
+			throw;
+		}
+		finally
+		{
+			gameMode = GameMode.Input;
+			busy = false;
+			OnGameEvent(new GameEventArgs(GameEventId.NotationAnalyzeEnd));
+		}
+	}
+
+	/// <summary>
+	/// 並列解析結果をNotationに反映
+	/// </summary>
+	private void ApplyParallelResults(List<ParallelAnalyzer.MoveResult> results)
+	{
+		string analysisText = Android.App.Application.Context.GetString(Resource.String.Analysis_Text);
+		var moveStyle = Settings.AppSettings.MoveStyle;
+
+		// 各手の局面を再構築するために初期局面からリプレイ
+		SPosition replayPos = (SPosition)Notation.InitialPosition.Clone();
+
+		int moveIndex = 0;
+		foreach (MoveNode moveNode in Notation.MoveNodes)
+		{
+			if (!moveNode.MoveType.IsMove()) continue;
+
+			// 指し手を適用して局面を進める
+			replayPos.Move(moveNode);
+			moveIndex++;
+
+			var result = results.Find(r => r.Index == moveIndex);
+			if (result == null) continue;
+
+			// 評価値をセット（先手目線に統一）
+			// エンジンは手番側視点で報告。moveNode.Turnは指した側なので、
+			// 指した後は相手の手番。先手が指した後→後手視点→反転が必要
+			if (result.Score.HasValue)
+			{
+				int score = result.Score.Value;
+				if (moveNode.Turn == PlayerColor.Black)
+					score = -score;
+				moveNode.Score = score;
+			}
+			else if (result.Mate.HasValue)
+			{
+				int mate = result.Mate.Value;
+				int mateScore = (mate > 0 ? 1 : -1) * (32000 - System.Math.Abs(mate));
+				if (moveNode.Turn == PlayerColor.Black)
+					mateScore = -mateScore;
+				moveNode.Score = mateScore;
+			}
+
+			// 最善手判定
+			if (result.BestMove == result.MoveUsi)
+				moveNode.BestMove = MoveMatche.Best;
+			else
+				moveNode.BestMove = MoveMatche.None;
+
+			// 先手目線の評価値文字列（コメント用）
+			int senteScore = moveNode.HasScore ? moveNode.Score : 0;
+			string evalStr = result.Mate.HasValue
+				? PvInfo.ValueToString(senteScore > 0 ? 1 : -1, System.Math.Abs(result.Mate.Value), 0)
+				: senteScore.ToString();
+
+			string depthStr = result.Depth.HasValue
+				? $"{result.Depth.Value}" + (result.SelDepth.HasValue ? $"/{result.SelDepth.Value}" : "")
+				: "";
+			string nodesStr = result.Nodes.HasValue ? PvInfo.NodesToString(result.Nodes.Value) : "";
+
+			// 読み筋をUSI→KIF形式に変換
+			string pvKif = ConvertPvToKif(replayPos, result.PvString, moveStyle);
+
+			string bestMark = (moveNode.BestMove == MoveMatche.Best) ? " ○" : "";
+			string comment = $"*{analysisText}{bestMark} 評価値 {evalStr}";
+			if (!string.IsNullOrEmpty(depthStr)) comment += $" 深さ {depthStr}";
+			if (!string.IsNullOrEmpty(nodesStr)) comment += $" ノード数 {nodesStr}";
+			if (!string.IsNullOrEmpty(pvKif)) comment += $" 読み筋 {pvKif}";
+
+			moveNode.CommentAdd(comment);
+		}
+
+		// 棋譜変更を通知
+		NotationModel.OnNotationChangedPublic(new ShogiGUI.Events.NotationEventArgs(ShogiGUI.Events.NotationEventId.OBJECT_CHANGED));
+	}
+
+	/// <summary>
+	/// USI形式の読み筋をKIF形式に変換
+	/// </summary>
+	private string ConvertPvToKif(SPosition basePos, string pvString, MoveStyle style)
+	{
+		if (string.IsNullOrEmpty(pvString)) return string.Empty;
+
+		var pos = (SPosition)basePos.Clone();
+		string[] usiMoves = pvString.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+		var sb = new System.Text.StringBuilder();
+
+		foreach (string usiMove in usiMoves)
+		{
+			MoveDataEx moveData = Sfen.ParseMove(pos, usiMove);
+			if (moveData.MoveType == MoveType.NoMove || !MoveCheck.IsValid(pos, moveData))
+				break;
+
+			string turnMark = (pos.Turn == PlayerColor.Black) ? "▲" : "△";
+			sb.Append($" {turnMark}{moveData.ToString(style)}");
+			pos.Move(moveData);
+		}
+
+		return sb.ToString().TrimStart();
 	}
 
 	private void AnalyzeEnd()
@@ -497,15 +685,33 @@ public class Game
 			if (playerNo == RemoteEnginePlayer.RemoteEngineNo)
 			{
 				string host = Settings.EngineSettings.RemoteHost;
-				int port = 28597;
-				int.TryParse(Settings.EngineSettings.RemotePort, out port);
-				AppDebug.Log.Info($"initEnginePlayer: remote engine host={host}, port={port}");
+				AppDebug.Log.Info($"initEnginePlayer: remote engine host={host}");
 				if (string.IsNullOrEmpty(host))
 				{
 					AppDebug.Log.Error("initEnginePlayer: RemoteHost is empty");
 					return false;
 				}
-				RemoteEnginePlayer remoteEnginePlayer = new RemoteEnginePlayer(PlayerColor.Black, host, port);
+
+				// SSH接続を優先、設定がなければTCPフォールバック
+				string sshKeyPath = Settings.EngineSettings.VastAiSshKeyPath;
+				int sshPort = Settings.EngineSettings.VastAiSshPort;
+				string engineCmd = Settings.EngineSettings.VastAiSshEngineCommand;
+				bool useSsh = !string.IsNullOrEmpty(sshKeyPath) && sshPort > 0 && !string.IsNullOrEmpty(engineCmd);
+
+				RemoteEnginePlayer remoteEnginePlayer;
+				if (useSsh)
+				{
+					AppDebug.Log.Info($"initEnginePlayer: SSH mode sshPort={sshPort}, cmd={engineCmd}");
+					remoteEnginePlayer = new RemoteEnginePlayer(PlayerColor.Black, host, sshPort, sshKeyPath, engineCmd);
+				}
+				else
+				{
+					int port = 28597;
+					int.TryParse(Settings.EngineSettings.RemotePort, out port);
+					AppDebug.Log.Info($"initEnginePlayer: TCP mode port={port}");
+					remoteEnginePlayer = new RemoteEnginePlayer(PlayerColor.Black, host, port);
+				}
+
 				remoteEnginePlayer.CopyFiles();
 				remoteEnginePlayer.LoadSettings();
 				enginePlayer = remoteEnginePlayer;
@@ -516,9 +722,22 @@ public class Game
 				enginePlayer.Stopped += Player_Stopped;
 				enginePlayer.InfoRecieved += Player_InfoRecieved;
 				enginePlayer.ReportError += Player_ReportError;
-				if (!enginePlayer.InitRemote(host, port))
+
+				bool connected;
+				if (useSsh)
 				{
-					AppDebug.Log.Error($"initEnginePlayer: InitRemote failed for {host}:{port}");
+					connected = remoteEnginePlayer.InitSsh();
+				}
+				else
+				{
+					int port = 28597;
+					int.TryParse(Settings.EngineSettings.RemotePort, out port);
+					connected = enginePlayer.InitRemote(host, port);
+				}
+
+				if (!connected)
+				{
+					AppDebug.Log.Error($"initEnginePlayer: remote connection failed for {host}");
 					enginePlayer.Terminate();
 					enginePlayer = null;
 					return false;
@@ -862,6 +1081,13 @@ public class Game
 				}
 			}
 		}
+		// 逆順+現在位置まで: 目標局面に到達したら停止
+		if (flag && Settings.AnalyzeSettings.Reverse && analyzeStopNumber_ >= 0
+			&& Notation.MoveCurrent.Number <= analyzeStopNumber_)
+		{
+			flag = false;
+		}
+
 		if (flag)
 		{
 			pvinfos.Clear();
@@ -870,6 +1096,7 @@ public class Game
 			enginePlayer.Analyze(Notation, new AnalyzeTimeSettings(Settings.AnalyzeSettings.AnalyzeTime, -1L, Settings.AnalyzeSettings.GetAnalyzeDepth()));
 			return;
 		}
+		analyzeStopNumber_ = -1;
 		AnalyzeEnd();
 		if (Settings.AnalyzeSettings.Reverse)
 		{
@@ -1013,6 +1240,9 @@ public class Game
 	{
 		if (!cancel)
 		{
+			// vast.aiインスタンスのスペックに基づいてThreads/Hashを自動設定
+			ApplyVastAiAutoOptions();
+
 			if (engineMode == EngineMode.None)
 			{
 				busy = false;
@@ -1021,6 +1251,68 @@ public class Game
 			else
 			{
 				enginePlayer.Ready();
+			}
+		}
+	}
+
+	private void ApplyVastAiAutoOptions()
+	{
+		if (Settings.EngineSettings.EngineNo != RemoteEnginePlayer.RemoteEngineNo) return;
+
+		int cores = Settings.EngineSettings.VastAiCpuCores;
+		int ramMb = Settings.EngineSettings.VastAiRamMb;
+		int gpuRamMb = Settings.EngineSettings.VastAiGpuRamMb;
+		if (cores <= 0 && ramMb <= 0) return;
+
+		// USIオプションにDL系の設定があればDEEPエンジンと判定
+		var opts = enginePlayer.Options;
+		bool isDeep = opts.ContainsKey("UCT_NodeLimit") ||
+					  opts.ContainsKey("DNN_Batch_Size") ||
+					  opts.ContainsKey("GPU_Id");
+
+		if (isDeep)
+		{
+			AppDebug.Log.Info($"VastAi auto-option: DEEPエンジン検出 (cores={cores}, RAM={ramMb}MB, VRAM={gpuRamMb}MB)");
+
+			if (cores > 0)
+			{
+				enginePlayer.SetOption("Threads", cores, temp: true);
+				AppDebug.Log.Info($"VastAi auto-option: Threads={cores}");
+			}
+
+			// Hash: DEEPでは1024MBで十分
+			enginePlayer.SetOption("USI_Hash", 1024, temp: true);
+			enginePlayer.SetOption("Hash", 1024, temp: true);
+			AppDebug.Log.Info("VastAi auto-option: Hash=1024MB (DEEP)");
+
+			// UCT_NodeLimit: MCTSツリーのノード上限
+			if (ramMb > 0 && opts.ContainsKey("UCT_NodeLimit"))
+			{
+				long availableBytes = (long)(ramMb - 1024) * 1024L * 1024L;
+				if (availableBytes < 0) availableBytes = (long)ramMb * 512L * 1024L;
+				long nodeLimit = availableBytes / 200;
+				int nodeLimitInt = (int)System.Math.Min(nodeLimit, 50000000L);
+				enginePlayer.SetOption("UCT_NodeLimit", nodeLimitInt, temp: true);
+				AppDebug.Log.Info($"VastAi auto-option: UCT_NodeLimit={nodeLimitInt}");
+			}
+		}
+		else
+		{
+			AppDebug.Log.Info($"VastAi auto-option: NNUEエンジン検出 (cores={cores}, RAM={ramMb}MB)");
+
+			if (cores > 0)
+			{
+				enginePlayer.SetOption("Threads", cores, temp: true);
+				AppDebug.Log.Info($"VastAi auto-option: Threads={cores}");
+			}
+
+			if (ramMb > 0)
+			{
+				// RAMの70%、上限32768MB
+				int hashMb = System.Math.Min((int)(ramMb * 0.7), 32768);
+				enginePlayer.SetOption("USI_Hash", hashMb, temp: true);
+				enginePlayer.SetOption("Hash", hashMb, temp: true);
+				AppDebug.Log.Info($"VastAi auto-option: Hash={hashMb}MB");
 			}
 		}
 	}
