@@ -19,25 +19,7 @@
     </RadioGroup>
     <CheckBox android:id="@id/AnalyzeStartDialogReverse" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/AnalyzeReverse_Text" />
     <Space android:layout_width="fill_parent" android:layout_height="20.0dip" />
-    <LinearLayout android:id="@id/ParallelSettingsContainer" android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="wrap_content" android:visibility="gone">
-        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:weightSum="2.0">
-            <TextView android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="並列数" android:layout_weight="1.0" />
-            <EditText android:id="@id/ParallelWorkersEdit" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" android:inputType="number" />
-        </LinearLayout>
-        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:weightSum="2.0">
-            <TextView android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="ノード数(百万)" android:layout_weight="1.0" />
-            <EditText android:id="@id/ParallelNodesEdit" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" android:inputType="number" />
-        </LinearLayout>
-        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:weightSum="2.0">
-            <TextView android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="スレッド/ワーカー" android:layout_weight="1.0" />
-            <EditText android:id="@id/ParallelThreadsEdit" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" android:inputType="number" />
-        </LinearLayout>
-        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:weightSum="2.0">
-            <TextView android:layout_width="0.0dip" android:layout_height="wrap_content" android:text="Hash/ワーカー(MB)" android:layout_weight="1.0" />
-            <EditText android:id="@id/ParallelHashEdit" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" android:inputType="number" />
-        </LinearLayout>
-        <Button android:id="@id/ParallelAnalyzeButton" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/ParallelAnalyze_Text" />
-    </LinearLayout>
+    <Button android:id="@id/ParallelAnalyzeButton" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/ParallelAnalyze_Text" android:visibility="gone" />
     <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
         <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
         <Button android:id="@id/DialogCancelButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/DialogCancel_Text" android:layout_weight="2.0" />

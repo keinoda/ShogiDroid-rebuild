@@ -68,13 +68,12 @@ public class AnalyzeStartDialog : DialogFragment
 			}
 			dialog.Dismiss();
 		};
-		// 並列解析: リモートSSH接続時のみ表示
-		var parallelContainer = view.FindViewById<Android.Widget.LinearLayout>(Resource.Id.ParallelSettingsContainer);
+		// 並列解析ボタン: リモートSSH接続時のみ表示
+		var parallelBtn = (Button)view.FindViewById(Resource.Id.ParallelAnalyzeButton);
 		if (Settings.EngineSettings.EngineNo == ShogiGUI.Engine.RemoteEnginePlayer.RemoteEngineNo
 			&& Settings.EngineSettings.VastAiSshPort > 0)
 		{
-			parallelContainer.Visibility = Android.Views.ViewStates.Visible;
-			var parallelBtn = (Button)view.FindViewById(Resource.Id.ParallelAnalyzeButton);
+			parallelBtn.Visibility = Android.Views.ViewStates.Visible;
 			parallelBtn.Click += delegate(object sender, EventArgs e)
 			{
 				saveSettings();
@@ -113,15 +112,6 @@ public class AnalyzeStartDialog : DialogFragment
 			rangeRadio.Check(Resource.Id.AnalyzeStartDialogRangeNow);
 		}
 		reverseCheckBox.Checked = Settings.AnalyzeSettings.Reverse;
-		// 並列解析設定
-		var workersEdit = Activity.FindViewById<EditText>(Resource.Id.ParallelWorkersEdit);
-		var nodesEdit = Activity.FindViewById<EditText>(Resource.Id.ParallelNodesEdit);
-		var threadsEdit = Activity.FindViewById<EditText>(Resource.Id.ParallelThreadsEdit);
-		var hashEdit = Activity.FindViewById<EditText>(Resource.Id.ParallelHashEdit);
-		if (workersEdit != null) workersEdit.Text = Settings.AnalyzeSettings.ParallelWorkers.ToString();
-		if (nodesEdit != null) nodesEdit.Text = Settings.AnalyzeSettings.ParallelNodesMillions.ToString();
-		if (threadsEdit != null) threadsEdit.Text = Settings.AnalyzeSettings.ParallelThreadsPerWorker.ToString();
-		if (hashEdit != null) hashEdit.Text = Settings.AnalyzeSettings.ParallelHashPerWorker.ToString();
 		// 初期表示時もラベルを反映
 		if (Settings.AnalyzeSettings.Reverse)
 		{
@@ -151,18 +141,5 @@ public class AnalyzeStartDialog : DialogFragment
 			Settings.AnalyzeSettings.AnalyzePositon = GameStartPosition.NowPosition;
 		}
 		Settings.AnalyzeSettings.Reverse = reverseCheckBox.Checked;
-		// 並列解析設定
-		var workersEdit = Activity.FindViewById<EditText>(Resource.Id.ParallelWorkersEdit);
-		var nodesEdit = Activity.FindViewById<EditText>(Resource.Id.ParallelNodesEdit);
-		var threadsEdit = Activity.FindViewById<EditText>(Resource.Id.ParallelThreadsEdit);
-		var hashEdit = Activity.FindViewById<EditText>(Resource.Id.ParallelHashEdit);
-		if (workersEdit != null && int.TryParse(workersEdit.Text, out int w) && w > 0)
-			Settings.AnalyzeSettings.ParallelWorkers = w;
-		if (nodesEdit != null && int.TryParse(nodesEdit.Text, out int n) && n > 0)
-			Settings.AnalyzeSettings.ParallelNodesMillions = n;
-		if (threadsEdit != null && int.TryParse(threadsEdit.Text, out int t) && t > 0)
-			Settings.AnalyzeSettings.ParallelThreadsPerWorker = t;
-		if (hashEdit != null && int.TryParse(hashEdit.Text, out int h) && h > 0)
-			Settings.AnalyzeSettings.ParallelHashPerWorker = h;
 	}
 }
