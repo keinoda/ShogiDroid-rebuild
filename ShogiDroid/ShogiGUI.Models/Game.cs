@@ -389,12 +389,19 @@ public class Game
 		{
 			// 逆順: 終局から開始、NowPositionの場合は現在位置を記録して終局へ
 			if (Settings.AnalyzeSettings.AnalyzePositon == GameStartPosition.InitialPosition)
+			{
 				NotationModel.Last();
-			// NowPosition+Reverse: 現在位置は保持（ここまで戻る）、終局へ移動
+			}
 			else
 			{
 				analyzeStopNumber_ = Notation.MoveCurrent.Number;
 				NotationModel.Last();
+			}
+			// 投了等の結果ノードにいる場合、実際の最終指し手まで戻る
+			while (Notation.MoveCurrent.MoveType.HasFlag(MoveType.ResultFlag)
+				|| !Notation.MoveCurrent.MoveType.IsMove())
+			{
+				if (!NotationModel.Prev()) break;
 			}
 		}
 		else
