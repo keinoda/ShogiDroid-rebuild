@@ -486,29 +486,38 @@ public class Game
 	private void ApplyParallelResults(List<ParallelAnalyzer.MoveResult> results)
 	{
 		string analysisText = Android.App.Application.Context.GetString(Resource.String.Analysis_Text);
+		var moveStyle = Settings.AppSettings.MoveStyle;
 
-		// 各手に結果を適用
+		// 各手の局面を再構築するために初期局面からリプレイ
+		SPosition replayPos = (SPosition)Notation.InitialPosition.Clone();
+
 		int moveIndex = 0;
 		foreach (MoveNode moveNode in Notation.MoveNodes)
 		{
 			if (!moveNode.MoveType.IsMove()) continue;
+
+			// 指し手を適用して局面を進める
+			replayPos.Move(moveNode);
 			moveIndex++;
 
 			var result = results.Find(r => r.Index == moveIndex);
 			if (result == null) continue;
 
-			// 評価値をセット（手番を考慮: 後手の場合は符号反転）
+			// 評価値をセット（先手目線に統一）
+			// エンジンは手番側視点で報告。moveNode.Turnは指した側なので、
+			// 指した後は相手の手番。先手が指した後→後手視点→反転が必要
 			if (result.Score.HasValue)
 			{
 				int score = result.Score.Value;
-				if (moveNode.Turn == PlayerColor.White)
+				if (moveNode.Turn == PlayerColor.Black)
 					score = -score;
 				moveNode.Score = score;
 			}
 			else if (result.Mate.HasValue)
 			{
-				int mateScore = (result.Mate.Value > 0 ? 1 : -1) * (32000 - System.Math.Abs(result.Mate.Value));
-				if (moveNode.Turn == PlayerColor.White)
+				int mate = result.Mate.Value;
+				int mateScore = (mate > 0 ? 1 : -1) * (32000 - System.Math.Abs(mate));
+				if (moveNode.Turn == PlayerColor.Black)
 					mateScore = -mateScore;
 				moveNode.Score = mateScore;
 			}
@@ -519,26 +528,56 @@ public class Game
 			else
 				moveNode.BestMove = MoveMatche.None;
 
-			// コメント生成
+			// 先手目線の評価値文字列（コメント用）
+			int senteScore = moveNode.HasScore ? moveNode.Score : 0;
 			string evalStr = result.Mate.HasValue
-				? PvInfo.ValueToString(result.Mate.Value > 0 ? 1 : -1, System.Math.Abs(result.Mate.Value), 0)
-				: (result.Score.HasValue ? result.Score.Value.ToString() : "?");
+				? PvInfo.ValueToString(senteScore > 0 ? 1 : -1, System.Math.Abs(result.Mate.Value), 0)
+				: senteScore.ToString();
+
 			string depthStr = result.Depth.HasValue
 				? $"{result.Depth.Value}" + (result.SelDepth.HasValue ? $"/{result.SelDepth.Value}" : "")
 				: "";
 			string nodesStr = result.Nodes.HasValue ? PvInfo.NodesToString(result.Nodes.Value) : "";
 
+			// 読み筋をUSI→KIF形式に変換
+			string pvKif = ConvertPvToKif(replayPos, result.PvString, moveStyle);
+
 			string bestMark = (moveNode.BestMove == MoveMatche.Best) ? " ○" : "";
 			string comment = $"*{analysisText}{bestMark} 評価値 {evalStr}";
 			if (!string.IsNullOrEmpty(depthStr)) comment += $" 深さ {depthStr}";
 			if (!string.IsNullOrEmpty(nodesStr)) comment += $" ノード数 {nodesStr}";
-			if (!string.IsNullOrEmpty(result.PvString)) comment += $" 読み筋 {result.PvString}";
+			if (!string.IsNullOrEmpty(pvKif)) comment += $" 読み筋 {pvKif}";
 
 			moveNode.CommentAdd(comment);
 		}
 
 		// 棋譜変更を通知
 		NotationModel.OnNotationChangedPublic(new ShogiGUI.Events.NotationEventArgs(ShogiGUI.Events.NotationEventId.OBJECT_CHANGED));
+	}
+
+	/// <summary>
+	/// USI形式の読み筋をKIF形式に変換
+	/// </summary>
+	private string ConvertPvToKif(SPosition basePos, string pvString, MoveStyle style)
+	{
+		if (string.IsNullOrEmpty(pvString)) return string.Empty;
+
+		var pos = (SPosition)basePos.Clone();
+		string[] usiMoves = pvString.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+		var sb = new System.Text.StringBuilder();
+
+		foreach (string usiMove in usiMoves)
+		{
+			MoveDataEx moveData = Sfen.ParseMove(pos, usiMove);
+			if (moveData.MoveType == MoveType.NoMove || !MoveCheck.IsValid(pos, moveData))
+				break;
+
+			string turnMark = (pos.Turn == PlayerColor.Black) ? "▲" : "△";
+			sb.Append($" {turnMark}{moveData.ToString(style)}");
+			pos.Move(moveData);
+		}
+
+		return sb.ToString().TrimStart();
 	}
 
 	private void AnalyzeEnd()
