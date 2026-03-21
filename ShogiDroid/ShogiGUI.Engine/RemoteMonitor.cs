@@ -14,6 +14,7 @@ public class RemoteMonitor : IDisposable
 	private Timer timer_;
 	private bool disposed_;
 	private int errorCount_;
+	private int polling_; // 0=idle, 1=polling（再入防止）
 
 	// 接続情報（再接続用に保持）
 	private string host_;
@@ -37,7 +38,8 @@ public class RemoteMonitor : IDisposable
 		keyPath_ = keyPath;
 		IsMonitoring = true;
 		errorCount_ = 0;
-		timer_ = new Timer(Poll, null, 0, 2000);
+		polling_ = 0;
+		timer_ = new Timer(Poll, null, 0, 3000);
 		AppDebug.Log.Info($"RemoteMonitor: scheduled for {host}:{sshPort}");
 	}
 
@@ -65,6 +67,7 @@ public class RemoteMonitor : IDisposable
 			var keyFile = new PrivateKeyFile(keyPath_);
 			client_ = new SshClient(host_, sshPort_, "root", keyFile);
 			client_.ConnectionInfo.Timeout = TimeSpan.FromSeconds(10);
+			client_.KeepAliveInterval = TimeSpan.FromSeconds(10);
 			client_.Connect();
 			errorCount_ = 0;
 			AppDebug.Log.Info("RemoteMonitor: connected");
@@ -73,7 +76,7 @@ public class RemoteMonitor : IDisposable
 		catch (Exception ex)
 		{
 			errorCount_++;
-			if (errorCount_ <= 3 || errorCount_ % 10 == 0)
+			if (errorCount_ <= 3 || errorCount_ % 30 == 0)
 				AppDebug.Log.Info($"RemoteMonitor: connect failed (#{errorCount_}): {ex.Message}");
 			Disconnect();
 			return false;
@@ -83,10 +86,14 @@ public class RemoteMonitor : IDisposable
 	private void Poll(object state)
 	{
 		if (!IsMonitoring || disposed_) return;
-		if (!EnsureConnected()) return;
+
+		// 前回のPollがまだ実行中ならスキップ
+		if (Interlocked.CompareExchange(ref polling_, 1, 0) != 0) return;
 
 		try
 		{
+			if (!EnsureConnected()) return;
+
 			// CPU利用率: topコマンドから取得（1回サンプリング）
 			var cpuCmd = client_.RunCommand(
 				"top -bn1 | head -3 | grep '%Cpu' | awk '{print 100-$8}'");
@@ -110,6 +117,10 @@ public class RemoteMonitor : IDisposable
 		{
 			// 接続が切れた場合、次回Pollで再接続を試みる
 			Disconnect();
+		}
+		finally
+		{
+			Interlocked.Exchange(ref polling_, 0);
 		}
 	}
 
