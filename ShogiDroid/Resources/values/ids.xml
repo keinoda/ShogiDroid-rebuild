@@ -433,4 +433,5 @@
     <item type="id" name="board_edit_button" />
     <item type="id" name="book_browse_close" />
     <item type="id" name="remote_stats" />
+    <item type="id" name="AnalyzeStartDialogReverse" />
 </resources>

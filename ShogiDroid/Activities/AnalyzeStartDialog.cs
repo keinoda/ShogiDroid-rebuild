@@ -21,6 +21,8 @@ public class AnalyzeStartDialog : DialogFragment
 
 	private RadioGroup rangeRadio;
 
+	private CheckBox reverseCheckBox;
+
 	private static readonly int[] TimeArray = new int[8] { 1000, 2000, 3000, 5000, 10000, 15000, 20000, 30000 };
 
 	public static AnalyzeStartDialog NewInstance()
@@ -38,6 +40,15 @@ public class AnalyzeStartDialog : DialogFragment
 		depthCheckBox = view.FindViewById<CheckBox>(Resource.Id.AnalyzeStartDialogDepthCheckBox);
 		depthEditText = view.FindViewById<EditText>(Resource.Id.AnalyzeStartDialogDepthEditText);
 		rangeRadio = view.FindViewById<RadioGroup>(Resource.Id.AnalyzeStartDialogRange);
+		reverseCheckBox = view.FindViewById<CheckBox>(Resource.Id.AnalyzeStartDialogReverse);
+		// 逆順時はラジオボタンのラベルを変更
+		reverseCheckBox.Click += delegate
+		{
+			var nowRadio = view.FindViewById<RadioButton>(Resource.Id.AnalyzeStartDialogRangeNow);
+			nowRadio.Text = reverseCheckBox.Checked
+				? "現在の局面まで解析"
+				: Activity.GetString(Resource.String.AnalyzeRangeNow_Text);
+		};
 		((Button)view.FindViewById(Resource.Id.DialogOKButton)).Click += delegate(object sender, EventArgs e)
 		{
 			saveSettings();
@@ -82,6 +93,13 @@ public class AnalyzeStartDialog : DialogFragment
 		{
 			rangeRadio.Check(Resource.Id.AnalyzeStartDialogRangeNow);
 		}
+		reverseCheckBox.Checked = Settings.AnalyzeSettings.Reverse;
+		// 初期表示時もラベルを反映
+		if (Settings.AnalyzeSettings.Reverse)
+		{
+			var nowRadio = Activity.FindViewById<RadioButton>(Resource.Id.AnalyzeStartDialogRangeNow);
+			if (nowRadio != null) nowRadio.Text = "現在の局面まで解析";
+		}
 	}
 
 	private void saveSettings()
@@ -104,5 +122,6 @@ public class AnalyzeStartDialog : DialogFragment
 		{
 			Settings.AnalyzeSettings.AnalyzePositon = GameStartPosition.NowPosition;
 		}
+		Settings.AnalyzeSettings.Reverse = reverseCheckBox.Checked;
 	}
 }

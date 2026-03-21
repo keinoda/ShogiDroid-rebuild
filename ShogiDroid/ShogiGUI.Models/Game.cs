@@ -55,6 +55,8 @@ public class Game
 
 	private AnalyzeInfoList analyzeInfoList = new AnalyzeInfoList();
 
+	private int analyzeStopNumber_ = -1;
+
 	private EngineMode engineMode;
 
 	private static string gameText = Application.Context.GetString(Resource.String.Game_Text);
@@ -378,13 +380,28 @@ public class Game
 	public void AnalyzerStart()
 	{
 		cancel = false;
+		analyzeStopNumber_ = -1;
 		if (comState.IsThinking())
 		{
 			enginePlayer.Stop();
 		}
-		if (Settings.AnalyzeSettings.AnalyzePositon == GameStartPosition.InitialPosition)
+		if (Settings.AnalyzeSettings.Reverse)
 		{
-			NotationModel.First();
+			// 逆順: 終局から開始、NowPositionの場合は現在位置を記録して終局へ
+			if (Settings.AnalyzeSettings.AnalyzePositon == GameStartPosition.InitialPosition)
+				NotationModel.Last();
+			// NowPosition+Reverse: 現在位置は保持（ここまで戻る）、終局へ移動
+			else
+			{
+				analyzeStopNumber_ = Notation.MoveCurrent.Number;
+				NotationModel.Last();
+			}
+		}
+		else
+		{
+			if (Settings.AnalyzeSettings.AnalyzePositon == GameStartPosition.InitialPosition)
+				NotationModel.First();
+			// NowPosition+Forward: 現在位置から開始（何もしない）
 		}
 		analyzeInfoList.Clear();
 		pvinfos.Clear();
@@ -893,6 +910,13 @@ public class Game
 				}
 			}
 		}
+		// 逆順+現在位置まで: 目標局面に到達したら停止
+		if (flag && Settings.AnalyzeSettings.Reverse && analyzeStopNumber_ >= 0
+			&& Notation.MoveCurrent.Number <= analyzeStopNumber_)
+		{
+			flag = false;
+		}
+
 		if (flag)
 		{
 			pvinfos.Clear();
@@ -901,6 +925,7 @@ public class Game
 			enginePlayer.Analyze(Notation, new AnalyzeTimeSettings(Settings.AnalyzeSettings.AnalyzeTime, -1L, Settings.AnalyzeSettings.GetAnalyzeDepth()));
 			return;
 		}
+		analyzeStopNumber_ = -1;
 		AnalyzeEnd();
 		if (Settings.AnalyzeSettings.Reverse)
 		{
