@@ -236,6 +236,7 @@ public class NotationModel
 
 	/// <summary>
 	/// 解析コメントからMoveNode.Scoreを復元（棋譜再読み込み時の評価グラフ表示用）
+	/// 複数候補手がある場合、最初の解析コメント（=最善手）の評価値を使用する
 	/// </summary>
 	private void RestoreScoresFromComments()
 	{
@@ -246,8 +247,9 @@ public class NotationModel
 			{
 				if (string.IsNullOrEmpty(comment) || comment[0] != '*') continue;
 				var pvInfo = AnalyzeInfoList.Parse(comment);
-				if (pvInfo.HasEval)
+				if (pvInfo.Kind == AnalyzeCommentKind.Analysis && pvInfo.HasEval)
 				{
+					// 最初に見つかった解析コメントが候補1（最善手）
 					moveNode.Score = pvInfo.Eval;
 					break;
 				}
