@@ -2157,7 +2157,56 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		{
 			presenter.AnalyzerStart();
 		});
+		analyzeStartDialog.ParallelClick = (EventHandler<EventArgs>)Delegate.Combine(analyzeStartDialog.ParallelClick, (EventHandler<EventArgs>)delegate
+		{
+			StartParallelAnalysis();
+		});
 		analyzeStartDialog.Show(FragmentManager, "AnalyzeStartDialog");
+	}
+
+	private CancellationTokenSource parallelAnalyzeCts_;
+
+	private async void StartParallelAnalysis()
+	{
+		int workers = System.Math.Max(4, Settings.EngineSettings.VastAiCpuCores / 2);
+		long nodesPerMove = 10000000L;
+
+		parallelAnalyzeCts_ = new CancellationTokenSource();
+		var game = ShogiGUI.Domain.Game;
+
+		game.ParallelAnalyzeProgress += OnParallelProgress;
+
+		try
+		{
+			await game.ParallelAnalyzeAsync(workers, nodesPerMove, parallelAnalyzeCts_.Token);
+			RunOnUiThread(() =>
+			{
+				Toast.MakeText(this, "並列解析完了", ToastLength.Short).Show();
+				UpdateNotation(ShogiGUI.Events.NotationEventId.OBJECT_CHANGED);
+			});
+		}
+		catch (System.OperationCanceledException)
+		{
+			RunOnUiThread(() => Toast.MakeText(this, "解析キャンセル", ToastLength.Short).Show());
+		}
+		catch (Exception ex)
+		{
+			RunOnUiThread(() => Toast.MakeText(this, $"解析エラー: {ex.Message}", ToastLength.Long).Show());
+		}
+		finally
+		{
+			game.ParallelAnalyzeProgress -= OnParallelProgress;
+			parallelAnalyzeCts_ = null;
+		}
+	}
+
+	private void OnParallelProgress(string msg)
+	{
+		RunOnUiThread(() =>
+		{
+			var stateText = FindViewById<TextView>(Resource.Id.state_text);
+			if (stateText != null) stateText.Text = msg;
+		});
 	}
 
 	private void CreateShortcutMenu(IMenu menu)
