@@ -250,10 +250,7 @@
     <item type="id" name="menu_vastai" />
     <item type="id" name="menu_board_edit" />
     <item type="id" name="menu_button" />
-    <item type="id" name="menu_disp" />
-    <item type="id" name="menu_edit" />
     <item type="id" name="menu_engine" />
-    <item type="id" name="menu_file" />
     <item type="id" name="menu_text" />
     <item type="id" name="message" />
     <item type="id" name="month_grid" />
