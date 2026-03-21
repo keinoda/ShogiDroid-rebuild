@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory android:title="@string/SettingsTimeControl_Text">
+        <shogidroid.controls.ListIntPreference android:entries="@array/SettingsTime_Texts" android:title="@string/SettingsTime_Text" android:key="Engine.Time" android:defaultValue="@string/SettingsTime_Default" android:entryValues="@array/SettingsTime_Values" />
+        <shogidroid.controls.ListIntPreference android:entries="@array/SettingsCountdown_Texts" android:title="@string/SettingsCountdown_Text" android:key="Engine.Countdown" android:defaultValue="@string/SettingsCountdown_Default" android:entryValues="@array/SettingsCountdown_Values" />
+    </PreferenceCategory>
+</PreferenceScreen>

@@ -1381,7 +1381,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		{
 		case Resource.Id.action_settings:
 			Settings.Save();
-			StartActivityForResult(new Intent(this, typeof(SettingActivity)), 102);
+			StartActivityForResult(new Intent(this, typeof(SettingsHomeActivity)), 102);
 			drawerLayout.CloseDrawers();
 			break;
 		case Resource.Id.menu_vastai:
