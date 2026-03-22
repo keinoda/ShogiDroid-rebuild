@@ -132,6 +132,25 @@ public class EnginePlayer : IPlayer
 		}
 	}
 
+	public bool InitRemoteSsh(string host, int sshPort, string keyPath, string engineCommand)
+	{
+		lock (lockObj)
+		{
+			if (state_ != EnginePlayerState.NONE)
+			{
+				return false;
+			}
+			engine_ = new USIEngine();
+			cancel_ = false;
+			if (!engine_.InitializeRemoteSsh(host, sshPort, keyPath, engineCommand))
+			{
+				engine_ = null;
+				return false;
+			}
+			return StartProtocol();
+		}
+	}
+
 	private bool StartProtocol()
 	{
 			mre = new ManualResetEvent(initialState: false);
@@ -994,6 +1013,12 @@ public class EnginePlayer : IPlayer
 			{
 				USIString.ParseNum(uSITokenizer.GetToken(), out int out_num2);
 				pvInfo.NPS = out_num2;
+				continue;
+			}
+			case "hashfull":
+			{
+				USIString.ParseNum(uSITokenizer.GetToken(), out int hf);
+				pvInfo.HashFull = hf;
 				continue;
 			}
 			case "multipv":

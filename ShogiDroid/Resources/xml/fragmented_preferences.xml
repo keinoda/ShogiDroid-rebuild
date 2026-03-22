@@ -10,15 +10,8 @@
         <CheckBoxPreference android:title="評価値を勝率に変換" android:summary="評価値(cp)の代わりに勝率(%)で表示" android:key="App.ConvertEvalToWinRate" android:defaultValue="false" />
         <EditTextPreference android:singleLine="true" android:title="勝率変換の係数" android:summary="シグモイド関数の定数 (推奨: 750)" android:key="App.WinRateCoefficient" android:defaultValue="750" android:inputType="number" />
     </PreferenceCategory>
-    <PreferenceCategory android:title="@string/SettingsRemoteEngine_Text">
-        <EditTextPreference android:singleLine="true" android:title="@string/SettingsRemoteHost_Text" android:key="Engine.RemoteHost" android:defaultValue="" />
-        <EditTextPreference android:singleLine="true" android:title="@string/SettingsRemotePort_Text" android:key="Engine.RemotePort" android:defaultValue="28597" android:inputType="number" />
-    </PreferenceCategory>
-    <PreferenceCategory android:title="@string/SettingsVastAi_Text">
-        <EditTextPreference android:singleLine="true" android:title="@string/SettingsVastAiApiKey_Text" android:key="Engine.VastAiApiKey" android:defaultValue="" android:inputType="textPassword" />
-        <EditTextPreference android:singleLine="true" android:title="@string/SettingsVastAiDockerImage_Text" android:key="Engine.VastAiDockerImage" android:defaultValue="" />
-    </PreferenceCategory>
     <PreferenceCategory android:title="@string/SettingsAppearance_Text">
+        <ListPreference android:entries="@array/SettingsTheme_Texts" android:title="@string/SettingsTheme_Text" android:key="App.ThemeMode" android:defaultValue="system" android:entryValues="@array/SettingsTheme_Values" />
         <CheckBoxPreference android:title="@string/SettingsShowHintArrow_Text" android:key="App.ShowHintArrow" android:defaultValue="true" />
         <CheckBoxPreference android:title="@string/SettingsShowNextMoveArrow_Text" android:key="App.ShowNextArrow" android:defaultValue="true" />
         <CheckBoxPreference android:title="@string/SettingsShowComputerThinking_Text" android:key="App.ShowComputerThinking" android:defaultValue="true" />

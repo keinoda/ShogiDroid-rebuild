@@ -8,6 +8,8 @@
     <string name="AnalyzeRangeAll_Text">すべて</string>
     <string name="AnalyzeRangeNow_Text">現在の局面から解析</string>
     <string name="AnalyzeRange_Text">範囲</string>
+    <string name="AnalyzeReverse_Text">逆順解析（終局側から）</string>
+    <string name="ParallelAnalyze_Text">並列解析（リモート）</string>
     <string name="AnalyzeStartDialog_Text">棋譜解析</string>
     <string name="AnalyzeTime_Text">時間</string>
     <string name="Analyzing_Text">解析中</string>
@@ -68,8 +70,6 @@
     <string name="Mating_Text">詰探索中</string>
     <string name="Max_Text">最大値</string>
     <string name="MenuAutoPlay_Text">棋譜再生</string>
-    <string name="MenuDisp_Text">表示</string>
-    <string name="MenuEdit_Text">編集</string>
     <string name="MenuFirst_Text">開始局面</string>
     <string name="MenuInputCancel_Text">入力キャンセル</string>
     <string name="MenuJointBoard_Text">継ぎ盤</string>
@@ -84,7 +84,6 @@
     <string name="Menu_EditBoard_Text">局面編集</string>
     <string name="Menu_EngineFolder_Text">フォルダ選択</string>
     <string name="Menu_EngineInstall_Text">エンジンインストール</string>
-    <string name="Menu_EngineManage_Text">エンジン管理</string>
     <string name="Menu_EngineOptions_Text">エンジンオプション</string>
     <string name="Menu_EngineSelect_Text">エンジン選択</string>
     <string name="Menu_FileImport_Text">棋譜を取り込み</string>
@@ -93,17 +92,20 @@
     <string name="Menu_FileSave_Text">棋譜を保存</string>
     <string name="Menu_FileSend_Text">棋譜を送る</string>
     <string name="Menu_FileWebExport_Text">WEBから棋譜を取り込み</string>
-    <string name="Menu_File_Text">ファイル</string>
-    <string name="Menu_Game_Text">対局</string>
     <string name="Menu_NewGame_Text">新規対局</string>
     <string name="Menu_NotaitonCopy_Text">棋譜コピー</string>
     <string name="Menu_NotaitonPaste_Text">棋譜貼り付け</string>
     <string name="Menu_OpenKifuFolder_Text">棋譜保存フォルダを開く</string>
+    <string name="Menu_ExportBoardImage_Text">盤面画像を保存</string>
+    <string name="Menu_AnalysisSettings_Text">解析設定</string>
+    <string name="Menu_DisplaySettings_Text">表示設定</string>
+    <string name="Menu_RemoteConnectionSettings_Text">リモート接続設定</string>
     <string name="Menu_Book_Text">定跡</string>
     <string name="Menu_BookLoad_Text">定跡ファイルを開く</string>
     <string name="Menu_BookBrowse_Text">定跡閲覧モード</string>
     <string name="BookLoading_Text">定跡展開中</string>
     <string name="BookBrowseClose_Text">定跡閲覧終了</string>
+    <string name="SettingsTheme_Text">テーマ</string>
     <string name="Menu_ResignGame_Text">投了</string>
     <string name="Menu_StopGame_Text">中断</string>
     <string name="Menu_Text">メニュー</string>
@@ -151,7 +153,7 @@
     <string name="SettingsCountdown_Default">10000</string>
     <string name="SettingsCountdown_Text">秒読み</string>
     <string name="SettingsCustom_Text">カスタマイズ</string>
-    <string name="SettingsDispToolbar_Text">ナビゲーションの表示</string>
+    <string name="SettingsDispToolbar_Text">ステータスバーを表示</string>
     <string name="SettingsEnablePieceSounds_Text">駒音</string>
     <string name="SettingsEngineHashTable_Text">ハッシュ</string>
     <string name="SettingsEngineOwnBook_Text">定跡</string>

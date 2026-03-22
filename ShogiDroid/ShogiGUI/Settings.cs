@@ -28,9 +28,23 @@ public sealed class Settings
 		try
 		{
 			new PrefSerializer().Deserialize(PreferenceManager.GetDefaultSharedPreferences(Application.Context), settings);
+			MigrateOnStartCmd();
 		}
 		catch
 		{
+		}
+	}
+
+	/// <summary>
+	/// OnStartCmdを常に最新のデフォルト値に強制上書き
+	/// </summary>
+	private static void MigrateOnStartCmd()
+	{
+		string defaultCmd = new EngineSettings().VastAiOnStartCmd;
+		if (settings.Engine.VastAiOnStartCmd != defaultCmd)
+		{
+			settings.Engine.VastAiOnStartCmd = defaultCmd;
+			Save();
 		}
 	}
 

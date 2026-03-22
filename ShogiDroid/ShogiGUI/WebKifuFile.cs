@@ -56,7 +56,11 @@ public class WebKifuFile
 			if (IsHtml(text))
 			{
 				string warsKifu;
-				if ((warsKifu = GetWarsKifu2(text)) != string.Empty)
+				if ((warsKifu = GetKishinKifu(text)) != string.Empty)
+				{
+					text = warsKifu;
+				}
+				else if ((warsKifu = GetWarsKifu2(text)) != string.Empty)
 				{
 					text = warsKifu;
 				}
@@ -356,6 +360,22 @@ public class WebKifuFile
 		memoryStream.Position = 0L;
 		using StreamReader streamReader = new StreamReader(memoryStream);
 		return streamReader.ReadToEnd();
+	}
+
+	/// <summary>
+	/// 棋神アナリティクスのHTMLからKIF形式棋譜を抽出
+	/// </summary>
+	public static string GetKishinKifu(string html)
+	{
+		// "kif" フィールドにエスケープされたKIF棋譜が格納されている
+		var match = Regex.Match(html, @"""kif""\s*:\s*""((?:[^""\\]|\\.)*)""", RegexOptions.Singleline);
+		if (!match.Success)
+			return string.Empty;
+
+		string escaped = match.Groups[1].Value;
+		// JavaScriptのエスケープを解除
+		string kif = Regex.Unescape(escaped);
+		return kif;
 	}
 
 	public static string GetUrl(string str)

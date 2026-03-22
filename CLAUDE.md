@@ -9,7 +9,7 @@
 # Debug は arm64 単一アーキテクチャでビルド（高速化）
 DOTNET_ROOT=/usr/local/share/dotnet /usr/local/share/dotnet/dotnet build -c Debug
 
-# Release ビルド（AOT GUID不一致の問題あり、当面 Debug を使用）
+# Release ビルド（実機にはこちらを使用）
 DOTNET_ROOT=/usr/local/share/dotnet /usr/local/share/dotnet/dotnet build -c Release
 ```
 
@@ -81,11 +81,24 @@ ShogiDroid/
 - ApplicationId: `com.ngs436.ShogiDroidR`（元の `com.siganus.ShogiDroid` と共存可能）
 - ContentProvider authority: `com.ngs436.ShogiDroidR.provider`
 
+### vast.ai クラウドエンジン接続
+- SSH.NET ライブラリによる SSH 接続（平文 TCP から移行済み）
+- エンジンはSSH経由で `/workspace` 内のバイナリを直接起動
+- socat によるポート公開は不要（セキュリティ改善）
+- `VastAiActivity` でインスタンス管理、エンジン自動検出・選択
+- NNUE/DEEP の自動判別（USI オプションの `UCT_NodeLimit` / `DNN_Batch_Size` の有無）
+- Threads / Hash / UCT_NodeLimit をインスタンススペックに基づき自動設定
+- RemoteMonitor で CPU/GPU 利用率をSSH経由で取得・表示
+
+### 棋神アナリティクス連携
+- `kishin-analytics.heroz.jp` の Deep Link 対応
+- 将棋ウォーズのAIボタンからShogiDroidで棋譜を直接読み込み可能
+- 端末側で「デフォルトで開く」設定が必要（Android 12+ のドメイン検証制約）
+
 ## 元のアプリとの差分
 - 広告関連クラス（MyInterstitialAd 等）は意図的に除外
-- Custom USI Engine / SSH Engine のアセットは未移植（将来対応）
+- SSH Engine は SSH.NET ベースで再実装済み（旧アセットは不要）
 - 文字列はすべて日本語に統一済み
 
 ## 既知の問題
-- Release ビルドで AndroidX.Core の AOT GUID 不一致によりクラッシュする
 - エンジンオプション画面が不安定な場合がある

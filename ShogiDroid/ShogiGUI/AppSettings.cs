@@ -64,6 +64,8 @@ public class AppSettings
 
 	public bool GraphLiner = true;
 
+	public string ThemeMode = "system";
+
 	public string WarsUserName = string.Empty;
 
 	public string ImportUrl = string.Empty;
