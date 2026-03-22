@@ -470,7 +470,8 @@ public class VastAiActivity : Activity
 
 		if (inst.IsRunning && !string.IsNullOrEmpty(inst.PublicIpAddr))
 		{
-			var ipText = new TextView(this) { Text = $"IP: {inst.PublicIpAddr}" };
+			var (dispHost, dispPort) = inst.GetSshEndpoint();
+			var ipText = new TextView(this) { Text = $"SSH: {dispHost}:{dispPort}" };
 			ipText.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
 			ipText.SetTextColor(ColorUtils.Get(this, Resource.Color.vast_card_sub_text));
 			card.AddView(ipText);
@@ -536,13 +537,13 @@ public class VastAiActivity : Activity
 			return;
 		}
 
-		int sshPort = inst.GetMappedPort(22);
+		var (sshHost, sshPort) = inst.GetSshEndpoint();
 		SetBusy(true, "エンジンを検出中...");
 
 		List<EngineInfo> engines;
 		try
 		{
-			engines = await Task.Run(() => ScanEngines(inst.PublicIpAddr, sshPort, sshKeyPath));
+			engines = await Task.Run(() => ScanEngines(sshHost, sshPort, sshKeyPath));
 		}
 		catch (Exception ex)
 		{
@@ -640,9 +641,9 @@ public class VastAiActivity : Activity
 			return;
 		}
 
-		int sshPort = inst.GetMappedPort(22);
+		var (sshHost, sshPort) = inst.GetSshEndpoint();
 
-		Settings.EngineSettings.RemoteHost = inst.PublicIpAddr;
+		Settings.EngineSettings.RemoteHost = sshHost;
 		Settings.EngineSettings.VastAiSshPort = sshPort;
 		Settings.EngineSettings.VastAiSshEngineCommand = engineCommand;
 		Settings.EngineSettings.EngineNo = RemoteEnginePlayer.RemoteEngineNo;

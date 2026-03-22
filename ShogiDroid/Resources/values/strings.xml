@@ -70,8 +70,6 @@
     <string name="Mating_Text">詰探索中</string>
     <string name="Max_Text">最大値</string>
     <string name="MenuAutoPlay_Text">棋譜再生</string>
-    <string name="MenuDisp_Text">表示</string>
-    <string name="MenuEdit_Text">編集</string>
     <string name="MenuFirst_Text">開始局面</string>
     <string name="MenuInputCancel_Text">入力キャンセル</string>
     <string name="MenuJointBoard_Text">継ぎ盤</string>
@@ -86,7 +84,6 @@
     <string name="Menu_EditBoard_Text">局面編集</string>
     <string name="Menu_EngineFolder_Text">フォルダ選択</string>
     <string name="Menu_EngineInstall_Text">エンジンインストール</string>
-    <string name="Menu_EngineManage_Text">エンジン管理</string>
     <string name="Menu_EngineOptions_Text">エンジンオプション</string>
     <string name="Menu_EngineSelect_Text">エンジン選択</string>
     <string name="Menu_FileImport_Text">棋譜を取り込み</string>
@@ -95,12 +92,14 @@
     <string name="Menu_FileSave_Text">棋譜を保存</string>
     <string name="Menu_FileSend_Text">棋譜を送る</string>
     <string name="Menu_FileWebExport_Text">WEBから棋譜を取り込み</string>
-    <string name="Menu_File_Text">ファイル</string>
-    <string name="Menu_Game_Text">対局</string>
     <string name="Menu_NewGame_Text">新規対局</string>
     <string name="Menu_NotaitonCopy_Text">棋譜コピー</string>
     <string name="Menu_NotaitonPaste_Text">棋譜貼り付け</string>
     <string name="Menu_OpenKifuFolder_Text">棋譜保存フォルダを開く</string>
+    <string name="Menu_ExportBoardImage_Text">盤面画像を保存</string>
+    <string name="Menu_AnalysisSettings_Text">解析設定</string>
+    <string name="Menu_DisplaySettings_Text">表示設定</string>
+    <string name="Menu_RemoteConnectionSettings_Text">リモート接続設定</string>
     <string name="Menu_Book_Text">定跡</string>
     <string name="Menu_BookLoad_Text">定跡ファイルを開く</string>
     <string name="Menu_BookBrowse_Text">定跡閲覧モード</string>
