@@ -4,6 +4,7 @@ using System.IO;
 using System.Text;
 using System.Threading;
 using ShogiGUI.Events;
+using ShogiGUI.Engine;
 using ShogiLib;
 
 namespace ShogiGUI.Models;
@@ -60,6 +61,11 @@ public class NotationModel
 		kifuFilename = string.Empty;
 		notation.KifuInfos["開始日時"] = DateTime.Now.ToString();
 		changeState = ChangeState.Initialized;
+	}
+
+	public void OnNotationChangedPublic(NotationEventArgs e)
+	{
+		OnNotationChanged(e);
 	}
 
 	protected virtual void OnNotationChanged(NotationEventArgs e)
@@ -183,6 +189,7 @@ public class NotationModel
 				kifuFilename = string.Empty;
 				changeState = ChangeState.Modified;
 			}
+			RestoreScoresFromComments();
 			OnNotationChanged(new NotationEventArgs(NotationEventId.LOAD));
 		}
 	}
@@ -222,7 +229,31 @@ public class NotationModel
 		{
 			kifuFilename = string.Empty;
 			changeState = ChangeState.Modified;
+			RestoreScoresFromComments();
 			OnNotationChanged(new NotationEventArgs(NotationEventId.LOAD));
+		}
+	}
+
+	/// <summary>
+	/// 解析コメントからMoveNode.Scoreを復元（棋譜再読み込み時の評価グラフ表示用）
+	/// 複数候補手がある場合、最初の解析コメント（=最善手）の評価値を使用する
+	/// </summary>
+	private void RestoreScoresFromComments()
+	{
+		foreach (MoveNode moveNode in notation.MoveNodes)
+		{
+			if (moveNode.HasScore) continue;
+			foreach (string comment in moveNode.CommentList)
+			{
+				if (string.IsNullOrEmpty(comment) || comment[0] != '*') continue;
+				var pvInfo = AnalyzeInfoList.Parse(comment);
+				if (pvInfo.Kind == AnalyzeCommentKind.Analysis && pvInfo.HasEval)
+				{
+					// 最初に見つかった解析コメントが候補1（最善手）
+					moveNode.Score = pvInfo.Eval;
+					break;
+				}
+			}
 		}
 	}
 

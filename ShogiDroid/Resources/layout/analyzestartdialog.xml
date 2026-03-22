@@ -17,7 +17,9 @@
         <RadioButton android:id="@id/AnalyzeStartDialogRangeAll" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/AnalyzeRangeAll_Text" />
         <RadioButton android:id="@id/AnalyzeStartDialogRangeNow" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/AnalyzeRangeNow_Text" />
     </RadioGroup>
+    <CheckBox android:id="@id/AnalyzeStartDialogReverse" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/AnalyzeReverse_Text" />
     <Space android:layout_width="fill_parent" android:layout_height="20.0dip" />
+    <Button android:id="@id/ParallelAnalyzeButton" android:layout_width="fill_parent" android:layout_height="wrap_content" android:text="@string/ParallelAnalyze_Text" android:visibility="gone" />
     <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
         <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
         <Button android:id="@id/DialogCancelButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/DialogCancel_Text" android:layout_weight="2.0" />

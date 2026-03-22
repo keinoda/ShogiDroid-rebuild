@@ -833,6 +833,9 @@ public class MainPresenter : PresenterBase<IMainView>
 		case GameEventId.InitializeStart:
 			view.Message(MainViewMessageId.Initializing);
 			break;
+		case GameEventId.InitializeEnd:
+			view.OnEngineInitialized();
+			break;
 		case GameEventId.InitializeError:
 			view.Message(MainViewMessageId.InitializeError);
 			break;

@@ -42,6 +42,8 @@ public class InfoPagerAdapter : PagerAdapter
 
 	private int selDepth;
 
+	private int hashFull = -1;
+
 	private float scaleFactor = 1f;
 
 	private bool graphLiner = true;
@@ -166,7 +168,10 @@ public class InfoPagerAdapter : PagerAdapter
 			commentTextView = new TextView(activity);
 			commentTextView.Text = comment;
 			commentTextView.Hint = activity.GetString(Resource.String.Comment_Text);
-			commentTextView.SetTextColor(Color.Black);
+			// テーマの標準テキスト色を使用（ダークモード対応）
+		var typedValue = new Android.Util.TypedValue();
+		activity.Theme.ResolveAttribute(Android.Resource.Attribute.TextColorPrimary, typedValue, true);
+		commentTextView.SetTextColor(activity.Resources.GetColorStateList(typedValue.ResourceId, activity.Theme));
 			commentTextView.LongClick += CommentTextView_LongClick;
 			scrollView.AddView(commentTextView);
 			container.AddView(scrollView);
@@ -241,6 +246,52 @@ public class InfoPagerAdapter : PagerAdapter
 		}
 	}
 
+	private double remoteCpu_ = -1;
+	private double remoteGpu_ = -1;
+
+	public void SetRemoteStats(double cpuUsage, double gpuUsage)
+	{
+		remoteCpu_ = cpuUsage;
+		remoteGpu_ = gpuUsage;
+		UpdateRemoteStatsLine();
+	}
+
+	public void HideRemoteStats()
+	{
+		remoteCpu_ = -1;
+		remoteGpu_ = -1;
+		UpdateRemoteStatsLine();
+	}
+
+	private void UpdateRemoteStatsLine()
+	{
+		if (thinkInfoPage == null) return;
+		var tv = thinkInfoPage.FindViewById<TextView>(Resource.Id.remote_stats);
+		if (tv == null) return;
+
+		var parts = new System.Collections.Generic.List<string>();
+
+		// Hash使用率
+		if (hashFull >= 0)
+			parts.Add($"Hash: {hashFull / 10.0:F1}%");
+
+		// CPU/GPU利用率
+		if (remoteCpu_ >= 0)
+			parts.Add($"CPU: {remoteCpu_:F0}%");
+		if (remoteGpu_ >= 0)
+			parts.Add($"GPU: {remoteGpu_:F0}%");
+
+		if (parts.Count > 0)
+		{
+			tv.Text = string.Join("  ", parts);
+			tv.Visibility = ViewStates.Visible;
+		}
+		else
+		{
+			tv.Visibility = ViewStates.Gone;
+		}
+	}
+
 	public void SetThinkInfo(PvInfos pvinfos)
 	{
 		nodes = pvinfos.Nodes;
@@ -248,7 +299,9 @@ public class InfoPagerAdapter : PagerAdapter
 		timeMs = pvinfos.TimeMs;
 		depth = pvinfos.Depth;
 		selDepth = pvinfos.SelDepth;
+		hashFull = pvinfos.HashFull;
 		UpdateThinkInfo();
+		UpdateRemoteStatsLine();
 		thinkInfoListViewAdapter.SetPvInfo(pvinfos);
 	}
 
@@ -257,9 +310,9 @@ public class InfoPagerAdapter : PagerAdapter
 		if (thinkInfoPage != null)
 		{
 			thinkInfoPage.FindViewById<TextView>(Resource.Id.time).Text = PvInfo.TimeToString(timeMs);
-			thinkInfoPage.FindViewById<TextView>(Resource.Id.depth).Text = $"{depth}/{selDepth}";
-			thinkInfoPage.FindViewById<TextView>(Resource.Id.nodes).Text = PvInfo.NodesToString(nodes);
-			thinkInfoPage.FindViewById<TextView>(Resource.Id.nps).Text = PvInfo.NpsToString(nps) + "N/s";
+			thinkInfoPage.FindViewById<TextView>(Resource.Id.depth).Text = $"Depth {depth}/{selDepth}";
+			thinkInfoPage.FindViewById<TextView>(Resource.Id.nodes).Text = "Nodes " + PvInfo.NodesToString(nodes);
+			thinkInfoPage.FindViewById<TextView>(Resource.Id.nps).Text = "NPS " + PvInfo.NpsToString(nps);
 		}
 	}
 

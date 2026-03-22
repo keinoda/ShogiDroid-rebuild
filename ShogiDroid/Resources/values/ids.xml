@@ -113,7 +113,9 @@
     <item type="id" name="adView" />
     <item type="id" name="alertTitle" />
     <item type="id" name="analyze_button" />
+    <item type="id" name="analysis_settings" />
     <item type="id" name="analyze_text" />
+    <item type="id" name="display_settings" />
     <item type="id" name="first_button" />
     <item type="id" name="last_button" />
     <item type="id" name="input_cancel_button" />
@@ -176,6 +178,7 @@
     <item type="id" name="end_padder" />
     <item type="id" name="engine_author" />
     <item type="id" name="engine_folder" />
+    <item type="id" name="engine_connection_settings" />
     <item type="id" name="engine_id" />
     <item type="id" name="engine_install" />
     <item type="id" name="engine_list" />
@@ -250,10 +253,7 @@
     <item type="id" name="menu_vastai" />
     <item type="id" name="menu_board_edit" />
     <item type="id" name="menu_button" />
-    <item type="id" name="menu_disp" />
-    <item type="id" name="menu_edit" />
     <item type="id" name="menu_engine" />
-    <item type="id" name="menu_file" />
     <item type="id" name="menu_text" />
     <item type="id" name="message" />
     <item type="id" name="month_grid" />
@@ -429,5 +429,15 @@
     <item type="id" name="book_load" />
     <item type="id" name="menu_book" />
     <item type="id" name="book_browse" />
+    <item type="id" name="pass_button" />
+    <item type="id" name="board_edit_button" />
     <item type="id" name="book_browse_close" />
+    <item type="id" name="remote_stats" />
+    <item type="id" name="AnalyzeStartDialogReverse" />
+    <item type="id" name="ParallelAnalyzeButton" />
+    <item type="id" name="ParallelSettingsContainer" />
+    <item type="id" name="ParallelWorkersEdit" />
+    <item type="id" name="ParallelNodesEdit" />
+    <item type="id" name="ParallelThreadsEdit" />
+    <item type="id" name="ParallelHashEdit" />
 </resources>

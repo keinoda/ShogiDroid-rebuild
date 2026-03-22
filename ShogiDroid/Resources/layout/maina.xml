@@ -3,29 +3,33 @@
   android:fitsSystemWindows="true"
   xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
     <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent">
-        <!-- Top bar: menu + camera -->
-        <FrameLayout android:layout_width="fill_parent" android:layout_height="36.0dip">
-            <ImageButton android:id="@id/menu_button" android:layout_width="36.0dip" android:layout_height="36.0dip" android:src="@drawable/ic_menu_hamburger" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="6.0dip" android:layout_gravity="start|center_vertical" />
-            <ImageButton android:id="@id/camera_read" android:layout_width="36.0dip" android:layout_height="36.0dip" android:src="@drawable/ic_camera" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="6.0dip" android:contentDescription="@string/Menu_CameraRead_Text" android:layout_gravity="center" />
+        <!-- Top bar: reverse + board_edit + camera (left), book_browse_close (right) -->
+        <FrameLayout android:layout_width="fill_parent" android:layout_height="44.0dip">
+            <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="match_parent" android:layout_gravity="start|center_vertical" android:gravity="center_vertical">
+                <ImageButton android:id="@id/reverse_button" android:layout_width="44.0dip" android:layout_height="44.0dip" android:src="@android:drawable/ic_menu_rotate" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="8.0dip" />
+                <ImageButton android:id="@id/board_edit_button" android:layout_width="44.0dip" android:layout_height="44.0dip" android:src="@android:drawable/ic_menu_edit" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="8.0dip" android:contentDescription="局面編集" />
+                <ImageButton android:id="@id/camera_read" android:layout_width="44.0dip" android:layout_height="44.0dip" android:src="@drawable/ic_camera" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="8.0dip" android:contentDescription="@string/Menu_CameraRead_Text" />
+            </LinearLayout>
             <Button android:id="@id/book_browse_close" android:layout_width="wrap_content" android:layout_height="32.0dip" android:text="@string/BookBrowseClose_Text" android:textSize="12.0sp" android:padding="4.0dip" android:layout_gravity="end|center_vertical" android:layout_marginEnd="4.0dip" android:visibility="gone" />
         </FrameLayout>
         <!-- Board area -->
         <RelativeLayout android:layout_width="fill_parent" android:layout_height="wrap_content">
-            <shogidroid.controls.shogiboard.ShogiBoard android:id="@id/shogiboard" android:background="@color/theme_background" android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_marginLeft="0.0dip" android:layout_marginRight="0.0dip" app:DesignMode="true" />
+            <shogidroid.controls.shogiboard.ShogiBoard android:id="@id/shogiboard" android:background="@color/theme_background" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginLeft="0.0dip" android:layout_marginRight="0.0dip" app:DesignMode="true" />
             <TextView android:textSize="13.0sp" android:ellipsize="end" android:id="@id/top_name" android:layout_width="80.0dip" android:layout_height="wrap_content" android:text="Top対局者名ABCDEF" android:singleLine="true" />
             <TextView android:textSize="13.0sp" android:id="@id/top_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="時間" android:singleLine="true" />
             <TextView android:textSize="13.0sp" android:id="@id/bottom_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="時間" android:singleLine="true" />
             <TextView android:textSize="13.0sp" android:ellipsize="end" android:id="@id/bottom_name" android:layout_width="80.0dip" android:layout_height="wrap_content" android:text="Bottom対局者名" android:singleLine="true" />
         </RelativeLayout>
-        <!-- Middle bar: reverse, notation text (compact center), input cancel -->
-        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
-            <ImageButton android:id="@id/reverse_button" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@android:drawable/ic_menu_rotate" />
-            <View android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
-            <TextView android:textSize="14.0sp" android:ellipsize="end" android:id="@id/notaton_text" android:layout_width="wrap_content" android:layout_height="36.0dip" android:text="棋譜" android:singleLine="true" android:gravity="center" android:textColor="@color/notation_box_text" android:background="@drawable/notation_box_bg" android:paddingLeft="20.0dip" android:paddingRight="20.0dip" />
+        <!-- Middle bar: menu (left), notation text (center), pass + input cancel (right) -->
+        <FrameLayout android:layout_width="fill_parent" android:layout_height="44.0dip">
+            <ImageButton android:id="@id/menu_button" android:layout_width="44.0dip" android:layout_height="44.0dip" android:src="@drawable/ic_menu_hamburger" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="8.0dip" android:layout_gravity="start|center_vertical" />
+            <TextView android:textSize="14.0sp" android:ellipsize="end" android:id="@id/notaton_text" android:layout_width="wrap_content" android:layout_height="36.0dip" android:text="棋譜" android:singleLine="true" android:gravity="center" android:textColor="@color/notation_box_text" android:background="@drawable/notation_box_bg" android:paddingLeft="20.0dip" android:paddingRight="20.0dip" android:layout_gravity="center" />
             <TextView android:id="@id/state_text" android:layout_width="0.0dip" android:layout_height="0.0dip" android:visibility="gone" />
-            <View android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
-            <ImageButton android:id="@id/input_cancel_button" android:layout_width="wrap_content" android:layout_height="wrap_content" android:src="@android:drawable/ic_menu_revert" />
-        </LinearLayout>
+            <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="match_parent" android:layout_gravity="end|center_vertical" android:gravity="center_vertical">
+                <ImageButton android:id="@id/pass_button" android:layout_width="44.0dip" android:layout_height="44.0dip" android:src="@android:drawable/ic_menu_send" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="8.0dip" android:contentDescription="パス" />
+                <ImageButton android:id="@id/input_cancel_button" android:layout_width="44.0dip" android:layout_height="44.0dip" android:src="@android:drawable/ic_menu_revert" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="8.0dip" />
+            </LinearLayout>
+        </FrameLayout>
         <!-- Analysis results (ThinkInfo / Comment / EvalGraph) -->
         <androidx.viewpager.widget.ViewPager android:id="@id/viewpager" android:layout_width="fill_parent" android:layout_height="0.0dip" android:layout_weight="1.0" />
         <!-- Bottom bar: first, prev, next, last, analyze -->
