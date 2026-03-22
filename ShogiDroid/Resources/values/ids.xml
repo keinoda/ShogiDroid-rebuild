@@ -113,7 +113,9 @@
     <item type="id" name="adView" />
     <item type="id" name="alertTitle" />
     <item type="id" name="analyze_button" />
+    <item type="id" name="analysis_settings" />
     <item type="id" name="analyze_text" />
+    <item type="id" name="display_settings" />
     <item type="id" name="first_button" />
     <item type="id" name="last_button" />
     <item type="id" name="input_cancel_button" />
@@ -176,6 +178,7 @@
     <item type="id" name="end_padder" />
     <item type="id" name="engine_author" />
     <item type="id" name="engine_folder" />
+    <item type="id" name="engine_connection_settings" />
     <item type="id" name="engine_id" />
     <item type="id" name="engine_install" />
     <item type="id" name="engine_list" />

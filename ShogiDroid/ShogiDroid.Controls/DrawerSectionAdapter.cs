@@ -88,7 +88,10 @@ public class DrawerSectionAdapter : BaseExpandableListAdapter
 
 	public override long GetChildId(int groupPosition, int childPosition) => childPosition;
 
-	public override bool IsChildSelectable(int groupPosition, int childPosition) => true;
+	public override bool IsChildSelectable(int groupPosition, int childPosition)
+	{
+		return IsItemEnabled(sections_[groupPosition].Items[childPosition]);
+	}
 
 	public DrawerItemModel GetItemModel(int groupPosition, int childPosition)
 	{
@@ -98,6 +101,11 @@ public class DrawerSectionAdapter : BaseExpandableListAdapter
 	public DrawerSectionModel GetSectionModel(int groupPosition)
 	{
 		return sections_[groupPosition];
+	}
+
+	private bool IsItemEnabled(DrawerItemModel item)
+	{
+		return item.IsEnabled?.Invoke() ?? true;
 	}
 
 	public override View GetGroupView(int groupPosition, bool isExpanded, View convertView, ViewGroup parent)
@@ -137,7 +145,7 @@ public class DrawerSectionAdapter : BaseExpandableListAdapter
 
 		tv.Text = item.Label;
 
-		bool enabled = item.IsEnabled?.Invoke() ?? true;
+		bool enabled = IsItemEnabled(item);
 		tv.Enabled = enabled;
 		if (enabled)
 		{
