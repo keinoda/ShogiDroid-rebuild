@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory android:title="@string/SettingsOther_Text">
+        <EditTextPreference android:singleLine="true" android:title="@string/SettingsPlayerName_Text" android:key="App.PlayerName" android:defaultValue="Player" />
+        <EditTextPreference android:singleLine="true" android:title="@string/SettingsShogiWarsUserName_Text" android:key="App.WarsUserName" android:defaultValue="" />
+        <CheckBoxPreference android:title="@string/SettingsAutoSave_Text" android:key="App.AutoSave" android:defaultValue="true" />
+    </PreferenceCategory>
+</PreferenceScreen>

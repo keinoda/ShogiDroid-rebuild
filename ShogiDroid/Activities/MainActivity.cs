@@ -119,9 +119,9 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	private LinearLayout leftDrawer;
 
-	private MainMenuAdapter mainMenuAdapter;
+	private DrawerSectionAdapter drawerAdapter_;
 
-	private ListView mainMenuListView;
+	private ExpandableListView drawerListView_;
 
 	private LinearLayout rightDrawer;
 
@@ -166,24 +166,90 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 
 	// private MyInterstitialAd interstitial; // Removed: AdMob dependency not available
 
-	private readonly MainMenuItem[] menuItems = new MainMenuItem[15]
+	private List<DrawerSectionModel> BuildDrawerSections()
 	{
-		new MainMenuItem(Resource.Id.game_start, Resource.String.Menu_NewGame_Text),
-		new MainMenuItem(Resource.Id.game_continue, Resource.String.Menu_ContinuedGame_Text),
-		new MainMenuItem(Resource.Id.game_stop, Resource.String.Menu_StopGame_Text),
-		new MainMenuItem(Resource.Id.game_resign, Resource.String.Menu_ResignGame_Text),
-		new MainMenuItem(Resource.Id.notation_analysis, Resource.String.Menu_Analysis_Text),
-		new MainMenuItem(),
-		new MainMenuItem(Resource.Id.menu_file, Resource.String.Menu_File_Text),
-		new MainMenuItem(Resource.Id.menu_book, Resource.String.Menu_Book_Text),
-		new MainMenuItem(Resource.Id.menu_edit, Resource.String.MenuEdit_Text),
-		new MainMenuItem(Resource.Id.menu_disp, Resource.String.MenuDisp_Text),
-		new MainMenuItem(Resource.Id.menu_engine, Resource.String.Menu_EngineManage_Text),
-		new MainMenuItem(Resource.Id.menu_vastai, Resource.String.Menu_VastAi_Text),
-		new MainMenuItem(),
-		new MainMenuItem(Resource.Id.action_settings, Resource.String.action_settings),
-		new MainMenuItem(Resource.Id.menu_about, Resource.String.Menu_About_Text)
-	};
+		var sections = new List<DrawerSectionModel>();
+		Func<int, Func<bool>> enabled = id => () => CanOpenDrawerItem(id);
+
+		// 1. クイック操作（常時展開）
+		var quick = new DrawerSectionModel("クイック操作", isQuickAction: true);
+		quick.Add(Resource.Id.game_start, GetString(Resource.String.Menu_NewGame_Text), isEnabled: enabled(Resource.Id.game_start));
+		quick.Add(Resource.Id.game_continue, GetString(Resource.String.Menu_ContinuedGame_Text), isEnabled: enabled(Resource.Id.game_continue));
+		quick.Add(Resource.Id.notation_analysis, GetString(Resource.String.Menu_Analysis_Text), isEnabled: enabled(Resource.Id.notation_analysis));
+		quick.Add(Resource.Id.game_stop, GetString(Resource.String.Menu_StopGame_Text), isEnabled: enabled(Resource.Id.game_stop));
+		quick.Add(Resource.Id.game_resign, GetString(Resource.String.Menu_ResignGame_Text), isEnabled: enabled(Resource.Id.game_resign));
+		sections.Add(quick);
+
+		// 2. 棋譜
+		var kifu = new DrawerSectionModel("棋譜");
+		kifu.Add(Resource.Id.file_load, GetString(Resource.String.Menu_FileLoad_Text), isEnabled: enabled(Resource.Id.file_load));
+		kifu.Add(Resource.Id.file_load_last, GetString(Resource.String.Menu_FileLoadLast_Text), isEnabled: enabled(Resource.Id.file_load_last));
+		kifu.Add(Resource.Id.file_save, GetString(Resource.String.Menu_FileSave_Text), isEnabled: enabled(Resource.Id.file_save));
+		kifu.Add(Resource.Id.file_send, GetString(Resource.String.Menu_FileSend_Text), isEnabled: enabled(Resource.Id.file_send));
+		kifu.Add(Resource.Id.file_import, GetString(Resource.String.Menu_FileImport_Text), isEnabled: enabled(Resource.Id.file_import));
+		kifu.Add(Resource.Id.file_web_import, GetString(Resource.String.Menu_FileWebExport_Text), isEnabled: enabled(Resource.Id.file_web_import));
+		kifu.Add(Resource.Id.file_open_folder, GetString(Resource.String.Menu_OpenKifuFolder_Text), isEnabled: enabled(Resource.Id.file_open_folder));
+		kifu.Add(Resource.Id.notation_copy, GetString(Resource.String.Menu_NotaitonCopy_Text), isEnabled: enabled(Resource.Id.notation_copy));
+		kifu.Add(Resource.Id.notation_paste, GetString(Resource.String.Menu_NotaitonPaste_Text), isEnabled: enabled(Resource.Id.notation_paste));
+		kifu.Add(Resource.Id.comment_edit, GetString(Resource.String.CommentMenuEdit_Text), isEnabled: enabled(Resource.Id.comment_edit));
+		kifu.Add(Resource.Id.comment_info_select, GetString(Resource.String.CommentInfoSelect_Text), isEnabled: enabled(Resource.Id.comment_info_select));
+		sections.Add(kifu);
+
+		// 3. 定跡
+		var book = new DrawerSectionModel("定跡");
+		book.Add(Resource.Id.book_load, GetString(Resource.String.Menu_BookLoad_Text), isEnabled: enabled(Resource.Id.book_load));
+		book.Add(Resource.Id.book_browse, GetString(Resource.String.Menu_BookBrowse_Text), isEnabled: enabled(Resource.Id.book_browse));
+		sections.Add(book);
+
+		// 4. 局面
+		var board = new DrawerSectionModel("局面");
+		board.Add(Resource.Id.menu_board_edit, GetString(Resource.String.Menu_EditBoard_Text), isEnabled: enabled(Resource.Id.menu_board_edit));
+		board.Add(Resource.Id.camera_read, GetString(Resource.String.Menu_CameraRead_Text), isEnabled: enabled(Resource.Id.camera_read));
+		board.Add(Resource.Id.cmd_input_cancel, GetString(Resource.String.MenuInputCancel_Text), isEnabled: enabled(Resource.Id.cmd_input_cancel));
+		board.Add(Resource.Id.cmd_pass, GetString(Resource.String.MenuPass_Text), isEnabled: enabled(Resource.Id.cmd_pass));
+		board.Add(Resource.Id.cmd_reverse, GetString(Resource.String.MenuReverse_Text), isEnabled: enabled(Resource.Id.cmd_reverse));
+		board.Add(Resource.Id.cmd_first, GetString(Resource.String.MenuFirst_Text), isEnabled: enabled(Resource.Id.cmd_first));
+		board.Add(Resource.Id.cmd_last, GetString(Resource.String.MenuLast_Text), isEnabled: enabled(Resource.Id.cmd_last));
+		board.Add(Resource.Id.cmd_joint_board, GetString(Resource.String.MenuJointBoard_Text), isEnabled: enabled(Resource.Id.cmd_joint_board));
+		board.Add(Resource.Id.cmd_kyokumen, GetString(Resource.String.MenuKyokumen_Text), isEnabled: enabled(Resource.Id.cmd_kyokumen));
+		board.Add(Resource.Id.cmd_export_board_image, GetString(Resource.String.Menu_ExportBoardImage_Text), isEnabled: enabled(Resource.Id.cmd_export_board_image));
+		sections.Add(board);
+
+		// 5. 解析
+		var analyze = new DrawerSectionModel("解析");
+		analyze.Add(Resource.Id.notation_analysis, GetString(Resource.String.Menu_Analysis_Text), isEnabled: enabled(Resource.Id.notation_analysis));
+		analyze.Add(Resource.Id.cmd_auto_play, GetString(Resource.String.MenuAutoPlay_Text), isEnabled: enabled(Resource.Id.cmd_auto_play));
+		analyze.Add(Resource.Id.analysis_settings, GetString(Resource.String.Menu_AnalysisSettings_Text), isEnabled: enabled(Resource.Id.analysis_settings));
+		analyze.Add(Resource.Id.display_settings, GetString(Resource.String.Menu_DisplaySettings_Text), isEnabled: enabled(Resource.Id.display_settings));
+		sections.Add(analyze);
+
+		// 6. エンジン
+		var engine = new DrawerSectionModel("エンジン");
+		engine.Add(Resource.Id.engine_select, GetString(Resource.String.Menu_EngineSelect_Text), isEnabled: enabled(Resource.Id.engine_select));
+		engine.Add(Resource.Id.engine_settings_wrapper, GetString(Resource.String.Menu_EngineSettings_Text), isEnabled: enabled(Resource.Id.engine_settings_wrapper));
+		engine.Add(Resource.Id.engine_options, GetString(Resource.String.EngineSettingsAllOptions_Text), isEnabled: enabled(Resource.Id.engine_options));
+		engine.Add(Resource.Id.engine_connection_settings, GetString(Resource.String.Menu_RemoteConnectionSettings_Text), isEnabled: enabled(Resource.Id.engine_connection_settings));
+		engine.Add(Resource.Id.engine_install, GetString(Resource.String.Menu_EngineInstall_Text), isEnabled: enabled(Resource.Id.engine_install));
+		engine.Add(Resource.Id.engine_folder, GetString(Resource.String.Menu_EngineFolder_Text), isEnabled: enabled(Resource.Id.engine_folder));
+		sections.Add(engine);
+
+		// 7. クラウド（子項目1つ = グループクリックで直接遷移）
+		var cloud = new DrawerSectionModel("クラウド");
+		cloud.Add(Resource.Id.menu_vastai, GetString(Resource.String.Menu_VastAi_Text), isEnabled: enabled(Resource.Id.menu_vastai));
+		sections.Add(cloud);
+
+		// 8. アプリ設定（子項目1つ = グループクリックで直接遷移）
+		var settings = new DrawerSectionModel("アプリ設定");
+		settings.Add(Resource.Id.action_settings, GetString(Resource.String.action_settings), isEnabled: enabled(Resource.Id.action_settings));
+		sections.Add(settings);
+
+		// 9. 情報（子項目1つ = グループクリックで直接遷移）
+		var info = new DrawerSectionModel("情報");
+		info.Add(Resource.Id.menu_about, GetString(Resource.String.Menu_About_Text), isEnabled: enabled(Resource.Id.menu_about));
+		sections.Add(info);
+
+		return sections;
+	}
 
 	private const int REQUEST_WRITE_STORAGE = 0;
 
@@ -216,6 +282,17 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	};
 
 	private bool storagePermission;
+
+	private void InitDrawer()
+	{
+		var sections = BuildDrawerSections();
+		drawerAdapter_ = new DrawerSectionAdapter(this, sections);
+		drawerListView_.SetAdapter(drawerAdapter_);
+		drawerListView_.ExpandGroup(0);
+		drawerListView_.SetOnGroupExpandListener(new SingleExpandListener(drawerListView_));
+		drawerListView_.ChildClick += DrawerChildClick;
+		drawerListView_.GroupClick += DrawerGroupClick;
+	}
 
 	private void InitCommand()
 	{
@@ -253,7 +330,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		commands.Add(CmdNo.CameraRead, Resource.Id.camera_read, CameraRead, presenter.CanEditBoard);
 		commands.Add(CmdNo.BookLoad, Resource.Id.book_load, BookLoadTree, presenter.CanLoadNotaton);
 		commands.Add(CmdNo.BookBrowse, Resource.Id.book_browse, BookBrowse, presenter.CanLoadNotaton);
-		commands.Add(CmdNo.MangeEgien, Resource.Id.menu_engine, PopupEngineMenu, presenter.CanManageEngine);
+		commands.Add(CmdNo.MangeEgien, Resource.Id.menu_engine, () => { /* ドロワーから直接操作 */ }, presenter.CanManageEngine);
 	}
 
 	private void MenuGrayout(IMenu menu)
@@ -265,16 +342,31 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		}
 	}
 
-	private void MainMenuGryout(MainMenuAdapter adapter)
+	private void MainMenuGryout()
 	{
-		foreach (MainMenuItem menuItem in adapter.GetMenuItems())
+		drawerAdapter_?.NotifyChanged();
+	}
+
+	private bool CanOpenDrawerItem(int itemId)
+	{
+		switch (itemId)
 		{
-			if (menuItem.TextId != 0)
-			{
-				menuItem.Enable = commands.IsEnable((int)menuItem.Id);
-			}
+		case Resource.Id.engine_select:
+		case Resource.Id.engine_settings_wrapper:
+		case Resource.Id.engine_options:
+		case Resource.Id.engine_connection_settings:
+		case Resource.Id.engine_install:
+		case Resource.Id.engine_folder:
+			return presenter.CanManageEngine();
+		case Resource.Id.analysis_settings:
+		case Resource.Id.display_settings:
+		case Resource.Id.action_settings:
+		case Resource.Id.menu_vastai:
+		case Resource.Id.menu_about:
+			return true;
+		default:
+			return commands.IsEnable(itemId);
 		}
-		adapter.UpdateGrayout();
 	}
 
 	private bool MenuExceute(int id)
@@ -727,6 +819,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		presenter = new MainPresenter(this);
 		presenter.Initialize();
 		InitCommand();
+		InitDrawer();
 
 		// vast.ai watchdog: notify user when instance is auto-suspended
 		VastAiWatchdog.Instance.InstanceAutoSuspended += (instanceId) =>
@@ -821,10 +914,8 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		drawerLayout.DrawerSlide += DrawerLayout_DrawerSlide;
 		drawerLayout.LayoutChange += DrawerLayout_LayoutChange;
 		leftDrawer = FindViewById<LinearLayout>(Resource.Id.left_drawer);
-		mainMenuAdapter = new MainMenuAdapter(this, menuItems);
-		mainMenuListView = FindViewById<ListView>(Resource.Id.main_manu_lsist_view);
-		mainMenuListView.Adapter = mainMenuAdapter;
-		mainMenuListView.ItemClick += MainMenuListView_ItemClick;
+		drawerListView_ = FindViewById<ExpandableListView>(Resource.Id.main_manu_lsist_view);
+		// ドロワーのアダプター設定はpresenter初期化後にInitDrawer()で行う
 		TextView textView = FindViewById<TextView>(Resource.Id.app_name);
 		AssemblyName name = Assembly.GetExecutingAssembly().GetName();
 		textView.Text = "ShogiDroidR ver " + name.Version;
@@ -944,6 +1035,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		base.OnConfigurationChanged(newConfig);
 		StoreSettings();
 		InitUI();
+		InitDrawer();
 		UpdateSettings();
 		UpdateState();
 		UpdateHitInfo();
@@ -998,7 +1090,7 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 	{
 		if (e.DrawerView == leftDrawer)
 		{
-			MainMenuGryout(mainMenuAdapter);
+			MainMenuGryout();
 		}
 		else if (e.DrawerView == rightDrawer)
 		{
@@ -1314,42 +1406,58 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		switch (itemId)
 		{
 		case Resource.Id.action_settings:
-			Settings.Save();
-			StartActivityForResult(new Intent(this, typeof(SettingActivity)), 102);
-			drawerLayout.CloseDrawers();
-			break;
-		case Resource.Id.menu_file:
-			PopupFileMenu();
-			break;
-		case Resource.Id.menu_book:
-			PopupBookMenu();
-			break;
-		case Resource.Id.menu_edit:
-			PopupEditMenu();
-			break;
-		case Resource.Id.menu_disp:
-			PopupDispMenu();
-			break;
-		case Resource.Id.menu_engine:
-			PopupEngineMenu();
+			OpenSettingsHome();
 			break;
 		case Resource.Id.menu_vastai:
 			StartActivityForResult(new Intent(this, typeof(VastAiActivity)), VASTAI_ACTIVITY_CODE);
 			drawerLayout.CloseDrawers();
 			break;
+		case Resource.Id.analysis_settings:
+			OpenSettingsSection(SettingActivity.SectionAnalyze);
+			break;
+		case Resource.Id.display_settings:
+			OpenSettingsSection(SettingActivity.SectionDisplay);
+			break;
 		case Resource.Id.engine_select:
+			if (!CanOpenDrawerItem(itemId))
+			{
+				return false;
+			}
 			ShowEngineSelectDialog();
 			break;
 		case Resource.Id.engine_settings_wrapper:
+			if (!CanOpenDrawerItem(itemId))
+			{
+				return false;
+			}
 			StartActivityForResult(new Intent(this, typeof(EngineSettingsWrapperActivity)), 110);
 			break;
 		case Resource.Id.engine_options:
+			if (!CanOpenDrawerItem(itemId))
+			{
+				return false;
+			}
 			StartActivityForResult(new Intent(this, typeof(EngineOptionsActivity)), 104);
 			break;
+		case Resource.Id.engine_connection_settings:
+			if (!CanOpenDrawerItem(itemId))
+			{
+				return false;
+			}
+			OpenSettingsSection(SettingActivity.SectionEngineConnection);
+			break;
 		case Resource.Id.engine_install:
+			if (!CanOpenDrawerItem(itemId))
+			{
+				return false;
+			}
 			StartActivityForResult(new Intent(this, typeof(EngineInstallActivity)), 107);
 			break;
 		case Resource.Id.engine_folder:
+			if (!CanOpenDrawerItem(itemId))
+			{
+				return false;
+			}
 			ShowSelectEngineFolderDialog();
 			break;
 		case Resource.Id.cmd_export_board_image:
@@ -1376,9 +1484,71 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		return flag;
 	}
 
-	private void MainMenuListView_ItemClick(object sender, AdapterView.ItemClickEventArgs e)
+	private void OpenSettingsHome()
 	{
-		MenuItemSelected((int)e.Id);
+		Settings.Save();
+		StartActivityForResult(new Intent(this, typeof(SettingsHomeActivity)), 102);
+		drawerLayout.CloseDrawers();
+	}
+
+	private void OpenSettingsSection(string section)
+	{
+		Settings.Save();
+		var intent = new Intent(this, typeof(SettingActivity));
+		intent.PutExtra(SettingActivity.ExtraSection, section);
+		StartActivityForResult(intent, 102);
+		drawerLayout.CloseDrawers();
+	}
+
+	private void DrawerChildClick(object sender, ExpandableListView.ChildClickEventArgs e)
+	{
+		var item = drawerAdapter_.GetItemModel(e.GroupPosition, e.ChildPosition);
+		if (item != null && CanOpenDrawerItem(item.Id))
+		{
+			MenuItemSelected(item.Id);
+		}
+	}
+
+	private void DrawerGroupClick(object sender, ExpandableListView.GroupClickEventArgs e)
+	{
+		var section = drawerAdapter_.GetSectionModel(e.GroupPosition);
+		if (e.GroupPosition == 0)
+		{
+			drawerListView_.ExpandGroup(0);
+			e.Handled = true;
+			return;
+		}
+		if (section.Items.Count == 1)
+		{
+			// 子項目1つだけのセクションは直接実行
+			if (CanOpenDrawerItem(section.Items[0].Id))
+			{
+				MenuItemSelected(section.Items[0].Id);
+			}
+			e.Handled = true;
+		}
+		else if (section.Items.Count == 0)
+		{
+			e.Handled = true;
+		}
+		else
+		{
+			e.Handled = false; // 通常の展開/折りたたみ
+		}
+	}
+
+	private class SingleExpandListener : Java.Lang.Object, ExpandableListView.IOnGroupExpandListener
+	{
+		private readonly ExpandableListView list_;
+		private int lastExpanded_ = 0;
+		public SingleExpandListener(ExpandableListView list) { list_ = list; }
+		public void OnGroupExpand(int groupPosition)
+		{
+			if (groupPosition == 0) return; // クイック操作は常時展開
+			if (lastExpanded_ != groupPosition && lastExpanded_ != 0)
+				list_.CollapseGroup(lastExpanded_);
+			lastExpanded_ = groupPosition;
+		}
 	}
 
 	private void NotationListView_ItemClick(object sender, AdapterView.ItemClickEventArgs e)
@@ -1941,86 +2111,6 @@ public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermis
 		dialog.Show(FragmentManager, "UserNameDialog");
 	}
 
-	private void PopupBookMenu()
-	{
-		PopupMenu popupMenu = new PopupMenu(this, bottomName);
-		popupMenu.Inflate(Resource.Menu.book_menu);
-		MenuGrayout(popupMenu.Menu);
-		popupMenu.MenuItemClick += delegate(object sender, PopupMenu.MenuItemClickEventArgs e)
-		{
-			MenuItemSelected(e.Item.ItemId);
-		};
-		popupMenu.DismissEvent += delegate
-		{
-			drawerLayout.CloseDrawers();
-		};
-		popupMenu.Show();
-	}
-
-	private void PopupFileMenu()
-	{
-		PopupMenu popupMenu = new PopupMenu(this, bottomName);
-		popupMenu.Inflate(Resource.Menu.file_menu);
-		MenuGrayout(popupMenu.Menu);
-		popupMenu.MenuItemClick += delegate(object sender, PopupMenu.MenuItemClickEventArgs e)
-		{
-			MenuItemSelected(e.Item.ItemId);
-		};
-		popupMenu.DismissEvent += delegate
-		{
-			drawerLayout.CloseDrawers();
-		};
-		popupMenu.Show();
-	}
-
-	private void PopupEditMenu()
-	{
-		PopupMenu popupMenu = new PopupMenu(this, bottomName);
-		popupMenu.Inflate(Resource.Menu.edit_menu);
-		MenuGrayout(popupMenu.Menu);
-		popupMenu.MenuItemClick += delegate(object sender, PopupMenu.MenuItemClickEventArgs e)
-		{
-			MenuItemSelected(e.Item.ItemId);
-		};
-		popupMenu.DismissEvent += delegate
-		{
-			drawerLayout.CloseDrawers();
-		};
-		popupMenu.Show();
-	}
-
-	private void PopupDispMenu()
-	{
-		PopupMenu popupMenu = new PopupMenu(this, bottomName);
-		popupMenu.Inflate(Resource.Menu.disp_menu);
-		MenuGrayout(popupMenu.Menu);
-		popupMenu.MenuItemClick += delegate(object sender, PopupMenu.MenuItemClickEventArgs e)
-		{
-			MenuItemSelected(e.Item.ItemId);
-		};
-		popupMenu.DismissEvent += delegate
-		{
-			drawerLayout.CloseDrawers();
-		};
-		popupMenu.Show();
-	}
-
-	private void PopupEngineMenu()
-	{
-		View anchor = ((Resources.Configuration.Orientation == Orientation.Landscape) ? ((View)bottomName) : ((View)analyzButton));
-		PopupMenu popupMenu = new PopupMenu(this, anchor);
-		popupMenu.Inflate(Resource.Menu.engine_menu);
-		presenter.AnalyzeStop();
-		popupMenu.MenuItemClick += delegate(object sender, PopupMenu.MenuItemClickEventArgs e)
-		{
-			MenuItemSelected(e.Item.ItemId);
-		};
-		popupMenu.DismissEvent += delegate
-		{
-			drawerLayout.CloseDrawers();
-		};
-		popupMenu.Show();
-	}
 
 	private const int VASTAI_ACTIVITY_CODE = 120;
 
