@@ -96,6 +96,10 @@
     <string name="Menu_NotaitonCopy_Text">棋譜コピー</string>
     <string name="Menu_NotaitonPaste_Text">棋譜貼り付け</string>
     <string name="Menu_OpenKifuFolder_Text">棋譜保存フォルダを開く</string>
+    <string name="Menu_ExportBoardImage_Text">盤面画像を保存</string>
+    <string name="Menu_AnalysisSettings_Text">解析設定</string>
+    <string name="Menu_DisplaySettings_Text">表示設定</string>
+    <string name="Menu_RemoteConnectionSettings_Text">リモート接続設定</string>
     <string name="Menu_Book_Text">定跡</string>
     <string name="Menu_BookLoad_Text">定跡ファイルを開く</string>
     <string name="Menu_BookBrowse_Text">定跡閲覧モード</string>

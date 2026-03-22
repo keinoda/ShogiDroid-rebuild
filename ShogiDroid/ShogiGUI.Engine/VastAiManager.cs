@@ -525,6 +525,12 @@ public class VastAiInstance
 	[JsonPropertyName("ports")]
 	public Dictionary<string, List<VastAiPortMapping>> Ports { get; set; }
 
+	[JsonPropertyName("ssh_host")]
+	public string SshHost { get; set; }
+
+	[JsonPropertyName("ssh_port")]
+	public int SshPort { get; set; }
+
 	[JsonPropertyName("gpu_name")]
 	public string GpuName { get; set; }
 
@@ -572,6 +578,16 @@ public class VastAiInstance
 			if (IsLoading) return "起動中";
 			return ActualStatus ?? "不明";
 		}
+	}
+
+	/// <summary>
+	/// SSH接続用のホストとポートを取得
+	/// </summary>
+	public (string Host, int Port) GetSshEndpoint()
+	{
+		string host = !string.IsNullOrEmpty(SshHost) ? SshHost : PublicIpAddr;
+		int port = SshPort > 0 ? SshPort : GetMappedPort(22);
+		return (host, port);
 	}
 
 	public int GetMappedPort(int containerPort)

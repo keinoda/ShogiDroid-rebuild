@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PreferenceScreen
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <PreferenceCategory android:title="@string/SettingsRemoteEngine_Text">
+        <EditTextPreference android:singleLine="true" android:title="@string/SettingsRemoteHost_Text" android:key="Engine.RemoteHost" android:defaultValue="" />
+        <EditTextPreference android:singleLine="true" android:title="@string/SettingsRemotePort_Text" android:key="Engine.RemotePort" android:defaultValue="28597" android:inputType="number" />
+    </PreferenceCategory>
+</PreferenceScreen>
