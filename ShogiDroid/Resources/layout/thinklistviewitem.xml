@@ -1,15 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="wrap_content"
-  xmlns:android="http://schemas.android.com/apk/res/android"
-  xmlns:app="http://schemas.android.com/apk/res-auto">
-    <Space android:layout_width="fill_parent" android:layout_height="3.0dip" />
-    <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
-        <TextView android:ellipsize="end" android:id="@id/rank" android:layout_width="15.0dip" android:layout_height="wrap_content" android:singleLine="true" />
-        <Space android:layout_width="2.0dip" android:layout_height="0.0dip" />
-        <TextView android:id="@id/value" android:layout_width="60.0dip" android:layout_height="wrap_content" android:singleLine="true" android:textStyle="bold" android:textSize="15.0sp" android:gravity="center" android:layout_marginRight="4.0dip" />
-        <TextView android:id="@id/first_move" android:layout_width="110.0dip" android:layout_height="wrap_content" android:singleLine="true" android:textStyle="bold" android:background="@drawable/first_move_border" android:gravity="center" android:paddingLeft="4.0dip" android:paddingRight="4.0dip" android:paddingTop="2.0dip" android:paddingBottom="2.0dip" app:autoSizeTextType="uniform" app:autoSizeMinTextSize="9sp" app:autoSizeMaxTextSize="13sp" />
-        <Space android:layout_width="6.0dip" android:layout_height="0.0dip" />
-        <TextView android:ellipsize="end" android:id="@id/rest_moves" android:layout_width="0.0dip" android:layout_height="wrap_content" android:maxLines="1" android:layout_weight="1.0" android:textSize="11.0sp" android:textColor="@color/secondary_text" />
+<LinearLayout
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/surface_clickable_bg"
+    android:minHeight="56dp"
+    android:orientation="vertical"
+    android:paddingLeft="12dp"
+    android:paddingTop="10dp"
+    android:paddingRight="12dp"
+    android:paddingBottom="10dp"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:orientation="horizontal">
+        <TextView android:ellipsize="end" android:id="@id/rank" android:layout_width="18dp" android:layout_height="wrap_content" android:singleLine="true" />
+        <TextView android:id="@id/value" android:layout_width="64dp" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:gravity="center" android:singleLine="true" android:textSize="15sp" android:textStyle="bold" />
+        <TextView android:id="@id/first_move" android:layout_width="112dp" android:layout_height="wrap_content" android:layout_marginStart="6dp" android:background="@drawable/first_move_border" android:gravity="center" android:paddingLeft="6dp" android:paddingTop="4dp" android:paddingRight="6dp" android:paddingBottom="4dp" android:singleLine="true" android:textStyle="bold" app:autoSizeMaxTextSize="13sp" app:autoSizeMinTextSize="9sp" app:autoSizeTextType="uniform" />
+        <TextView android:ellipsize="end" android:id="@id/rest_moves" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="8dp" android:layout_weight="1" android:maxLines="1" android:textColor="@color/secondary_text" android:textSize="11sp" />
     </LinearLayout>
-    <Space android:layout_width="fill_parent" android:layout_height="3.0dip" />
 </LinearLayout>

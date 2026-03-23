@@ -116,17 +116,14 @@ public class DrawerSectionAdapter : BaseExpandableListAdapter
 		if (tv == null)
 		{
 			tv = new TextView(activity_);
-			tv.SetPadding(Dp(16), Dp(12), Dp(16), Dp(12));
-			tv.SetTypeface(null, TypefaceStyle.Bold);
-			tv.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
+			tv.SetPadding(Dp(8), Dp(14), Dp(8), Dp(8));
+			tv.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
 		}
 
 		tv.Text = section.Title;
-		tv.SetTextColor(ColorUtils.Get(activity_, Resource.Color.title_background));
-
-		// クイック操作セクションは背景を少し変える
-		if (section.IsQuickAction)
-			tv.SetBackgroundColor(Color.Transparent);
+		tv.SetTypeface(null, section.IsQuickAction ? TypefaceStyle.Bold : TypefaceStyle.Normal);
+		tv.SetTextColor(ColorUtils.Get(activity_, section.IsQuickAction ? Resource.Color.title_background : Resource.Color.secondary_text));
+		tv.SetBackgroundColor(Color.Transparent);
 
 		return tv;
 	}
@@ -139,23 +136,24 @@ public class DrawerSectionAdapter : BaseExpandableListAdapter
 		if (tv == null)
 		{
 			tv = new TextView(activity_);
-			tv.SetPadding(Dp(32), Dp(10), Dp(16), Dp(10));
-			tv.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
+			tv.SetPadding(Dp(18), Dp(14), Dp(18), Dp(14));
+			tv.SetTextSize(Android.Util.ComplexUnitType.Sp, 15);
+			tv.SetMinHeight(Dp(48));
 		}
 
 		tv.Text = item.Label;
+		tv.SetBackgroundResource(Resource.Drawable.drawer_item_bg);
 
 		bool enabled = IsItemEnabled(item);
 		tv.Enabled = enabled;
+		tv.Alpha = enabled ? 1f : 0.45f;
 		if (enabled)
 		{
-			var typedValue = new Android.Util.TypedValue();
-			activity_.Theme.ResolveAttribute(Android.Resource.Attribute.TextColorPrimary, typedValue, true);
-			tv.SetTextColor(activity_.Resources.GetColorStateList(typedValue.ResourceId, activity_.Theme));
+			tv.SetTextColor(ColorUtils.Get(activity_, Resource.Color.primary_text));
 		}
 		else
 		{
-			tv.SetTextColor(Color.Gray);
+			tv.SetTextColor(ColorUtils.Get(activity_, Resource.Color.secondary_text));
 		}
 
 		FontUtil.ApplyFont(tv);

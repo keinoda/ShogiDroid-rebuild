@@ -1,12 +1,24 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="AppTheme" parent="Theme.AppCompat.DayNight">
+    <style name="AppTheme" parent="Theme.Material3.DayNight">
         <item name="android:fontFamily">@font/hirakaku</item>
         <item name="fontFamily">@font/hirakaku</item>
-        <item name="android:windowBackground">@color/theme_background</item>
+        <item name="android:windowBackground">@drawable/window_background</item>
+        <item name="android:colorBackground">@color/theme_background</item>
         <item name="colorPrimary">@color/title_background</item>
-        <item name="colorPrimaryDark">@color/theme_background</item>
-        <item name="android:statusBarColor">@color/theme_background</item>
+        <item name="colorOnPrimary">@color/title_text</item>
+        <item name="colorPrimaryContainer">@color/surface_container_high</item>
+        <item name="colorOnPrimaryContainer">@color/primary_text</item>
+        <item name="colorSecondary">@color/title_background</item>
+        <item name="colorOnSecondary">@color/title_text</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/primary_text</item>
+        <item name="colorSurfaceContainer">@color/surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/surface_container_high</item>
+        <item name="colorSurfaceContainerLow">@color/surface_container_low</item>
+        <item name="colorOutline">@color/outline_variant</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/theme_background</item>
         <item name="android:windowLightStatusBar">false</item>
     </style>
 </resources>

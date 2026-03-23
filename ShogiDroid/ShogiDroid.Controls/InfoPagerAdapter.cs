@@ -165,13 +165,18 @@ public class InfoPagerAdapter : PagerAdapter
 		case 0:
 		{
 			ScrollView scrollView = new ScrollView(activity);
+			scrollView.FillViewport = true;
 			commentTextView = new TextView(activity);
 			commentTextView.Text = comment;
 			commentTextView.Hint = activity.GetString(Resource.String.Comment_Text);
+			commentTextView.SetTextSize(Android.Util.ComplexUnitType.Sp, 15f);
+			commentTextView.SetPadding(Dp(18), Dp(18), Dp(18), Dp(24));
+			commentTextView.SetLineSpacing(0f, 1.15f);
 			// テーマの標準テキスト色を使用（ダークモード対応）
-		var typedValue = new Android.Util.TypedValue();
-		activity.Theme.ResolveAttribute(Android.Resource.Attribute.TextColorPrimary, typedValue, true);
-		commentTextView.SetTextColor(activity.Resources.GetColorStateList(typedValue.ResourceId, activity.Theme));
+			var typedValue = new Android.Util.TypedValue();
+			activity.Theme.ResolveAttribute(Android.Resource.Attribute.TextColorPrimary, typedValue, true);
+			commentTextView.SetTextColor(activity.Resources.GetColorStateList(typedValue.ResourceId, activity.Theme));
+			commentTextView.SetHintTextColor(ColorUtils.Get(activity, Resource.Color.secondary_text));
 			commentTextView.LongClick += CommentTextView_LongClick;
 			scrollView.AddView(commentTextView);
 			container.AddView(scrollView);
@@ -331,5 +336,10 @@ public class InfoPagerAdapter : PagerAdapter
 		{
 			graphView.UpdateNotation(op);
 		}
+	}
+
+	private int Dp(int dp)
+	{
+		return (int)(dp * activity.Resources.DisplayMetrics.Density + 0.5f);
 	}
 }

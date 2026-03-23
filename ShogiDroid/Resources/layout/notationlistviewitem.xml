@@ -1,12 +1,59 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="fill_parent"
-  xmlns:android="http://schemas.android.com/apk/res/android">
-    <TextView android:textSize="14.0sp" android:gravity="center_vertical" android:id="@id/state_info_text" android:layout_width="0.0dip" android:layout_height="24.0dip" android:layout_weight="0.5" />
-    <TextView android:textSize="14.0sp" android:gravity="center_vertical" android:id="@id/state_comment_text" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="0.5" />
-    <TextView android:textSize="14.0sp" android:ellipsize="end" android:gravity="center_vertical" android:id="@id/move_text" android:layout_width="0.0dip" android:layout_height="fill_parent" android:singleLine="true" android:layout_weight="10.5" />
-    <TextView android:textSize="14.0sp" android:gravity="center_vertical" android:id="@id/branch_text" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="1.0" />
-    <LinearLayout android:orientation="vertical" android:layout_width="0.0dip" android:layout_height="wrap_content" android:layout_weight="3.0">
-        <TextView android:id="@id/time_text" android:layout_width="fill_parent" android:layout_height="wrap_content" android:textSize="10.0sp" />
-        <TextView android:id="@id/eval_text" android:layout_width="fill_parent" android:layout_height="wrap_content" android:textSize="10.0sp" />
+<LinearLayout
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="52dp"
+    android:orientation="horizontal"
+    android:paddingLeft="12dp"
+    android:paddingTop="8dp"
+    android:paddingRight="12dp"
+    android:paddingBottom="8dp"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView
+        android:id="@id/state_info_text"
+        android:layout_width="18dp"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:textSize="12sp" />
+    <TextView
+        android:id="@id/state_comment_text"
+        android:layout_width="18dp"
+        android:layout_height="wrap_content"
+        android:gravity="center_vertical"
+        android:textSize="12sp" />
+    <TextView
+        android:id="@id/move_text"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="6dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:gravity="center_vertical"
+        android:singleLine="true"
+        android:textSize="14sp" />
+    <TextView
+        android:id="@id/branch_text"
+        android:layout_width="20dp"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:textSize="12sp" />
+    <LinearLayout
+        android:layout_width="72dp"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="8dp"
+        android:gravity="end"
+        android:orientation="vertical">
+        <TextView
+            android:id="@id/time_text"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:textSize="10sp" />
+        <TextView
+            android:id="@id/eval_text"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:textSize="10sp" />
     </LinearLayout>
 </LinearLayout>
