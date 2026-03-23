@@ -1,12 +1,64 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <style name="AppTheme" parent="Theme.AppCompat.DayNight">
+    <style name="AppTheme" parent="Theme.Material3.DayNight">
         <item name="android:fontFamily">@font/hirakaku</item>
         <item name="fontFamily">@font/hirakaku</item>
-        <item name="android:windowBackground">@color/theme_background</item>
+        <item name="android:windowBackground">@drawable/window_background</item>
+        <item name="android:colorBackground">@color/theme_background</item>
         <item name="colorPrimary">@color/title_background</item>
-        <item name="colorPrimaryDark">@color/theme_background</item>
-        <item name="android:statusBarColor">@color/theme_background</item>
+        <item name="colorOnPrimary">@color/title_text</item>
+        <item name="colorPrimaryContainer">@color/surface_container_high</item>
+        <item name="colorOnPrimaryContainer">@color/primary_text</item>
+        <item name="colorSecondary">@color/title_background</item>
+        <item name="colorOnSecondary">@color/title_text</item>
+        <item name="colorSurface">@color/surface</item>
+        <item name="colorOnSurface">@color/primary_text</item>
+        <item name="colorSurfaceContainer">@color/surface_container</item>
+        <item name="colorSurfaceContainerHigh">@color/surface_container_high</item>
+        <item name="colorSurfaceContainerLow">@color/surface_container_low</item>
+        <item name="colorOutline">@color/outline_variant</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+        <item name="android:navigationBarColor">@color/theme_background</item>
         <item name="android:windowLightStatusBar">true</item>
+    </style>
+
+    <style name="AppTheme.SurfaceTitle">
+        <item name="android:textColor">@color/primary_text</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="AppTheme.SurfaceBody">
+        <item name="android:textColor">@color/secondary_text</item>
+    </style>
+
+    <style name="AppTheme.FilledButton">
+        <item name="android:background">@drawable/filled_button_bg</item>
+        <item name="android:textColor">@color/filled_button_text</item>
+        <item name="android:paddingLeft">18dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingRight">18dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="AppTheme.OutlinedButton">
+        <item name="android:background">@drawable/outlined_button_bg</item>
+        <item name="android:textColor">@color/outlined_button_text</item>
+        <item name="android:paddingLeft">18dp</item>
+        <item name="android:paddingTop">12dp</item>
+        <item name="android:paddingRight">18dp</item>
+        <item name="android:paddingBottom">12dp</item>
+        <item name="android:minHeight">48dp</item>
+        <item name="android:textStyle">bold</item>
+    </style>
+
+    <style name="AppTheme.PlayerChip">
+        <item name="android:background">@drawable/player_chip_bg</item>
+        <item name="android:textColor">@color/player_chip_text</item>
+        <item name="android:paddingLeft">10dp</item>
+        <item name="android:paddingTop">4dp</item>
+        <item name="android:paddingRight">10dp</item>
+        <item name="android:paddingBottom">4dp</item>
     </style>
 </resources>

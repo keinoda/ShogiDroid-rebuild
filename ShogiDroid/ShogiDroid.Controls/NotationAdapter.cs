@@ -68,7 +68,10 @@ public class NotationAdapter : BaseAdapter
 			textView.Text = string.Format("{0,3} {2}{1}", position, moveNode.ToString(moveStyle), moveNode.Turn.ToChar());
 			textView2.Text = $"{moveNode.Time / 60,2}:{moveNode.Time % 60:D2}";
 		}
+		textView.SetTextColor(ColorUtils.Get(activity, Resource.Color.primary_text));
+		textView2.SetTextColor(ColorUtils.Get(activity, Resource.Color.secondary_text));
 		TextView textView3 = view.FindViewById<TextView>(Resource.Id.state_info_text);
+		textView3.SetTextColor(ColorUtils.Get(activity, Resource.Color.secondary_text));
 		if (moveNode.ThinkInfoCount != 0)
 		{
 			textView3.Text = "i";
@@ -78,6 +81,7 @@ public class NotationAdapter : BaseAdapter
 			textView3.Text = string.Empty;
 		}
 		TextView textView4 = view.FindViewById<TextView>(Resource.Id.state_comment_text);
+		textView4.SetTextColor(ColorUtils.Get(activity, Resource.Color.secondary_text));
 		if (moveNode.CommentCount != 0)
 		{
 			textView4.Text = "*";
@@ -87,6 +91,7 @@ public class NotationAdapter : BaseAdapter
 			textView4.Text = string.Empty;
 		}
 		TextView textView5 = view.FindViewById<TextView>(Resource.Id.branch_text);
+		textView5.SetTextColor(ColorUtils.Get(activity, Resource.Color.secondary_text));
 		if (moveNode.Parent != null && moveNode.Parent.Children.Count > 1)
 		{
 			textView5.Text = "+";
@@ -111,13 +116,13 @@ public class NotationAdapter : BaseAdapter
 		switch (MoveEvalExtention.GetMoveEval(moveNode, moveNode.Parent))
 		{
 		case MoveEval.Bad:
-			textView6.SetTextColor(Color.Orange);
+			textView6.SetTextColor(ColorUtils.Get(activity, Resource.Color.warning_tint));
 			break;
 		case MoveEval.Blunder:
-			textView6.SetTextColor(Color.Red);
+			textView6.SetTextColor(ColorUtils.Get(activity, Resource.Color.negative_tint));
 			break;
 		case MoveEval.Best:
-			textView6.SetTextColor(Color.Green);
+			textView6.SetTextColor(ColorUtils.Get(activity, Resource.Color.positive_tint));
 			break;
 		default:
 			textView6.SetTextColor(ColorUtils.Get(activity, Resource.Color.secondary_text));
