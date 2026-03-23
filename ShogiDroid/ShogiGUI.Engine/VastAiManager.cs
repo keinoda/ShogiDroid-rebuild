@@ -606,7 +606,7 @@ public class VastAiInstance
 
 	public string SpecsSummary =>
 		$"GPU: {GpuName} x{NumGpus} (VRAM {GpuRamGb:F0}GB)\n" +
-		$"CPU: {CpuCoresEffective:F0}cores (割当)\n" +
+		$"CPU: {CpuName} {CpuCoresEffective:F0}cores (割当)\n" +
 		$"RAM: {CpuRamGb:F0}GB\n" +
 		$"コスト: ${DphTotal:F3}/h";
 }

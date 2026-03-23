@@ -8,7 +8,7 @@ using ShogiGUI;
 namespace ShogiDroid;
 
 [Activity(Label = "設定", Theme = "@style/AppTheme")]
-public class SettingsHomeActivity : Activity
+public class SettingsHomeActivity : ThemedActivity
 {
 	private static readonly (string Section, string Label)[] Sections = {
 		(SettingActivity.SectionGame, "対局設定"),

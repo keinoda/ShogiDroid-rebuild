@@ -12,7 +12,7 @@ using ShogiGUI;
 namespace ShogiDroid;
 
 [Activity(Label = "@string/action_settings", Theme = "@style/AppTheme")]
-public class SettingActivity : PreferenceActivity
+public class SettingActivity : ThemedPreferenceActivity
 {
 	// セクション定数
 	public const string ExtraSection = "settings_section";

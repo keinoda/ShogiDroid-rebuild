@@ -16,7 +16,7 @@ using ShogiGUI.Presenters;
 namespace ShogiDroid;
 
 [Activity(Label = "EngineInstallActivity", ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
-public class EngineInstallActivity : Activity, IEngineInstallView
+public class EngineInstallActivity : ThemedActivity, IEngineInstallView
 {
 	private const int ZIP_SELECT_REQUEST_CODE = 100;
 
