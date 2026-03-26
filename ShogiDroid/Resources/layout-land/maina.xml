@@ -11,15 +11,15 @@
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
         android:orientation="horizontal"
-        android:padding="12dp">
+        android:padding="8dp">
         <FrameLayout
             android:layout_width="0dp"
             android:layout_height="fill_parent"
-            android:layout_marginEnd="10dp"
+            android:layout_marginEnd="6dp"
             android:layout_weight="1.05"
             android:background="@drawable/board_frame_bg"
             android:elevation="6dp"
-            android:padding="8dp">
+            android:padding="6dp">
             <RelativeLayout
                 android:layout_width="fill_parent"
                 android:layout_height="fill_parent">
@@ -77,35 +77,35 @@
                 android:background="@drawable/surface_panel_bg_compact"
                 android:elevation="4dp"
                 android:gravity="center_vertical"
-                android:minHeight="56dp"
+                android:minHeight="50dp"
                 android:orientation="horizontal"
-                android:padding="6dp">
+                android:padding="4dp">
                 <ImageButton
                     android:id="@id/menu_button"
                     android:layout_width="44dp"
                     android:layout_height="44dp"
                     android:background="@drawable/icon_button_bg"
                     android:contentDescription="メニュー"
-                    android:padding="10dp"
+                    android:padding="8dp"
                     android:src="@drawable/ic_menu_hamburger" />
                 <ImageButton
                     android:id="@id/board_edit_button"
                     android:layout_width="44dp"
                     android:layout_height="44dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="6dp"
                     android:background="@drawable/icon_button_bg"
                     android:contentDescription="@string/Menu_EditBoard_Text"
-                    android:padding="10dp"
+                    android:padding="8dp"
                     android:src="@android:drawable/ic_menu_edit"
                     android:tint="@color/icon_tint" />
                 <ImageButton
                     android:id="@id/camera_read"
                     android:layout_width="44dp"
                     android:layout_height="44dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="6dp"
                     android:background="@drawable/icon_button_bg"
                     android:contentDescription="@string/Menu_CameraRead_Text"
-                    android:padding="10dp"
+                    android:padding="8dp"
                     android:src="@drawable/ic_camera" />
                 <View
                     android:layout_width="0dp"
@@ -115,7 +115,7 @@
                     android:id="@id/book_browse_close"
                     style="@style/AppTheme.OutlinedButton"
                     android:layout_width="wrap_content"
-                    android:layout_height="40dp"
+                    android:layout_height="36dp"
                     android:text="@string/BookBrowseClose_Text"
                     android:textSize="12sp"
                     android:visibility="gone" />
@@ -124,20 +124,20 @@
             <LinearLayout
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="6dp"
                 android:background="@drawable/surface_panel_bg_compact"
                 android:elevation="4dp"
                 android:gravity="center_vertical"
-                android:minHeight="56dp"
+                android:minHeight="50dp"
                 android:orientation="horizontal"
-                android:padding="6dp">
+                android:padding="4dp">
                 <ImageButton
                     android:id="@id/reverse_button"
                     android:layout_width="44dp"
                     android:layout_height="44dp"
                     android:background="@drawable/icon_button_bg"
                     android:contentDescription="@string/MenuReverse_Text"
-                    android:padding="10dp"
+                    android:padding="8dp"
                     android:src="@android:drawable/ic_menu_rotate"
                     android:tint="@color/icon_tint" />
                 <View
@@ -147,16 +147,16 @@
                 <TextView
                     android:id="@id/notaton_text"
                     android:layout_width="wrap_content"
-                    android:layout_height="36dp"
+                    android:layout_height="32dp"
                     android:background="@drawable/notation_box_bg"
                     android:ellipsize="end"
                     android:gravity="center"
-                    android:paddingLeft="20dp"
-                    android:paddingRight="20dp"
+                    android:paddingLeft="14dp"
+                    android:paddingRight="14dp"
                     android:singleLine="true"
                     android:text="棋譜"
                     android:textColor="@color/notation_box_text"
-                    android:textSize="14sp"
+                    android:textSize="13sp"
                     android:textStyle="bold" />
                 <TextView
                     android:id="@id/state_text"
@@ -173,17 +173,17 @@
                     android:layout_height="44dp"
                     android:background="@drawable/icon_button_bg"
                     android:contentDescription="@string/MenuPass_Text"
-                    android:padding="10dp"
+                    android:padding="8dp"
                     android:src="@android:drawable/ic_menu_send"
                     android:tint="@color/icon_tint" />
                 <ImageButton
                     android:id="@id/input_cancel_button"
                     android:layout_width="44dp"
                     android:layout_height="44dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_marginStart="6dp"
                     android:background="@drawable/icon_button_bg"
                     android:contentDescription="@string/MenuInputCancel_Text"
-                    android:padding="10dp"
+                    android:padding="8dp"
                     android:src="@android:drawable/ic_menu_revert"
                     android:tint="@color/icon_tint" />
             </LinearLayout>
@@ -191,7 +191,7 @@
             <LinearLayout
                 android:layout_width="fill_parent"
                 android:layout_height="0dp"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="6dp"
                 android:layout_weight="1"
                 android:orientation="vertical">
                 <LinearLayout
@@ -201,7 +201,7 @@
                     android:background="@drawable/surface_panel_bg"
                     android:elevation="4dp"
                     android:orientation="vertical"
-                    android:padding="8dp">
+                    android:padding="6dp">
                     <androidx.viewpager.widget.ViewPager
                         android:id="@id/viewpager"
                         android:layout_width="fill_parent"
@@ -210,12 +210,12 @@
                 </LinearLayout>
                 <LinearLayout
                     android:layout_width="fill_parent"
-                    android:layout_height="116dp"
-                    android:layout_marginTop="10dp"
+                    android:layout_height="102dp"
+                    android:layout_marginTop="6dp"
                     android:background="@drawable/surface_panel_bg_compact"
                     android:elevation="4dp"
                     android:orientation="vertical"
-                    android:padding="8dp">
+                    android:padding="6dp">
                     <shogidroid.controls.EvalGraph
                         android:id="@id/eval_graph"
                         android:layout_width="fill_parent"
@@ -227,50 +227,50 @@
             <LinearLayout
                 android:layout_width="fill_parent"
                 android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
+                android:layout_marginTop="6dp"
                 android:background="@drawable/surface_panel_bg_compact"
                 android:elevation="4dp"
                 android:gravity="center_vertical"
                 android:orientation="horizontal"
-                android:padding="6dp">
+                android:padding="4dp">
                 <ImageButton
                     android:id="@id/first_button"
-                    android:layout_width="46dp"
-                    android:layout_height="46dp"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
                     android:background="@drawable/icon_button_bg"
                     android:contentDescription="@string/MenuFirst_Text"
-                    android:padding="10dp"
+                    android:padding="8dp"
                     android:src="@android:drawable/ic_media_rew"
                     android:tint="@color/icon_tint" />
                 <ImageButton
                     android:id="@id/prev_button"
-                    android:layout_width="46dp"
-                    android:layout_height="46dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:layout_marginStart="6dp"
                     android:background="@drawable/icon_button_bg"
                     android:contentDescription="前の手"
-                    android:padding="10dp"
+                    android:padding="8dp"
                     android:scaleX="-1.0"
                     android:src="@android:drawable/ic_media_play"
                     android:tint="@color/icon_tint" />
                 <ImageButton
                     android:id="@id/next_button"
-                    android:layout_width="46dp"
-                    android:layout_height="46dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:layout_marginStart="6dp"
                     android:background="@drawable/icon_button_bg"
                     android:contentDescription="次の手"
-                    android:padding="10dp"
+                    android:padding="8dp"
                     android:src="@android:drawable/ic_media_play"
                     android:tint="@color/icon_tint" />
                 <ImageButton
                     android:id="@id/last_button"
-                    android:layout_width="46dp"
-                    android:layout_height="46dp"
-                    android:layout_marginStart="8dp"
+                    android:layout_width="42dp"
+                    android:layout_height="42dp"
+                    android:layout_marginStart="6dp"
                     android:background="@drawable/icon_button_bg"
                     android:contentDescription="@string/MenuLast_Text"
-                    android:padding="10dp"
+                    android:padding="8dp"
                     android:src="@android:drawable/ic_media_ff"
                     android:tint="@color/icon_tint" />
                 <View
@@ -283,16 +283,16 @@
                     android:layout_height="wrap_content"
                     android:background="@drawable/analyze_btn_bg_idle"
                     android:gravity="center"
-                    android:minHeight="46dp"
+                    android:minHeight="42dp"
                     android:orientation="horizontal"
-                    android:paddingLeft="14dp"
-                    android:paddingTop="10dp"
-                    android:paddingRight="14dp"
-                    android:paddingBottom="10dp">
+                    android:paddingLeft="10dp"
+                    android:paddingTop="8dp"
+                    android:paddingRight="10dp"
+                    android:paddingBottom="8dp">
                     <ImageView
-                        android:layout_width="22dp"
-                        android:layout_height="22dp"
-                        android:layout_marginRight="6dp"
+                        android:layout_width="20dp"
+                        android:layout_height="20dp"
+                        android:layout_marginRight="4dp"
                         android:src="@drawable/ic_bar_chart" />
                     <TextView
                         android:id="@id/analyze_text"
