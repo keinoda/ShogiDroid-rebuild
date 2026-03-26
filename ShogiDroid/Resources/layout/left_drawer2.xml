@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout
     android:id="@id/left_drawer"
-    android:layout_width="300dp"
+    android:layout_width="288dp"
     android:layout_height="fill_parent"
     android:layout_gravity="left"
-    android:layout_margin="12dp"
+    android:layout_margin="8dp"
     android:background="@drawable/drawer_panel_bg"
     android:elevation="8dp"
     android:orientation="vertical"
-    android:padding="12dp"
+    android:padding="8dp"
     android:tag="drawer"
     xmlns:android="http://schemas.android.com/apk/res/android">
     <LinearLayout
@@ -16,7 +16,7 @@
         android:layout_height="wrap_content"
         android:background="@drawable/drawer_header_bg"
         android:orientation="vertical"
-        android:padding="18dp">
+        android:padding="12dp">
         <TextView
             android:id="@id/app_name"
             android:layout_width="fill_parent"
@@ -28,7 +28,7 @@
         <TextView
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp"
+            android:layout_marginTop="2dp"
             android:text="対局・解析・棋譜管理"
             android:textColor="@color/secondary_text"
             android:textSize="12sp" />
@@ -37,11 +37,11 @@
         android:id="@id/main_manu_lsist_view"
         android:layout_width="fill_parent"
         android:layout_height="fill_parent"
-        android:layout_marginTop="10dp"
+        android:layout_marginTop="6dp"
         android:background="@android:color/transparent"
         android:clipToPadding="false"
         android:divider="@null"
         android:groupIndicator="@null"
-        android:paddingBottom="8dp"
-        android:paddingTop="4dp" />
+        android:paddingBottom="6dp"
+        android:paddingTop="2dp" />
 </LinearLayout>
