@@ -16,7 +16,7 @@ using ShogiGUI.Engine;
 namespace ShogiDroid;
 
 [Activity(Label = "リモートエンジン (vast.ai)", ConfigurationChanges = (Android.Content.PM.ConfigChanges.Orientation | Android.Content.PM.ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
-public class VastAiActivity : Activity
+public class VastAiActivity : ThemedActivity
 {
 	private const int SSH_KEY_PICK_CODE = 130;
 	public const string ExtraHost = "vast_ai_host";
@@ -462,7 +462,7 @@ public class VastAiActivity : Activity
 		// Specs
 		var specsText = new TextView(this)
 		{
-			Text = $"{inst.GpuName} x{inst.NumGpus} | CPU {inst.CpuCoresEffective:F0}cores (割当) | RAM {inst.CpuRamGb:F0}GB | ${inst.DphTotal:F3}/h"
+			Text = $"{inst.GpuName} x{inst.NumGpus} | {inst.CpuName} {inst.CpuCoresEffective:F0}cores (割当) | RAM {inst.CpuRamGb:F0}GB | ${inst.DphTotal:F3}/h"
 		};
 		specsText.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
 		specsText.SetTextColor(ColorUtils.Get(this, Resource.Color.vast_card_sub_text));
@@ -878,7 +878,7 @@ public class VastAiActivity : Activity
 		string cudaStr = offer.CudaMaxGood > 0 ? $" | CUDA {offer.CudaMaxGood:F1}" : "";
 		var cpuText = new TextView(this)
 		{
-			Text = $"CPU {offer.CpuCoresEffective:F0}cores | RAM {offer.CpuRamGb:F0}GB | 信頼性 {offer.Reliability:F1}%{cudaStr}"
+			Text = $"{offer.CpuName} {offer.CpuCoresEffective:F0}cores | RAM {offer.CpuRamGb:F0}GB | 信頼性 {offer.Reliability:F1}%{cudaStr}"
 		};
 		cpuText.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
 		cpuText.SetTextColor(ColorUtils.Get(this, Resource.Color.vast_card_sub_text));

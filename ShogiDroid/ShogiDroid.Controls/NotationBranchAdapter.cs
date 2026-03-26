@@ -64,9 +64,16 @@ public class NotationBranchAdapter : BaseAdapter
 	{
 		View obj = convertView ?? activity.LayoutInflater.Inflate(Resource.Layout.notationlistviewitem, parent, attachToRoot: false);
 		FontUtil.ApplyFont(obj);
+		obj.FindViewById<TextView>(Resource.Id.state_info_text).Text = string.Empty;
+		obj.FindViewById<TextView>(Resource.Id.state_comment_text).Text = string.Empty;
+		obj.FindViewById<TextView>(Resource.Id.branch_text).Text = string.Empty;
+		obj.FindViewById<TextView>(Resource.Id.time_text).Text = string.Empty;
+		obj.FindViewById<TextView>(Resource.Id.eval_text).Text = string.Empty;
 		TextView textView = obj.FindViewById<TextView>(Resource.Id.move_text);
 		MoveNode moveNode = notation.MoveCurrent.Children[position];
 		textView.Text = $"{moveNode.Turn.ToChar()}{moveNode.ToString(moveStyle)}";
+		textView.SetTextColor(ColorUtils.Get(activity, Resource.Color.primary_text));
+		obj.SetBackgroundColor(ColorUtils.Get(activity, Resource.Color.notation_black_back));
 		return obj;
 	}
 

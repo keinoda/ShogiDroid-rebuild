@@ -1,47 +1,299 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.drawerlayout.widget.DrawerLayout android:id="@id/drawer_layout" android:layout_width="fill_parent" android:layout_height="fill_parent"
-  android:fitsSystemWindows="true"
-  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
-    <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent">
-        <!-- Top bar: reverse + board_edit + camera (left), book_browse_close (right) -->
-        <FrameLayout android:layout_width="fill_parent" android:layout_height="44.0dip">
-            <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="match_parent" android:layout_gravity="start|center_vertical" android:gravity="center_vertical">
-                <ImageButton android:id="@id/reverse_button" android:layout_width="44.0dip" android:layout_height="44.0dip" android:src="@android:drawable/ic_menu_rotate" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="8.0dip" />
-                <ImageButton android:id="@id/board_edit_button" android:layout_width="44.0dip" android:layout_height="44.0dip" android:src="@android:drawable/ic_menu_edit" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="8.0dip" android:contentDescription="局面編集" />
-                <ImageButton android:id="@id/camera_read" android:layout_width="44.0dip" android:layout_height="44.0dip" android:src="@drawable/ic_camera" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="8.0dip" android:contentDescription="@string/Menu_CameraRead_Text" />
+<androidx.drawerlayout.widget.DrawerLayout
+    android:id="@id/drawer_layout"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@drawable/window_background"
+    android:fitsSystemWindows="true"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:orientation="vertical"
+        android:padding="8dp">
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/surface_panel_bg_compact"
+            android:elevation="4dp"
+            android:gravity="center_vertical"
+            android:minHeight="50dp"
+            android:orientation="horizontal"
+            android:padding="4dp">
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <ImageButton
+                    android:id="@id/reverse_button"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/icon_button_bg"
+                    android:contentDescription="@string/MenuReverse_Text"
+                    android:padding="8dp"
+                    android:scaleType="centerInside"
+                    android:src="@android:drawable/ic_menu_rotate"
+                    android:tint="@color/icon_tint" />
+                <ImageButton
+                    android:id="@id/board_edit_button"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/icon_button_bg"
+                    android:contentDescription="@string/Menu_EditBoard_Text"
+                    android:padding="8dp"
+                    android:scaleType="centerInside"
+                    android:src="@android:drawable/ic_menu_edit"
+                    android:tint="@color/icon_tint" />
+                <ImageButton
+                    android:id="@id/camera_read"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/icon_button_bg"
+                    android:contentDescription="@string/Menu_CameraRead_Text"
+                    android:padding="8dp"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/ic_camera" />
             </LinearLayout>
-            <Button android:id="@id/book_browse_close" android:layout_width="wrap_content" android:layout_height="32.0dip" android:text="@string/BookBrowseClose_Text" android:textSize="12.0sp" android:padding="4.0dip" android:layout_gravity="end|center_vertical" android:layout_marginEnd="4.0dip" android:visibility="gone" />
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+            <Button
+                android:id="@id/book_browse_close"
+                style="@style/AppTheme.OutlinedButton"
+                android:layout_width="wrap_content"
+                android:layout_height="36dp"
+                android:text="@string/BookBrowseClose_Text"
+                android:textSize="12sp"
+                android:visibility="gone" />
+        </LinearLayout>
+
+        <FrameLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/board_frame_bg"
+            android:elevation="6dp"
+            android:padding="6dp">
+            <RelativeLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content">
+                <shogidroid.controls.shogiboard.ShogiBoard
+                    android:id="@id/shogiboard"
+                    android:layout_width="fill_parent"
+                    android:layout_height="wrap_content"
+                    android:background="@color/theme_background"
+                    app:DesignMode="true" />
+                <TextView
+                    android:id="@id/top_name"
+                    style="@style/AppTheme.PlayerChip"
+                    android:layout_width="96dp"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:text="Top対局者名ABCDEF"
+                    android:textSize="13sp" />
+                <TextView
+                    android:id="@id/top_time"
+                    style="@style/AppTheme.PlayerChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:singleLine="true"
+                    android:text="時間"
+                    android:textSize="13sp" />
+                <TextView
+                    android:id="@id/bottom_time"
+                    style="@style/AppTheme.PlayerChip"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:singleLine="true"
+                    android:text="時間"
+                    android:textSize="13sp" />
+                <TextView
+                    android:id="@id/bottom_name"
+                    style="@style/AppTheme.PlayerChip"
+                    android:layout_width="96dp"
+                    android:layout_height="wrap_content"
+                    android:ellipsize="end"
+                    android:singleLine="true"
+                    android:text="Bottom対局者名"
+                    android:textSize="13sp" />
+            </RelativeLayout>
         </FrameLayout>
-        <!-- Board area -->
-        <RelativeLayout android:layout_width="fill_parent" android:layout_height="wrap_content">
-            <shogidroid.controls.shogiboard.ShogiBoard android:id="@id/shogiboard" android:background="@color/theme_background" android:layout_width="fill_parent" android:layout_height="wrap_content" android:layout_marginLeft="0.0dip" android:layout_marginRight="0.0dip" app:DesignMode="true" />
-            <TextView android:textSize="13.0sp" android:ellipsize="end" android:id="@id/top_name" android:layout_width="80.0dip" android:layout_height="wrap_content" android:text="Top対局者名ABCDEF" android:singleLine="true" />
-            <TextView android:textSize="13.0sp" android:id="@id/top_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="時間" android:singleLine="true" />
-            <TextView android:textSize="13.0sp" android:id="@id/bottom_time" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="時間" android:singleLine="true" />
-            <TextView android:textSize="13.0sp" android:ellipsize="end" android:id="@id/bottom_name" android:layout_width="80.0dip" android:layout_height="wrap_content" android:text="Bottom対局者名" android:singleLine="true" />
-        </RelativeLayout>
-        <!-- Middle bar: menu (left), notation text (center), pass + input cancel (right) -->
-        <FrameLayout android:layout_width="fill_parent" android:layout_height="44.0dip">
-            <ImageButton android:id="@id/menu_button" android:layout_width="44.0dip" android:layout_height="44.0dip" android:src="@drawable/ic_menu_hamburger" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="8.0dip" android:layout_gravity="start|center_vertical" />
-            <TextView android:textSize="14.0sp" android:ellipsize="end" android:id="@id/notaton_text" android:layout_width="wrap_content" android:layout_height="36.0dip" android:text="棋譜" android:singleLine="true" android:gravity="center" android:textColor="@color/notation_box_text" android:background="@drawable/notation_box_bg" android:paddingLeft="20.0dip" android:paddingRight="20.0dip" android:layout_gravity="center" />
-            <TextView android:id="@id/state_text" android:layout_width="0.0dip" android:layout_height="0.0dip" android:visibility="gone" />
-            <LinearLayout android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="match_parent" android:layout_gravity="end|center_vertical" android:gravity="center_vertical">
-                <ImageButton android:id="@id/pass_button" android:layout_width="44.0dip" android:layout_height="44.0dip" android:src="@android:drawable/ic_menu_send" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="8.0dip" android:contentDescription="パス" />
-                <ImageButton android:id="@id/input_cancel_button" android:layout_width="44.0dip" android:layout_height="44.0dip" android:src="@android:drawable/ic_menu_revert" android:background="?attr/selectableItemBackgroundBorderless" android:scaleType="centerInside" android:padding="8.0dip" />
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/surface_panel_bg_compact"
+            android:elevation="4dp"
+            android:gravity="center_vertical"
+            android:minHeight="50dp"
+            android:orientation="horizontal"
+            android:padding="4dp">
+            <ImageButton
+                android:id="@id/menu_button"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:background="@drawable/icon_button_bg"
+                android:contentDescription="メニュー"
+                android:padding="8dp"
+                android:scaleType="centerInside"
+                android:src="@drawable/ic_menu_hamburger" />
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+            <TextView
+                android:id="@id/notaton_text"
+                android:layout_width="wrap_content"
+                android:layout_height="32dp"
+                android:background="@drawable/notation_box_bg"
+                android:ellipsize="end"
+                android:gravity="center"
+                android:paddingLeft="14dp"
+                android:paddingRight="14dp"
+                android:singleLine="true"
+                android:text="棋譜"
+                android:textColor="@color/notation_box_text"
+                android:textSize="13sp"
+                android:textStyle="bold" />
+            <TextView
+                android:id="@id/state_text"
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:visibility="gone" />
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <ImageButton
+                    android:id="@id/pass_button"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/icon_button_bg"
+                    android:contentDescription="@string/MenuPass_Text"
+                    android:padding="8dp"
+                    android:scaleType="centerInside"
+                    android:src="@android:drawable/ic_menu_send"
+                    android:tint="@color/icon_tint" />
+                <ImageButton
+                    android:id="@id/input_cancel_button"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="6dp"
+                    android:background="@drawable/icon_button_bg"
+                    android:contentDescription="@string/MenuInputCancel_Text"
+                    android:padding="8dp"
+                    android:scaleType="centerInside"
+                    android:src="@android:drawable/ic_menu_revert"
+                    android:tint="@color/icon_tint" />
             </LinearLayout>
-        </FrameLayout>
-        <!-- Analysis results (ThinkInfo / Comment / EvalGraph) -->
-        <androidx.viewpager.widget.ViewPager android:id="@id/viewpager" android:layout_width="fill_parent" android:layout_height="0.0dip" android:layout_weight="1.0" />
-        <!-- Bottom bar: first, prev, next, last, analyze -->
-        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:gravity="center_vertical" android:paddingLeft="2.0dip" android:paddingRight="2.0dip" android:paddingTop="4.0dip" android:paddingBottom="4.0dip">
-            <ImageButton android:id="@id/first_button" android:layout_width="0.0dip" android:layout_height="wrap_content" android:src="@android:drawable/ic_media_rew" android:layout_weight="0.7" />
-            <ImageButton android:id="@id/prev_button" android:layout_width="0.0dip" android:layout_height="wrap_content" android:src="@android:drawable/ic_media_play" android:layout_weight="1.0" android:scaleX="-1.0" />
-            <ImageButton android:id="@id/next_button" android:layout_width="0.0dip" android:layout_height="wrap_content" android:src="@android:drawable/ic_media_play" android:layout_weight="1.0" />
-            <ImageButton android:id="@id/last_button" android:layout_width="0.0dip" android:layout_height="wrap_content" android:src="@android:drawable/ic_media_ff" android:layout_weight="0.7" />
-            <View android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
-            <LinearLayout android:id="@id/analyze_button" android:orientation="horizontal" android:layout_width="wrap_content" android:layout_height="wrap_content" android:background="@drawable/analyze_btn_bg_idle" android:gravity="center" android:paddingTop="8.0dip" android:paddingBottom="8.0dip" android:paddingLeft="12.0dip" android:paddingRight="12.0dip">
-                <ImageView android:layout_width="24.0dip" android:layout_height="24.0dip" android:src="@drawable/ic_bar_chart" android:layout_marginRight="4.0dip" />
-                <TextView android:id="@id/analyze_text" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="解析開始" android:textColor="#ffffffff" android:textSize="13.0sp" android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="6dp"
+            android:layout_weight="1"
+            android:background="@drawable/surface_panel_bg"
+            android:elevation="4dp"
+            android:orientation="vertical"
+            android:padding="6dp">
+            <androidx.viewpager.widget.ViewPager
+                android:id="@id/viewpager"
+                android:layout_width="fill_parent"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="6dp"
+            android:background="@drawable/surface_panel_bg_compact"
+            android:elevation="4dp"
+            android:gravity="center_vertical"
+            android:orientation="horizontal"
+            android:padding="4dp">
+            <ImageButton
+                android:id="@id/first_button"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:background="@drawable/icon_button_bg"
+                android:contentDescription="@string/MenuFirst_Text"
+                android:padding="8dp"
+                android:src="@android:drawable/ic_media_rew"
+                android:tint="@color/icon_tint" />
+            <ImageButton
+                android:id="@id/prev_button"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/icon_button_bg"
+                android:contentDescription="前の手"
+                android:padding="8dp"
+                android:scaleX="-1.0"
+                android:src="@android:drawable/ic_media_play"
+                android:tint="@color/icon_tint" />
+            <ImageButton
+                android:id="@id/next_button"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/icon_button_bg"
+                android:contentDescription="次の手"
+                android:padding="8dp"
+                android:src="@android:drawable/ic_media_play"
+                android:tint="@color/icon_tint" />
+            <ImageButton
+                android:id="@id/last_button"
+                android:layout_width="42dp"
+                android:layout_height="42dp"
+                android:layout_marginStart="6dp"
+                android:background="@drawable/icon_button_bg"
+                android:contentDescription="@string/MenuLast_Text"
+                android:padding="8dp"
+                android:src="@android:drawable/ic_media_ff"
+                android:tint="@color/icon_tint" />
+            <View
+                android:layout_width="0dp"
+                android:layout_height="0dp"
+                android:layout_weight="1" />
+            <LinearLayout
+                android:id="@id/analyze_button"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:background="@drawable/analyze_btn_bg_idle"
+                android:gravity="center"
+                android:minHeight="42dp"
+                android:orientation="horizontal"
+                android:paddingLeft="10dp"
+                android:paddingTop="8dp"
+                android:paddingRight="10dp"
+                android:paddingBottom="8dp">
+                <ImageView
+                    android:layout_width="20dp"
+                    android:layout_height="20dp"
+                    android:layout_marginRight="4dp"
+                    android:src="@drawable/ic_bar_chart" />
+                <TextView
+                    android:id="@id/analyze_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="解析開始"
+                    android:textColor="@color/filled_button_text"
+                    android:textSize="13sp"
+                    android:textStyle="bold" />
             </LinearLayout>
         </LinearLayout>
     </LinearLayout>

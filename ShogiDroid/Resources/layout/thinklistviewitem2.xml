@@ -1,13 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="wrap_content"
-  xmlns:android="http://schemas.android.com/apk/res/android">
-    <Space android:layout_width="fill_parent" android:layout_height="5.0dip" />
-    <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content">
-        <TextView android:ellipsize="end" android:id="@id/depth" android:layout_width="wrap_content" android:layout_height="wrap_content" android:singleLine="true" />
-        <Space android:layout_width="2.0dip" android:layout_height="0.0dip" />
-        <TextView android:ellipsize="end" android:gravity="center" android:id="@id/rank" android:layout_width="15.0dip" android:layout_height="wrap_content" android:singleLine="true" />
-        <Space android:layout_width="2.0dip" android:layout_height="0.0dip" />
-        <TextView android:ellipsize="end" android:id="@id/value" android:layout_width="55.0dip" android:layout_height="wrap_content" android:singleLine="true" />
-        <TextView android:ellipsize="end" android:id="@id/moves" android:layout_width="0.0dip" android:layout_height="wrap_content" android:maxLines="1" android:layout_weight="1.0" />
+<LinearLayout
+    android:layout_width="fill_parent"
+    android:layout_height="wrap_content"
+    android:background="@drawable/surface_clickable_bg"
+    android:gravity="center_vertical"
+    android:minHeight="32dp"
+    android:orientation="vertical"
+    android:paddingLeft="6dp"
+    android:paddingTop="2dp"
+    android:paddingRight="6dp"
+    android:paddingBottom="2dp"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
+        <TextView android:ellipsize="end" android:id="@id/depth" android:layout_width="wrap_content" android:layout_height="wrap_content" android:includeFontPadding="false" android:singleLine="true" android:textColor="@color/secondary_text" android:textSize="10sp" />
+        <TextView android:ellipsize="end" android:gravity="center" android:id="@id/rank" android:layout_width="16dp" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:includeFontPadding="false" android:singleLine="true" />
+        <TextView android:ellipsize="end" android:id="@id/value" android:layout_width="50dp" android:layout_height="wrap_content" android:layout_marginStart="3dp" android:includeFontPadding="false" android:singleLine="true" android:textSize="12sp" android:textStyle="bold" />
+        <TextView android:ellipsize="end" android:id="@id/moves" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:layout_weight="1" android:includeFontPadding="false" android:maxLines="1" android:textSize="11sp" />
     </LinearLayout>
 </LinearLayout>

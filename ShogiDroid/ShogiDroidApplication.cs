@@ -15,6 +15,8 @@ public class ShogiDroidApplication : Application
 	public override void OnCreate()
 	{
 		base.OnCreate();
+		Settings.Load();
+		ThemeHelper.ApplyTheme(ThemeHelper.GetThemeMode());
 		FontUtil.RegisterGlobal(this);
 	}
 }
