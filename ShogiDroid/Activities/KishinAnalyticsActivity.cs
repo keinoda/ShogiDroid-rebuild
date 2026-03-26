@@ -17,7 +17,7 @@ using Java.Interop;
 namespace ShogiDroid;
 
 [Activity(Label = "盤面読み取り", Theme = "@style/AppTheme")]
-public class KishinAnalyticsActivity : ThemedActivity
+public class KishinAnalyticsActivity : Activity
 {
 	private const string KISHIN_URL = "https://kishin-analytics.heroz.jp/";
 	private const int CAMERA_PERMISSION_CODE = 1001;

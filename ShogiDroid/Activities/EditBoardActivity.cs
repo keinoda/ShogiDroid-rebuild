@@ -12,7 +12,7 @@ using ShogiGUI.Presenters;
 namespace ShogiDroid;
 
 [Activity(Label = "EditBoard", ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
-public class EditBoardActivity : ThemedActivity, IEditBoardView
+public class EditBoardActivity : Activity, IEditBoardView
 {
 	private EditBoardPresenter presenter;
 

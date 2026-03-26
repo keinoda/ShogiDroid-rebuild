@@ -13,7 +13,7 @@ using ShogiGUI.Presenters;
 namespace ShogiDroid;
 
 [Activity(Label = "JointBoardActivity", ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
-public class JointBoardActivity : ThemedActivity, IJointBoardView
+public class JointBoardActivity : Activity, IJointBoardView
 {
 	private JointBoardPresenter presenter;
 

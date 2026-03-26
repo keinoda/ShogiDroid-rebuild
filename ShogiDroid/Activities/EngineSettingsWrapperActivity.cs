@@ -17,7 +17,7 @@ using Math = System.Math;
 namespace ShogiDroid;
 
 [Activity(Label = "@string/EngineSettingsTitle_Text", ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
-public class EngineSettingsWrapperActivity : ThemedActivity, IEngineOptions
+public class EngineSettingsWrapperActivity : Activity, IEngineOptions
 {
 	private EngineOptionsPresenter presenter;
 	private LinearLayout container;

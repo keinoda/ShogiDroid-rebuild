@@ -9,7 +9,7 @@ using ShogiGUI;
 namespace ShogiDroid;
 
 [Activity(Label = "設定", Theme = "@style/AppTheme")]
-public class SettingsHomeActivity : ThemedActivity
+public class SettingsHomeActivity : Activity
 {
 	private static readonly (string Section, string Label, string Description)[] Sections = {
 		(SettingActivity.SectionGame, "対局設定", "持ち時間、手番、開始局面などを調整します。"),

@@ -23,15 +23,12 @@ jobs:
     - name: Install Android workload
       run: dotnet workload install android
 
-    - name: Restore with RuntimeIdentifier
-      run: dotnet restore ShogiDroid/ShogiDroid.csproj -r android-arm64
-
     - name: Build Debug
-      run: dotnet build -c Debug ShogiDroid/ShogiDroid.csproj --no-restore
+      run: dotnet build -c Debug ShogiDroid/ShogiDroid.csproj
 
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: debug-apk
-        path: ShogiDroid/bin/Debug/net9.0-android/android-arm64/com.siganus.ShogiDroid.rebuild-Signed.apk
+        path: ShogiDroid/bin/Debug/net9.0-android/android-arm64/com.ngs436.ShogiDroidR-Signed.apk
         retention-days: 14

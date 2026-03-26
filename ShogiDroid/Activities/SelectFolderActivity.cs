@@ -12,7 +12,7 @@ using ShogiGUI;
 namespace ShogiDroid;
 
 [Activity(Label = "SelectFolderActivity", ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
-public class SelectFolderActivity : ThemedActivity
+public class SelectFolderActivity : Activity
 {
 	private string path;
 

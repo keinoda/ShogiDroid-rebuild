@@ -13,7 +13,7 @@ using ShogiGUI.Presenters;
 namespace ShogiDroid;
 
 [Activity(Label = "@string/EngineOptionsTitle_Text", ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
-public class EngineOptionsActivity : ThemedActivity, IEngineOptions
+public class EngineOptionsActivity : Activity, IEngineOptions
 {
 	private EngineOptionsPresenter presenter;
 

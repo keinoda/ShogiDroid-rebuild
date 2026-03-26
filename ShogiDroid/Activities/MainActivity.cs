@@ -49,7 +49,7 @@ namespace ShogiDroid;
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT" }, DataMimeType = "*/*", DataScheme = "file", DataHost = "*", DataPathPattern = ".*\\\\.csa")]
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT", "android.intent.category.BROWSABLE" }, DataScheme = "https", DataHost = "kishin-analytics.heroz.jp")]
 [IntentFilter(new string[] { "android.intent.action.SEND" }, Categories = new string[] { "android.intent.category.DEFAULT" }, DataMimeType = "message/rfc822")]
-public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequestPermissionsResultCallback, IJavaObject, IDisposable, IJavaPeerable
+public class MainActivity : Activity, IMainView, ActivityCompat.IOnRequestPermissionsResultCallback, IJavaObject, IDisposable, IJavaPeerable
 {
 	private delegate void funcSaveNotationOkDelegate(string filename);
 
@@ -219,7 +219,6 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		var analyze = new DrawerSectionModel("解析");
 		analyze.Add(Resource.Id.notation_analysis, GetString(Resource.String.Menu_Analysis_Text), isEnabled: enabled(Resource.Id.notation_analysis));
 		analyze.Add(Resource.Id.cmd_auto_play, GetString(Resource.String.MenuAutoPlay_Text), isEnabled: enabled(Resource.Id.cmd_auto_play));
-		analyze.Add(Resource.Id.consider, GetString(Resource.String.Consider_Text), isEnabled: enabled(Resource.Id.consider));
 		analyze.Add(Resource.Id.analysis_settings, GetString(Resource.String.Menu_AnalysisSettings_Text), isEnabled: enabled(Resource.Id.analysis_settings));
 		analyze.Add(Resource.Id.display_settings, GetString(Resource.String.Menu_DisplaySettings_Text), isEnabled: enabled(Resource.Id.display_settings));
 		sections.Add(analyze);
@@ -814,6 +813,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		AppDebug.Log.Info("MainActivity.OnCreate started");
 		RequestWindowFeature(WindowFeatures.NoTitle);
 		Settings.Load();
+		ThemeHelper.ApplyTheme(Settings.AppSettings.ThemeMode);
 		InitUI();
 		PlaySE.Initialize(this);
 		presenter = new MainPresenter(this);

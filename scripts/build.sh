@@ -15,7 +15,7 @@ echo ""
 
 $DOTNET build -c "$CONFIG" "$CSPROJ"
 
-APK="$PROJECT_DIR/ShogiDroid/bin/${CONFIG}/net9.0-android/android-arm64/com.siganus.ShogiDroid.rebuild-Signed.apk"
+APK="$PROJECT_DIR/ShogiDroid/bin/${CONFIG}/net9.0-android/android-arm64/com.ngs436.ShogiDroidR-Signed.apk"
 if [ -f "$APK" ]; then
     echo ""
     echo "=== APK generated ==="

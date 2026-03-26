@@ -51,7 +51,7 @@ process_.StartInfo.Arguments = actualBinaryPath;
 
 ### 2.4 ContentProvider の競合
 - **問題**: 元のアプリと同じ authority だと `INSTALL_FAILED_CONFLICTING_PROVIDER` でインストールできない
-- **対策**: authority を `com.siganus.ShogiDroid.rebuild.provider` に変更
+- **対策**: authority を `com.ngs436.ShogiDroidR.provider` に変更
 
 ## 3. デコンパイラの不具合
 
@@ -81,37 +81,3 @@ process_.StartInfo.Arguments = actualBinaryPath;
 - csproj で `Version="1.*"` のフローティングバージョンを使用
 - SDK バージョンが変わるとパッケージの解決結果が変わり AOT GUID 不一致の原因になりうる
 
-### 5.3 現在の標準ビルド手順
-- 使用 SDK: `/usr/local/share/dotnet/dotnet` 9.0.200
-- `DOTNET_ROOT=/usr/local/share/dotnet` を付けて実行する
-- Homebrew 版 `dotnet` は android workload 非対応なので使わない
-- `ShogiDroid/global.json` で SDK 9.0.200 に固定済み
-
-#### Debug ビルド
-```bash
-DOTNET_ROOT=/usr/local/share/dotnet /usr/local/share/dotnet/dotnet build -c Debug
-```
-- `android-arm64` 単一アーキテクチャでビルド
-- 出力 APK: `ShogiDroid/bin/Debug/net9.0-android/android-arm64/com.siganus.ShogiDroid.rebuild-Signed.apk`
-
-#### Release ビルド
-```bash
-DOTNET_ROOT=/usr/local/share/dotnet /usr/local/share/dotnet/dotnet build -c Release
-```
-- AOT コンパイルが走るため Debug より時間がかかる
-- 目安時間は約2分
-- 出力 APK: `ShogiDroid/bin/Release/net9.0-android/android-arm64/com.siganus.ShogiDroid.rebuild-Signed.apk`
-
-#### 実機インストール
-```bash
-adb install -r ShogiDroid/bin/Release/net9.0-android/android-arm64/com.siganus.ShogiDroid.rebuild-Signed.apk
-adb shell am start -n com.siganus.ShogiDroid.rebuild/crc64721063ab64a94a2e.MainActivity
-```
-
-#### ワイヤレスデバッグ接続
-```bash
-adb connect <IPアドレス>:<ポート>
-adb pair <IPアドレス>:<ペアリングポート> <ペアリングコード>
-```
-- 端末側で `設定 > 開発者向けオプション > ワイヤレスデバッグ` を開き、IPアドレスとポートを確認する
-- ペアリングは初回のみ必要
