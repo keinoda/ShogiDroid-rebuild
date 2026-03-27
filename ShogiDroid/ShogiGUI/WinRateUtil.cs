@@ -7,16 +7,39 @@ namespace ShogiGUI;
 /// </summary>
 public static class WinRateUtil
 {
+	public const int MateEvalThreshold = 31900;
+
+	public const int HisshiEval = 35281;
+
 	/// <summary>
 	/// シグモイド変換の係数。600 = Ponanza定数（将棋GUIの標準）。
 	/// </summary>
 	public const double DefaultCoefficient = 750.0;
+
+	public static bool IsMateScore(int cp)
+	{
+		return System.Math.Abs(cp) >= MateEvalThreshold;
+	}
+
+	public static bool IsHisshiScore(int cp)
+	{
+		return System.Math.Abs(cp) >= HisshiEval;
+	}
+
+	public static bool IsForcedWinScore(int cp)
+	{
+		return IsMateScore(cp) || IsHisshiScore(cp);
+	}
 
 	/// <summary>
 	/// 評価値(cp)を勝率(0.0〜1.0)に変換する。
 	/// </summary>
 	public static double CpToWinRate(int cp, double coefficient = DefaultCoefficient)
 	{
+		if (IsForcedWinScore(cp))
+		{
+			return cp > 0 ? 1.0 : 0.0;
+		}
 		return 1.0 / (1.0 + System.Math.Exp(-(double)cp / coefficient));
 	}
 
@@ -47,8 +70,10 @@ public static class WinRateUtil
 		{
 			if (matePly > 0)
 				return $"詰み {matePly}手";
-			else
+			else if (matePly < 0)
 				return $"被詰み {-matePly}手";
+			else
+				return cp < 0 ? "被詰み" : "詰み";
 		}
 		return cp >= 0 ? $"+{cp}" : cp.ToString();
 	}
@@ -60,11 +85,19 @@ public static class WinRateUtil
 	{
 		if (isMate)
 		{
-			return matePly > 0 ? "99%" : "1%";
+			if (matePly > 0)
+				return $"詰み {matePly}手";
+			if (matePly < 0)
+				return $"被詰み {-matePly}手";
+			return cp < 0 ? "被詰み" : "詰み";
+		}
+		if (IsHisshiScore(cp))
+		{
+			return cp > 0 ? "先手必至" : "後手必至";
 		}
 		int pct = (int)CpToWinPercent(cp, coefficient);
-		if (pct > 99) pct = 99;
-		if (pct < 1) pct = 1;
+		if (pct > 100) pct = 100;
+		if (pct < 0) pct = 0;
 		return $"{pct}%";
 	}
 

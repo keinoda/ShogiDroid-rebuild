@@ -30,6 +30,8 @@ public class PvInfo
 
 	private int? mate;
 
+	private int? matePly;
+
 	private string message;
 
 	private int? nps;
@@ -109,6 +111,20 @@ public class PvInfo
 		set
 		{
 			mate = value;
+		}
+	}
+
+	public bool HasMatePly => matePly.HasValue;
+
+	public int MatePly
+	{
+		get
+		{
+			return matePly.GetValueOrDefault();
+		}
+		set
+		{
+			matePly = value;
 		}
 	}
 
@@ -294,7 +310,12 @@ public class PvInfo
 		}
 		if (HasEval)
 		{
-			text = text + " " + valueText + " " + ValueToString(Mate, Score, 0);
+			int displayScore = Score;
+			if (HasMate && HasMatePly)
+			{
+				displayScore = System.Math.Abs(MatePly);
+			}
+			text = text + " " + valueText + " " + ValueToString(Mate, displayScore, 0);
 		}
 		if (pvmoves_ != null && pvmoves_.Count != 0)
 		{

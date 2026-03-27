@@ -256,6 +256,46 @@ public class EnginePlayer : IPlayer
 		}
 	}
 
+	private static bool HasPassInCurrentLine(SNotation notation)
+	{
+		foreach (MoveNode moveNode in notation.MoveNodes)
+		{
+			if (moveNode.MoveType == MoveType.Pass)
+			{
+				return true;
+			}
+			if (moveNode == notation.MoveCurrent)
+			{
+				break;
+			}
+		}
+		return false;
+	}
+
+	private static void SetGoRequestPosition(GoRequest goRequest, SNotation notation, MoveData extraMove = null)
+	{
+		if (HasPassInCurrentLine(notation))
+		{
+			goRequest.Sfen = notation.Position.PositionToString(notation.MoveCurrent.Number + 1);
+			goRequest.Moves = string.Empty;
+		}
+		else
+		{
+			if (notation.IsOutputInitialPosition || notation.Handicap != Handicap.HIRATE)
+			{
+				goRequest.Sfen = notation.InitialPosition.PositionToString(1);
+			}
+			goRequest.Moves = notation.MovesToString();
+		}
+
+		if (extraMove != null && extraMove.MoveType.IsMove())
+		{
+			goRequest.Moves = string.IsNullOrEmpty(goRequest.Moves)
+				? extraMove.MoveToString()
+				: goRequest.Moves + " " + extraMove.MoveToString();
+		}
+	}
+
 	public int Go(SNotation notation, GameTimer time_info)
 	{
 		lock (lockObj)
@@ -282,11 +322,7 @@ public class EnginePlayer : IPlayer
 			GoRequest goRequest = new GoRequest(time_info.BlackTime.RemainTime, time_info.WhiteTime.RemainTime, byoyomi);
 			goRequest.Binc = time_info.BlackTime.Increment;
 			goRequest.Winc = time_info.WhiteTime.Increment;
-			if (notation.IsOutputInitialPosition || notation.Handicap != Handicap.HIRATE)
-			{
-				goRequest.Sfen = notation.InitialPosition.PositionToString(1);
-			}
-			goRequest.Moves = notation.MovesToString();
+			SetGoRequestPosition(goRequest, notation);
 			goRequest.Pos = (SPosition)notation.Position.Clone();
 			goRequest.TransactionNo = ++transactionCounter_;
 			if (state_ != EnginePlayerState.IDLE)
@@ -315,7 +351,10 @@ public class EnginePlayer : IPlayer
 		pos_ = req.Pos;
 		string text = "position ";
 		text += ((req.Sfen == string.Empty) ? "startpos" : ("sfen " + req.Sfen));
-		text = text + " moves " + req.Moves;
+		if (!string.IsNullOrEmpty(req.Moves))
+		{
+			text = text + " moves " + req.Moves;
+		}
 		send_cmd(text);
 		if (req.ReqType == GoRequest.Type.NORMAL)
 		{
@@ -394,11 +433,7 @@ public class EnginePlayer : IPlayer
 				Binc = time_info.BlackTime.Increment,
 				Winc = time_info.WhiteTime.Increment
 			};
-			if (notation.IsOutputInitialPosition || notation.Handicap != Handicap.HIRATE)
-			{
-				goRequest.Sfen = notation.InitialPosition.PositionToString(1);
-			}
-			goRequest.Moves = notation.MovesToString() + " " + ponder_.MoveToString();
+			SetGoRequestPosition(goRequest, notation, ponder_);
 			goRequest.Pos = (SPosition)notation.Position.Clone();
 			goRequest.Pos.Move(ponder_);
 			goRequest.TransactionNo = ++transactionCounter_;
@@ -453,11 +488,7 @@ public class EnginePlayer : IPlayer
 				return -1;
 			}
 			GoRequest goRequest = new GoRequest(settings);
-			if (notation.IsOutputInitialPosition || notation.Handicap != Handicap.HIRATE)
-			{
-				goRequest.Sfen = notation.InitialPosition.PositionToString(1);
-			}
-			goRequest.Moves = notation.MovesToString();
+			SetGoRequestPosition(goRequest, notation);
 			goRequest.Pos = (SPosition)notation.Position.Clone();
 			goRequest.TransactionNo = ++transactionCounter_;
 			if (state_ != EnginePlayerState.IDLE)
@@ -975,29 +1006,44 @@ public class EnginePlayer : IPlayer
 				}
 				else if (token == "mate")
 				{
-					int num = 0;
+					int rawMate = 0;
+					int mateSign = 0;
 					string text = uSITokenizer.GetToken();
-					if (text[0] == '+')
+					if (text == "+")
 					{
-						num = 1;
-						text = text.Substring(1);
+						mateSign = 1;
 					}
-					else if (text[0] == '-')
+					else if (text == "-")
 					{
-						num = -1;
-						text = text.Substring(1);
+						mateSign = -1;
 					}
-					int out_num4 = 0;
-					if (text != string.Empty && USIString.ParseNum(text, out out_num4) && num == 0)
+					else
 					{
-						num = ((out_num4 > 0) ? 1 : (-1));
+						string mateText = text;
+						if (!string.IsNullOrEmpty(mateText) && mateText[0] == '+')
+						{
+							mateText = mateText.Substring(1);
+						}
+						if (USIString.ParseNum(mateText, out rawMate))
+						{
+							if (!string.IsNullOrEmpty(text) && text[0] == '-')
+							{
+								rawMate = -rawMate;
+							}
+							mateSign = ((rawMate > 0) ? 1 : (-1));
+						}
 					}
 					if (pos_.Turn == PlayerColor.White)
 					{
-						num = -num;
+						mateSign = -mateSign;
+						rawMate = -rawMate;
 					}
-					pvInfo.Mate = num;
-					pvInfo.Score = out_num4;
+					pvInfo.Mate = mateSign;
+					if (rawMate != 0)
+					{
+						pvInfo.MatePly = rawMate;
+						pvInfo.Score = System.Math.Abs(rawMate);
+					}
 				}
 				continue;
 			case "lowerbound":
