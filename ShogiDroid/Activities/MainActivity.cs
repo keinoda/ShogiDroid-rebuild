@@ -139,6 +139,8 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 
 	private TextView notationText;
 
+	private TextView threatmateBadge;
+
 	private View contextMenuParentView;
 
 	private ViewPager infoPager;
@@ -189,6 +191,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		kifu.Add(Resource.Id.file_load, GetString(Resource.String.Menu_FileLoad_Text), isEnabled: enabled(Resource.Id.file_load));
 		kifu.Add(Resource.Id.file_load_last, GetString(Resource.String.Menu_FileLoadLast_Text), isEnabled: enabled(Resource.Id.file_load_last));
 		kifu.Add(Resource.Id.file_save, GetString(Resource.String.Menu_FileSave_Text), isEnabled: enabled(Resource.Id.file_save));
+		kifu.Add(Resource.Id.file_save_overwrite, GetString(Resource.String.Menu_FileSaveOverwrite_Text), isEnabled: enabled(Resource.Id.file_save_overwrite));
 		kifu.Add(Resource.Id.file_send, GetString(Resource.String.Menu_FileSend_Text), isEnabled: enabled(Resource.Id.file_send));
 		kifu.Add(Resource.Id.file_import, GetString(Resource.String.Menu_FileImport_Text), isEnabled: enabled(Resource.Id.file_import));
 		kifu.Add(Resource.Id.file_web_import, GetString(Resource.String.Menu_FileWebExport_Text), isEnabled: enabled(Resource.Id.file_web_import));
@@ -320,6 +323,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		commands.Add(CmdNo.FileLoad, Resource.Id.file_load, FileLoad, presenter.CanLoadNotaton);
 		commands.Add(CmdNo.FileLoadLast, Resource.Id.file_load_last, LoadLastGame, presenter.CanLoadNotaton);
 		commands.Add(CmdNo.FileSave, Resource.Id.file_save, FileSave, CanSaveNotation);
+		commands.Add(CmdNo.FileSaveOverwrite, Resource.Id.file_save_overwrite, FileSaveOverwrite, CanSaveNotation);
 		commands.Add(CmdNo.FileImport, Resource.Id.file_import, NotationSelectRequest, presenter.CanLoadNotaton);
 		commands.Add(CmdNo.FileWebImport, Resource.Id.file_web_import, ShowWEBNoationDialog, presenter.CanLoadNotaton);
 		commands.Add(CmdNo.FileSend, Resource.Id.file_send, FileSend, null);
@@ -746,6 +750,18 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		ShowSaveNotationDialog(LocalFile.KifPath, (presenter.NotationFileName != string.Empty) ? presenter.NotationFileName : presenter.NotationNewFileName, notation.BlackName, notation.WhiteName);
 	}
 
+	private void FileSaveOverwrite()
+	{
+		if (string.IsNullOrEmpty(presenter.NotationFileName))
+		{
+			FileSave();
+			return;
+		}
+
+		presenter.SaveNotation(LocalFile.KifPath, presenter.NotationFileName);
+		MessagePopup(Resource.String.Saved_Text);
+	}
+
 	private bool CanSaveNotation()
 	{
 		return storagePermission;
@@ -930,9 +946,14 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		{
 			reverseButton.SetImageResource(Resource.Drawable.ic_fn);
 		}
-		stateText = FindViewById<TextView>(Resource.Id.state_text);
-		stateText.Click += NotationText_Click;
-		drawerLayout = FindViewById<DrawerLayout>(Resource.Id.drawer_layout);
+			stateText = FindViewById<TextView>(Resource.Id.state_text);
+			stateText.Click += NotationText_Click;
+			threatmateBadge = FindViewById<TextView>(Resource.Id.threatmate_badge);
+			if (threatmateBadge != null)
+			{
+				threatmateBadge.Click += ThreatmateBadge_Click;
+			}
+			drawerLayout = FindViewById<DrawerLayout>(Resource.Id.drawer_layout);
 		drawerLayout.DrawerOpened += DrawerLayout_DrawerOpened;
 		drawerLayout.DrawerSlide += DrawerLayout_DrawerSlide;
 		drawerLayout.LayoutChange += DrawerLayout_LayoutChange;
@@ -1686,8 +1707,9 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		}
 		else
 		{
-			stateText.Text = ComStateToString(presenter.ComState);
+			stateText.Text = BuildStateText();
 		}
+		UpdateThreatmateBadge();
 		UpdateAnalyzeButton(presenter.ComState == ComputerState.Analyzing || presenter.ComState == ComputerState.Mating);
 		if (evalGraphView != null)
 		{
@@ -1858,6 +1880,99 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			break;
 		}
 		return result;
+	}
+
+	private string BuildStateText()
+	{
+		return ComStateToString(presenter.ComState);
+	}
+
+	private void ThreatmateBadge_Click(object sender, EventArgs e)
+	{
+		presenter.AutoPlayStop();
+		if (presenter.ThreatmateInfo?.State == ThreatmateState.Threatmate)
+		{
+			SNotation sNotation = presenter.LoadThreatmate();
+			if (sNotation != null)
+			{
+				ShowJointBoardDialog(sNotation, allowAddToNotation: false);
+				return;
+			}
+			MessagePopup(GetString(Resource.String.ThreatmateLineUnavailable_Text), lengthShort: true);
+			return;
+		}
+		string description = GetThreatmateDescription(presenter.ThreatmateInfo);
+		if (!string.IsNullOrEmpty(description))
+		{
+			MessagePopup(description, lengthShort: true);
+		}
+	}
+
+	private void UpdateThreatmateBadge()
+	{
+		if (threatmateBadge == null)
+		{
+			return;
+		}
+		if (!Settings.AppSettings.AutoThreatmateAnalysis)
+		{
+			threatmateBadge.Visibility = ViewStates.Gone;
+			threatmateBadge.ContentDescription = null;
+			return;
+		}
+
+		ThreatmateInfo info = presenter.ThreatmateInfo;
+		switch (info?.State ?? ThreatmateState.None)
+		{
+		case ThreatmateState.Analyzing:
+			SetThreatmateBadge("…", Resource.Drawable.threatmate_badge_neutral_bg, Resource.Color.threatmate_badge_neutral_text, GetString(Resource.String.ThreatmateAnalyzing_Text));
+			return;
+		case ThreatmateState.Threatmate:
+			SetThreatmateBadge("!", Resource.Drawable.threatmate_badge_bg, Resource.Color.threatmate_badge_text, GetThreatmateDescription(info));
+			return;
+		case ThreatmateState.Unknown:
+			SetThreatmateBadge("?", Resource.Drawable.threatmate_badge_neutral_bg, Resource.Color.threatmate_badge_neutral_text, GetString(Resource.String.ThreatmateUnknown_Text));
+			return;
+		default:
+			threatmateBadge.Visibility = ViewStates.Gone;
+			threatmateBadge.ContentDescription = null;
+			return;
+		}
+	}
+
+	private void SetThreatmateBadge(string text, int backgroundResId, int textColorResId, string description)
+	{
+		threatmateBadge.Text = text;
+		threatmateBadge.SetBackgroundResource(backgroundResId);
+		threatmateBadge.SetTextColor(new Color(ContextCompat.GetColor(this, textColorResId)));
+		threatmateBadge.ContentDescription = description;
+		threatmateBadge.Visibility = ViewStates.Visible;
+	}
+
+	private string GetThreatmateDescription(ThreatmateInfo info)
+	{
+		if (info == null)
+		{
+			return string.Empty;
+		}
+		switch (info.State)
+		{
+		case ThreatmateState.Analyzing:
+			return GetString(Resource.String.ThreatmateAnalyzing_Text);
+		case ThreatmateState.Threatmate:
+			string threatmateText = GetString(Resource.String.Threatmate_Text);
+			if (info.MatePly > 0)
+			{
+				return $"{threatmateText} ({info.MatePly}手詰)";
+			}
+			return threatmateText;
+		case ThreatmateState.NoThreatmate:
+			return GetString(Resource.String.ThreatmateNone_Text);
+		case ThreatmateState.Unknown:
+			return GetString(Resource.String.ThreatmateUnknown_Text);
+		default:
+			return string.Empty;
+		}
 	}
 
 	private void CreateFolders()
@@ -2045,22 +2160,21 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 	{
 		try
 		{
-			Intent intent = new Intent("android.intent.action.VIEW");
+			Intent intent = new Intent(Intent.ActionView);
 			Android.Net.Uri data;
-			using (Java.IO.File file = new Java.IO.File(LocalFile.KifPath + Java.IO.File.Separator))
+			using (Java.IO.File file = new Java.IO.File(LocalFile.KifPath))
 			{
-				if (Build.VERSION.SdkInt >= BuildVersionCodes.N)
-				{
-					MessagePopup(Resource.String.ActivityNotFound_Text);
-					return;
-				}
-				data = Android.Net.Uri.FromFile(file);
+				data = Build.VERSION.SdkInt >= BuildVersionCodes.N
+					? FileProvider.GetUriForFile(this, PackageName + ".provider", file)
+					: Android.Net.Uri.FromFile(file);
 			}
-			intent.SetDataAndType(data, "resource/folder");
+			intent.SetDataAndType(data, "vnd.android.document/directory");
+			intent.AddFlags(ActivityFlags.GrantReadUriPermission | ActivityFlags.GrantWriteUriPermission | ActivityFlags.GrantPrefixUriPermission);
+			intent.ClipData = ClipData.NewRawUri(GetString(Resource.String.Menu_OpenKifuFolder_Text), data);
 			intent.PutExtra("org.openintents.extra.ABSOLUTE_PATH", LocalFile.KifPath + Java.IO.File.Separator);
 			try
 			{
-				StartActivity(intent);
+				StartActivity(Intent.CreateChooser(intent, GetString(Resource.String.Menu_OpenKifuFolder_Text)));
 			}
 			catch (ActivityNotFoundException)
 			{
@@ -2624,10 +2738,12 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		if (notation.MoveCurrent.Number == 0)
 		{
 			notationText.Text = MoveStringExtention.InitialPosition(Settings.AppSettings.MoveStyle);
+			UpdateThreatmateBadge();
 			return;
 		}
 		char c = notation.MoveCurrent.Turn.ToChar();
 		notationText.Text = $"{notation.MoveCurrent.Number} {c}{notation.MoveCurrent.ToString(Settings.AppSettings.MoveStyle)}";
+		UpdateThreatmateBadge();
 	}
 
 	private void UpdatePlayerInfoPosition()

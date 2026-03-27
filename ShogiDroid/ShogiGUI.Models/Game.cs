@@ -55,6 +55,8 @@ public class Game
 
 	private AnalyzeInfoList analyzeInfoList = new AnalyzeInfoList();
 
+	private ThreatmateAnalyzer threatmateAnalyzer = new ThreatmateAnalyzer();
+
 	private int analyzeStopNumber_ = -1;
 
 	private EngineMode engineMode;
@@ -121,6 +123,8 @@ public class Game
 
 	public EnginePlayer EnginePlayer => enginePlayer;
 
+	public ThreatmateInfo ThreatmateInfo => threatmateAnalyzer.CurrentInfo;
+
 	public event EventHandler<GameEventArgs> GameEventHandler;
 
 	public Game()
@@ -132,6 +136,7 @@ public class Game
 		gameTimer = new GameTimer(GameTimer_Timeout);
 		gameTimer.UpdateTime += GameTimer_UpdateTime;
 		notationModel.NotationChanged += NotationModel_NotationChanged;
+		threatmateAnalyzer.Updated += ThreatmateAnalyzer_Updated;
 	}
 
 	protected virtual void OnGameEvent(GameEventArgs e)
@@ -147,6 +152,7 @@ public class Game
 
 	public void Destory()
 	{
+		threatmateAnalyzer.Dispose();
 		EngineTerminate();
 	}
 
@@ -467,11 +473,13 @@ public class Game
 			{
 				string key = opt.Key;
 				// Threads/Hashは並列用の値で上書きするのでスキップ
-				if (key == "Threads" || key == "USI_Hash" || key == "Hash")
+				if (key == "Threads" || key == "USI_Hash" || key == "Hash" || key == "MultiPV")
 					continue;
 				extraSetOptions.Add($"setoption name {key} value {opt.Value}");
 			}
 		}
+		// 並列解析は各局面の最善手評価だけを使うため、MultiPVは必ず1に固定する。
+		extraSetOptions.Add("setoption name MultiPV value 1");
 
 		var analyzer = new ParallelAnalyzer();
 		analyzer.Progress += (msg) => ParallelAnalyzeProgress?.Invoke(msg);
@@ -1373,6 +1381,26 @@ public class Game
 		}, null);
 	}
 
+	private void ThreatmateAnalyzer_Updated(object sender, EventArgs e)
+	{
+		OnGameEvent(new GameEventArgs(GameEventId.ThreatmateUpdated));
+	}
+
+	private void RefreshThreatmateAnalysis()
+	{
+		if (!Settings.AppSettings.AutoThreatmateAnalysis || Notation == null || Notation.MoveCurrent.MoveType.IsResult())
+		{
+			threatmateAnalyzer.Clear();
+			return;
+		}
+		threatmateAnalyzer.Analyze(Notation);
+	}
+
+	public void UpdateThreatmateAnalysis()
+	{
+		RefreshThreatmateAnalysis();
+	}
+
 	private void NotationModel_NotationChanged(object sender, NotationEventArgs e)
 	{
 		if (e.EventId != NotationEventId.COMMENT)
@@ -1385,6 +1413,7 @@ public class Game
 			{
 				AnalyzeStop();
 			}
+			RefreshThreatmateAnalysis();
 		}
 	}
 }

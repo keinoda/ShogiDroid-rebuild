@@ -32,6 +32,8 @@ public class PvInfo
 
 	private int? matePly;
 
+	private int? rawMatePly;
+
 	private string message;
 
 	private int? nps;
@@ -125,6 +127,18 @@ public class PvInfo
 		set
 		{
 			matePly = value;
+		}
+	}
+
+	public int? RawMatePly
+	{
+		get
+		{
+			return rawMatePly;
+		}
+		set
+		{
+			rawMatePly = value;
 		}
 	}
 

@@ -33,6 +33,10 @@
     <color name="notation_box_bg">#ff2f5f50</color>
     <color name="notation_box_text">#ffffffff</color>
     <color name="notation_box_sub_text">#ffd4e7dc</color>
+    <color name="threatmate_badge_bg">#fff9ebcc</color>
+    <color name="threatmate_badge_text">#ff7a4f00</color>
+    <color name="threatmate_badge_neutral_bg">#ffe8ede6</color>
+    <color name="threatmate_badge_neutral_text">#ff4f5b53</color>
 
     <!-- ダークモード対応: レイアウト/C#のハードコード色をリソース化 -->
     <color name="primary_text">#ff152019</color>

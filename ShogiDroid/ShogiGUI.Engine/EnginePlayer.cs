@@ -819,7 +819,9 @@ public class EnginePlayer : IPlayer
 				}
 				break;
 			case EnginePlayerState.STOP:
-				if (new USITokenizer(str).GetToken() == "bestmove")
+			{
+				string token = new USITokenizer(str).GetToken();
+				if (token == "bestmove" || token == "checkmate")
 				{
 					if (!is_go_req_)
 					{
@@ -829,6 +831,7 @@ public class EnginePlayer : IPlayer
 					handleIdleState();
 				}
 				break;
+			}
 			case EnginePlayerState.NONE:
 			case EnginePlayerState.INISIALIZED:
 			case EnginePlayerState.IDLE:
@@ -914,18 +917,26 @@ public class EnginePlayer : IPlayer
 			while ((token = uSITokenizer.GetToken()) != string.Empty);
 			break;
 		}
+		case "none":
+			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.None));
+			return;
 		case "notimplemented":
+			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.NotImplemented));
+			return;
 		case "timeout":
+			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.Timeout));
+			return;
 		case "nomate":
-			break;
+			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.NoMate));
+			return;
 		}
 		if (list.Count == 0)
 		{
-			OnCheckMateRecieved(new CheckMateEventArgs());
+			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.None));
 		}
 		else
 		{
-			OnCheckMateRecieved(new CheckMateEventArgs(list));
+			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, list));
 		}
 	}
 
@@ -1006,6 +1017,7 @@ public class EnginePlayer : IPlayer
 				}
 				else if (token == "mate")
 				{
+					int rawMateFromEngine = 0;
 					int rawMate = 0;
 					int mateSign = 0;
 					string text = uSITokenizer.GetToken();
@@ -1026,13 +1038,11 @@ public class EnginePlayer : IPlayer
 						}
 						if (USIString.ParseNum(mateText, out rawMate))
 						{
-							if (!string.IsNullOrEmpty(text) && text[0] == '-')
-							{
-								rawMate = -rawMate;
-							}
+							rawMateFromEngine = rawMate;
 							mateSign = ((rawMate > 0) ? 1 : (-1));
 						}
 					}
+					pvInfo.RawMatePly = rawMateFromEngine;
 					if (pos_.Turn == PlayerColor.White)
 					{
 						mateSign = -mateSign;
@@ -1213,7 +1223,7 @@ public class EnginePlayer : IPlayer
 		mre.Set();
 		syncContext.Post(delegate
 		{
-			if (this.CheckMateRecieved != null)
+			if (transactionCounter_ == e.TransactionNo && this.CheckMateRecieved != null)
 			{
 				this.CheckMateRecieved(this, e);
 			}

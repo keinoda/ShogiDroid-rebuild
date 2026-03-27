@@ -74,6 +74,8 @@ public class AppSettings
 
 	public string WinRateCoefficient = "750";
 
+	public bool AutoThreatmateAnalysis = true;
+
 	public AppSettings()
 	{
 	}

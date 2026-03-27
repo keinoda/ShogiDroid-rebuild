@@ -17,5 +17,6 @@ public enum GameEventId
 	InitializeStart,
 	InitializeEnd,
 	InitializeError,
+	ThreatmateUpdated,
 	UpdateTime
 }

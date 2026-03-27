@@ -200,6 +200,7 @@
     <item type="id" name="file_load_last" />
     <item type="id" name="file_open_folder" />
     <item type="id" name="file_save" />
+    <item type="id" name="file_save_overwrite" />
     <item type="id" name="file_send" />
     <item type="id" name="file_web_import" />
     <item type="id" name="file_web_import_as" />
