@@ -101,6 +101,10 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 
 	private Button bookBrowseCloseButton;
 
+	private View topShortcutBar;
+
+	private View topShortcutButtons;
+
 	private ImageButton passButton;
 
 	private ImageButton inputCancelButton;
@@ -455,6 +459,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 	{
 		Domain.Game.NotationModel.StopBookBrowse();
 		bookBrowseCloseButton.Visibility = Android.Views.ViewStates.Gone;
+		UpdateTopShortcutVisibility();
 		presenter.InitNotation();
 	}
 
@@ -535,6 +540,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 					{
 						presenter.StartBookBrowse(hashBook);
 						bookBrowseCloseButton.Visibility = Android.Views.ViewStates.Visible;
+						UpdateTopShortcutVisibility();
 						try { progressDialog.Progress = 100; progressDialog.Dismiss(); } catch { }
 						if (!browseMode)
 						{
@@ -896,6 +902,8 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		FindViewById<ImageButton>(Resource.Id.camera_read).Click += (s, e) => CameraRead();
 		bookBrowseCloseButton = FindViewById<Button>(Resource.Id.book_browse_close);
 		bookBrowseCloseButton.Click += (s, e) => StopBookBrowse();
+		topShortcutBar = FindViewById(Resource.Id.top_shortcut_bar);
+		topShortcutButtons = FindViewById(Resource.Id.top_shortcut_buttons);
 		reverseButton = FindViewById<ImageButton>(Resource.Id.reverse_button);
 		reverseButton.Click += ReverseButton_Click;
 		passButton = FindViewById<ImageButton>(Resource.Id.pass_button);
@@ -941,6 +949,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		RegisterForContextMenu(notationListView);
 		notationText = FindViewById<TextView>(Resource.Id.notaton_text);
 		notationText.Click += NotationText_Click;
+		UpdateTopShortcutVisibility();
 		evalGraphView = FindViewById<EvalGraph>(Resource.Id.eval_graph);
 		if (evalGraphView != null)
 		{
@@ -2612,7 +2621,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			return;
 		}
 		char c = notation.MoveCurrent.Turn.ToChar();
-		notationText.Text = $"{notation.MoveCurrent.Number,3} {c}{notation.MoveCurrent.ToString(Settings.AppSettings.MoveStyle)}";
+		notationText.Text = $"{notation.MoveCurrent.Number} {c}{notation.MoveCurrent.ToString(Settings.AppSettings.MoveStyle)}";
 	}
 
 	private void UpdatePlayerInfoPosition()
@@ -2746,6 +2755,34 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			var drawer = FindViewById<Android.Views.View>(Resource.Id.drawer_layout);
 			if (drawer != null) drawer.SetFitsSystemWindows(false);
 		}
+
+		UpdateTopShortcutVisibility();
+	}
+
+	private void UpdateTopShortcutVisibility()
+	{
+		if (topShortcutBar == null)
+		{
+			return;
+		}
+
+		bool isPortrait = Resources?.Configuration?.Orientation != Orientation.Landscape;
+		if (!isPortrait || !Settings.AppSettings.DispToolbar)
+		{
+			topShortcutBar.Visibility = ViewStates.Visible;
+			if (topShortcutButtons != null)
+			{
+				topShortcutButtons.Visibility = ViewStates.Visible;
+			}
+			return;
+		}
+
+		bool showCloseButton = bookBrowseCloseButton?.Visibility == ViewStates.Visible;
+		if (topShortcutButtons != null)
+		{
+			topShortcutButtons.Visibility = ViewStates.Gone;
+		}
+		topShortcutBar.Visibility = showCloseButton ? ViewStates.Visible : ViewStates.Gone;
 	}
 
 	private string LoadTextFile(Android.Net.Uri uri)

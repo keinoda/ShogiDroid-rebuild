@@ -13,6 +13,7 @@
         android:orientation="vertical"
         android:padding="8dp">
         <LinearLayout
+            android:id="@id/top_shortcut_bar"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:background="@drawable/surface_panel_bg_compact"
@@ -22,6 +23,7 @@
             android:orientation="horizontal"
             android:padding="4dp">
             <LinearLayout
+                android:id="@id/top_shortcut_buttons"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:gravity="center_vertical"
@@ -155,13 +157,18 @@
                 android:background="@drawable/notation_box_bg"
                 android:ellipsize="end"
                 android:gravity="center"
-                android:paddingLeft="14dp"
-                android:paddingRight="14dp"
+                android:includeFontPadding="false"
+                android:paddingLeft="10dp"
+                android:paddingRight="10dp"
                 android:singleLine="true"
                 android:text="棋譜"
                 android:textColor="@color/notation_box_text"
                 android:textSize="13sp"
-                android:textStyle="bold" />
+                android:textStyle="bold"
+                app:autoSizeMaxTextSize="13sp"
+                app:autoSizeMinTextSize="10sp"
+                app:autoSizeStepGranularity="1sp"
+                app:autoSizeTextType="uniform" />
             <TextView
                 android:id="@id/state_text"
                 android:layout_width="0dp"

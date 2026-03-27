@@ -151,13 +151,18 @@
                     android:background="@drawable/notation_box_bg"
                     android:ellipsize="end"
                     android:gravity="center"
-                    android:paddingLeft="14dp"
-                    android:paddingRight="14dp"
+                    android:includeFontPadding="false"
+                    android:paddingLeft="10dp"
+                    android:paddingRight="10dp"
                     android:singleLine="true"
                     android:text="棋譜"
                     android:textColor="@color/notation_box_text"
                     android:textSize="13sp"
-                    android:textStyle="bold" />
+                    android:textStyle="bold"
+                    app:autoSizeMaxTextSize="13sp"
+                    app:autoSizeMinTextSize="10sp"
+                    app:autoSizeStepGranularity="1sp"
+                    app:autoSizeTextType="uniform" />
                 <TextView
                     android:id="@id/state_text"
                     android:layout_width="0dp"
