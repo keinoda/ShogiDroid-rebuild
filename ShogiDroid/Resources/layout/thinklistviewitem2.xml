@@ -15,7 +15,7 @@
     <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:gravity="center_vertical">
         <TextView android:ellipsize="end" android:id="@id/depth" android:layout_width="wrap_content" android:layout_height="wrap_content" android:includeFontPadding="false" android:singleLine="true" android:textColor="@color/secondary_text" android:textSize="10sp" />
         <TextView android:ellipsize="end" android:gravity="center" android:id="@id/rank" android:layout_width="16dp" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:includeFontPadding="false" android:singleLine="true" />
-        <TextView android:id="@id/value" android:layout_width="50dp" android:layout_height="wrap_content" android:layout_marginStart="3dp" android:gravity="center" android:includeFontPadding="false" android:singleLine="true" android:textSize="12sp" android:textStyle="bold" />
+        <TextView android:id="@id/value" android:layout_width="58dp" android:layout_height="wrap_content" android:layout_marginStart="3dp" android:gravity="center" android:includeFontPadding="false" android:singleLine="true" android:textSize="13sp" android:textStyle="bold" />
         <TextView android:ellipsize="end" android:id="@id/moves" android:layout_width="0dp" android:layout_height="wrap_content" android:layout_marginStart="4dp" android:layout_weight="1" android:includeFontPadding="false" android:maxLines="1" android:textSize="11sp" />
     </LinearLayout>
 </LinearLayout>

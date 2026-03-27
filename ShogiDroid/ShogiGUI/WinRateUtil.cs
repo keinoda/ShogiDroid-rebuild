@@ -71,9 +71,9 @@ public static class WinRateUtil
 			if (matePly > 0)
 				return $"詰み {matePly}手";
 			else if (matePly < 0)
-				return $"被詰み {-matePly}手";
+				return $"詰み {-matePly}手";
 			else
-				return cp < 0 ? "被詰み" : "詰み";
+				return "詰み";
 		}
 		return cp >= 0 ? $"+{cp}" : cp.ToString();
 	}
@@ -85,15 +85,17 @@ public static class WinRateUtil
 	{
 		if (isMate)
 		{
-			if (matePly > 0)
-				return $"詰み {matePly}手";
-			if (matePly < 0)
-				return $"被詰み {-matePly}手";
-			return cp < 0 ? "被詰み" : "詰み";
+			string winRateText = cp < 0 ? "0%" : "100%";
+			int displayPly = System.Math.Abs(matePly);
+			if (displayPly > 0)
+			{
+				return $"{winRateText}(詰{displayPly})";
+			}
+			return $"{winRateText}(詰)";
 		}
 		if (IsHisshiScore(cp))
 		{
-			return cp > 0 ? "先手必至" : "後手必至";
+			return cp > 0 ? "99%(必至)" : "1%(必至)";
 		}
 		int pct = (int)CpToWinPercent(cp, coefficient);
 		if (pct > 100) pct = 100;

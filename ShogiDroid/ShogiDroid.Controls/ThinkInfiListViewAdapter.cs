@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Android.App;
+using Android.Util;
 using Android.Views;
 using Android.Widget;
 using Java.Lang;
@@ -159,11 +160,11 @@ public class ThinkInfiListViewAdapter : BaseAdapter
 				{
 					if (pvInfo.HasMatePly)
 					{
-						evalStr = WinRateUtil.FormatWinRate(pvInfo.Score, true, pvInfo.MatePly, coeff);
+						evalStr = WinRateUtil.FormatWinRate(pvInfo.Eval, true, pvInfo.MatePly, coeff);
 					}
 					else
 					{
-						evalStr = pvInfo.Mate > 0 ? "詰み" : "被詰み";
+						evalStr = pvInfo.Eval < 0 ? "0%(詰)" : "100%(詰)";
 					}
 				}
 				else
@@ -218,6 +219,7 @@ public class ThinkInfiListViewAdapter : BaseAdapter
 		}
 
 		textView.Text = msg ?? string.Empty;
+		textView.SetTextSize(ComplexUnitType.Sp, GetEvalTextSizeSp(msg));
 		textView.TextScaleX = 1f;
 
 		var lp = textView.LayoutParameters;
@@ -237,6 +239,26 @@ public class ThinkInfiListViewAdapter : BaseAdapter
 		{
 			textView.TextScaleX = Math.Max(0.1f, availableWidth / textWidth);
 		}
+	}
+
+	private static float GetEvalTextSizeSp(string msg)
+	{
+		if (string.IsNullOrEmpty(msg))
+		{
+			return 13f;
+		}
+
+		if (!msg.Contains("("))
+		{
+			return 15f;
+		}
+
+		if (msg.Length <= 6)
+		{
+			return 14f;
+		}
+
+		return 13f;
 	}
 
 	public void SetPvInfo(PvInfos infos)
