@@ -49,7 +49,7 @@ namespace ShogiDroid;
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT" }, DataMimeType = "*/*", DataScheme = "file", DataHost = "*", DataPathPattern = ".*\\\\.csa")]
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT", "android.intent.category.BROWSABLE" }, DataScheme = "https", DataHost = "kishin-analytics.heroz.jp")]
 [IntentFilter(new string[] { "android.intent.action.SEND" }, Categories = new string[] { "android.intent.category.DEFAULT" }, DataMimeType = "message/rfc822")]
-public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequestPermissionsResultCallback, IJavaObject, IDisposable, IJavaPeerable
+public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequestPermissionsResultCallback, IJointBoardBranchHost, IJavaObject, IDisposable, IJavaPeerable
 {
 	private delegate void funcSaveNotationOkDelegate(string filename);
 
@@ -423,7 +423,22 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 
 	private void Show2ndBoard()
 	{
-		JointBoardDialog.NewInstance(presenter.Reverse, new SNotation(notation)).Show(FragmentManager, "JointBoardDialog");
+		ShowJointBoardDialog(new SNotation(notation), allowAddToNotation: false);
+	}
+
+	private void ShowJointBoardDialog(SNotation sNotation, bool allowAddToNotation)
+	{
+		if (sNotation == null)
+		{
+			return;
+		}
+		JointBoardDialog.NewInstance(presenter.Reverse, sNotation, allowAddToNotation).Show(FragmentManager, "JointBoardDialog");
+	}
+
+	public void AddJointBoardBranch(SNotation branchNotation)
+	{
+		presenter.AddBranch(branchNotation);
+		MessagePopup(GetString(Resource.String.JointBoardAdded_Text), lengthShort: true);
 	}
 
 	private void FileLoad()
@@ -1598,10 +1613,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		if (presenter.CheckPvInfo(e.Position, infoPageAdepter.DispMode))
 		{
 			SNotation sNotation = presenter.LoadPv(e.Position, infoPageAdepter.DispMode);
-			if (sNotation != null)
-			{
-				JointBoardDialog.NewInstance(presenter.Reverse, sNotation).Show(FragmentManager, "JointBoardDialog");
-			}
+			ShowJointBoardDialog(sNotation, allowAddToNotation: true);
 		}
 	}
 
@@ -2221,10 +2233,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		thinkListDialog.ItemClick = (EventHandler<ThinkListDialogItemClickEventArgs>)Delegate.Combine(thinkListDialog.ItemClick, (EventHandler<ThinkListDialogItemClickEventArgs>)delegate(object sender, ThinkListDialogItemClickEventArgs e)
 		{
 			SNotation sNotation = presenter.LoadMoves(e.Moves);
-			if (sNotation != null)
-			{
-				JointBoardDialog.NewInstance(presenter.Reverse, sNotation).Show(FragmentManager, "JointBoardDialog");
-			}
+			ShowJointBoardDialog(sNotation, allowAddToNotation: true);
 		});
 	}
 
@@ -2236,10 +2245,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			if (list.Count != 0)
 			{
 				SNotation sNotation = presenter.LoadMoves(list[0].Message);
-				if (sNotation != null)
-				{
-					JointBoardDialog.NewInstance(presenter.Reverse, sNotation).Show(FragmentManager, "JointBoardDialog");
-				}
+				ShowJointBoardDialog(sNotation, allowAddToNotation: true);
 			}
 		}
 		else

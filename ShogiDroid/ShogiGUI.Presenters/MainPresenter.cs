@@ -684,6 +684,11 @@ public class MainPresenter : PresenterBase<IMainView>
 		}
 	}
 
+	public void AddBranch(SNotation branchNotation)
+	{
+		Domain.Game.NotationModel.AddBranch(branchNotation);
+	}
+
 	public void AddComment(int pvnum, PVDispMode dispmode)
 	{
 		PvInfo pvInfo = Domain.Game.PvInfos.GetPvInfo(pvnum, dispmode);

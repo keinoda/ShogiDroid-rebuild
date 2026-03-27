@@ -470,6 +470,16 @@ public class NotationModel
 		}
 	}
 
+	public void AddBranch(SNotation branchNotation)
+	{
+		if (branchNotation == null)
+		{
+			return;
+		}
+		notation.AddBranch(branchNotation);
+		OnNotationChanged(new NotationEventArgs(NotationEventId.OTHER));
+	}
+
 	public void AddComment(string comment)
 	{
 		notation.MoveCurrent.CommentAdd(comment);

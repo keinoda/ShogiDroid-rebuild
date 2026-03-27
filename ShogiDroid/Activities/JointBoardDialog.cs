@@ -2,6 +2,8 @@ using Orientation = Android.Content.Res.Orientation;
 using System;
 using Android.App;
 using Android.Content.Res;
+using Android.Graphics;
+using Android.Graphics.Drawables;
 using Android.OS;
 using Android.Views;
 using Android.Widget;
@@ -11,6 +13,11 @@ using ShogiGUI.Events;
 using ShogiLib;
 
 namespace ShogiDroid;
+
+public interface IJointBoardBranchHost
+{
+	void AddJointBoardBranch(SNotation notation);
+}
 
 public class JointBoardDialog : DialogFragment
 {
@@ -24,11 +31,14 @@ public class JointBoardDialog : DialogFragment
 
 	private SNotation notation;
 
-	public static JointBoardDialog NewInstance(bool reverse, SNotation notation)
+	private bool allowAddToNotation;
+
+	public static JointBoardDialog NewInstance(bool reverse, SNotation notation, bool allowAddToNotation = false)
 	{
 		JointBoardDialog jointBoardDialog = new JointBoardDialog();
 		Bundle bundle = new Bundle();
 		bundle.PutBoolean("reverse", reverse);
+		bundle.PutBoolean("allow_add", allowAddToNotation);
 		jointBoardDialog.Arguments = bundle;
 		jointBoardDialog.notation = notation;
 		return jointBoardDialog;
@@ -37,10 +47,12 @@ public class JointBoardDialog : DialogFragment
 	public override Dialog OnCreateDialog(Bundle savedInstanceState)
 	{
 		bool boolean = base.Arguments.GetBoolean("reverse", defaultValue: false);
-		Dialog dialog = new Dialog(base.Activity);
+		allowAddToNotation = base.Arguments.GetBoolean("allow_add", defaultValue: false);
+		Dialog dialog = new Dialog(base.Activity, Resource.Style.AppTheme);
 		View view = base.Activity.LayoutInflater.Inflate(Resource.Layout.jointboarddialog, null);
 		dialog.RequestWindowFeature(1);
 		dialog.SetContentView(view);
+		dialog.Window?.SetBackgroundDrawable(new ColorDrawable(Color.Transparent));
 		shogiBoard = view.FindViewById<ShogiBoard>(Resource.Id.shogiboard);
 		shogiBoard.MakeMoveEvent += ShogiBoard_MakeMoveEvent;
 		prevButton = view.FindViewById<ImageButton>(Resource.Id.prev_button);
@@ -49,6 +61,16 @@ public class JointBoardDialog : DialogFragment
 		nextButton.Click += NextButton_Click;
 		reverseButton = view.FindViewById<ImageButton>(Resource.Id.reverse_button);
 		reverseButton.Click += ReverseButton_Click;
+		Button addBranchButton = view.FindViewById<Button>(Resource.Id.add_branch_button);
+		if (allowAddToNotation && Activity is IJointBoardBranchHost)
+		{
+			addBranchButton.Visibility = ViewStates.Visible;
+			addBranchButton.Click += AddBranchButton_Click;
+		}
+		else
+		{
+			addBranchButton.Visibility = ViewStates.Gone;
+		}
 		view.FindViewById<Button>(Resource.Id.RetButton).Click += delegate
 		{
 			dialog.Dismiss();
@@ -99,6 +121,15 @@ public class JointBoardDialog : DialogFragment
 			attributes.Height = base.Resources.DisplayMetrics.HeightPixels * 8 / 10;
 		}
 		dialog.Window.Attributes = attributes;
+	}
+
+	private void AddBranchButton_Click(object sender, EventArgs e)
+	{
+		if (Activity is IJointBoardBranchHost host)
+		{
+			host.AddJointBoardBranch(new SNotation(notation));
+			Dialog?.Dismiss();
+		}
 	}
 
 	private void ShogiBoard_MakeMoveEvent(object sender, MakeMoveEventArgs e)

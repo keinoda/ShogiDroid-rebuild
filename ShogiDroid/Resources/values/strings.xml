@@ -194,6 +194,9 @@
     <string name="String_Text">文字列</string>
     <string name="ThinkInfoMenuAddBranch_Text">分岐に追加</string>
     <string name="ThinkInfoMenuAddComment_Text">コメントに追加</string>
+    <string name="JointBoardTitle_Text">局面確認</string>
+    <string name="JointBoardAddBranch_Text">棋譜に追加</string>
+    <string name="JointBoardAdded_Text">読み筋を棋譜に追加しました</string>
     <string name="ThinkListDialogTitle_Text">思考情報</string>
     <string name="Think_Text">思考</string>
     <string name="Thinking_Text">思考中</string>

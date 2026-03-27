@@ -1,20 +1,103 @@
 <?xml version="1.0" encoding="utf-8"?>
-<LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent"
-  xmlns:android="http://schemas.android.com/apk/res/android" xmlns:app="http://schemas.android.com/apk/res-auto">
-    <RelativeLayout android:layout_width="fill_parent" android:layout_height="0.0dip" android:layout_weight="15.0">
-        <shogidroid.controls.shogiboard.ShogiBoard android:id="@id/shogiboard" android:background="@color/theme_background" android:layout_width="fill_parent" android:layout_height="fill_parent" android:layout_marginLeft="0.0dip" android:layout_marginRight="0.0dip" />
-    </RelativeLayout>
-    <LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="0.0dip" android:layout_weight="2.0">
-        <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:weightSum="16.0">
-            <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
-            <ImageButton android:id="@id/prev_button" android:layout_width="0.0dip" android:layout_height="wrap_content" android:src="@android:drawable/ic_media_play" android:layout_weight="3.0" android:scaleX="-1.0" />
-            <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
-            <ImageButton android:id="@id/next_button" android:layout_width="0.0dip" android:layout_height="wrap_content" android:src="@android:drawable/ic_media_play" android:layout_weight="3.0" />
-            <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
-            <ImageButton android:id="@id/reverse_button" android:layout_width="0.0dip" android:layout_height="wrap_content" android:src="@android:drawable/ic_menu_rotate" android:layout_weight="3.0" />
-            <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
-            <Button android:id="@id/RetButton" android:layout_width="wrap_content" android:layout_height="wrap_content" android:text="@string/Return_Text" />
-            <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+<LinearLayout
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:background="@drawable/window_background"
+    android:orientation="vertical"
+    android:padding="10dp"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:background="@drawable/surface_panel_bg"
+        android:elevation="6dp"
+        android:orientation="vertical"
+        android:padding="10dp">
+        <TextView
+            style="@style/AppTheme.SurfaceTitle"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:text="@string/JointBoardTitle_Text"
+            android:textSize="16sp" />
+        <FrameLayout
+            android:layout_width="fill_parent"
+            android:layout_height="0dp"
+            android:layout_marginTop="8dp"
+            android:layout_weight="1"
+            android:background="@drawable/board_frame_bg"
+            android:elevation="4dp"
+            android:padding="6dp">
+            <shogidroid.controls.shogiboard.ShogiBoard
+                android:id="@id/shogiboard"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:background="@color/theme_background" />
+        </FrameLayout>
+        <LinearLayout
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:background="@drawable/surface_panel_bg_compact"
+            android:elevation="4dp"
+            android:orientation="vertical"
+            android:padding="8dp">
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center"
+                android:orientation="horizontal">
+                <ImageButton
+                    android:id="@id/prev_button"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:background="@drawable/icon_button_bg"
+                    android:contentDescription="前の手"
+                    android:padding="8dp"
+                    android:scaleX="-1.0"
+                    android:src="@android:drawable/ic_media_play"
+                    android:tint="@color/icon_tint" />
+                <ImageButton
+                    android:id="@id/next_button"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/icon_button_bg"
+                    android:contentDescription="次の手"
+                    android:padding="8dp"
+                    android:src="@android:drawable/ic_media_play"
+                    android:tint="@color/icon_tint" />
+                <ImageButton
+                    android:id="@id/reverse_button"
+                    android:layout_width="44dp"
+                    android:layout_height="44dp"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/icon_button_bg"
+                    android:contentDescription="@string/MenuReverse_Text"
+                    android:padding="8dp"
+                    android:src="@android:drawable/ic_menu_rotate"
+                    android:tint="@color/icon_tint" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:gravity="end"
+                android:orientation="horizontal">
+                <Button
+                    android:id="@id/add_branch_button"
+                    style="@style/AppTheme.FilledButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/JointBoardAddBranch_Text" />
+                <Button
+                    android:id="@id/RetButton"
+                    style="@style/AppTheme.OutlinedButton"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginStart="8dp"
+                    android:text="@string/Return_Text" />
+            </LinearLayout>
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

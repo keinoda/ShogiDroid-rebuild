@@ -442,4 +442,5 @@
     <item type="id" name="ParallelNodesEdit" />
     <item type="id" name="ParallelThreadsEdit" />
     <item type="id" name="ParallelHashEdit" />
+    <item type="id" name="add_branch_button" />
 </resources>
