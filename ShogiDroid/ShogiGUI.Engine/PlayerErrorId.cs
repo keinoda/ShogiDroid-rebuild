@@ -2,5 +2,6 @@ namespace ShogiGUI.Engine;
 
 public enum PlayerErrorId
 {
-	InitializeTimeout
+	InitializeTimeout,
+	EngineDisconnected
 }

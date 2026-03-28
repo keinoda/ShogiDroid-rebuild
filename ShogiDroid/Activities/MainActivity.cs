@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Android.App;
@@ -75,6 +76,27 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 
 	private const int CAMERA_READ_CODE = 109;
 
+	private const int NOTIFICATION_PERMISSION_REQUEST_CODE = 110;
+
+	private const int BACKGROUND_ANALYSIS_NOTIFICATION_ID = 4203;
+
+	private const string BACKGROUND_ANALYSIS_NOTIFICATION_CHANNEL_ID = "background_analysis_status";
+
+	private sealed class BackgroundParallelAnalyzeRequest
+	{
+		public string InputPath { get; init; }
+
+		public string BaseFileName { get; init; }
+
+		public int Workers { get; init; }
+
+		public long NodesPerMove { get; init; }
+
+		public int ThreadsPerWorker { get; init; }
+
+		public int HashPerWorker { get; init; }
+	}
+
 	private ShogiBoard shogiBoard;
 
 	private ImageButton prevButton;
@@ -140,6 +162,10 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 	private TextView notationText;
 
 	private TextView threatmateBadge;
+
+	private BackgroundParallelAnalyzeRequest pendingBackgroundParallelAnalyzeRequest_;
+
+	private bool isActivityVisible_;
 
 	private View contextMenuParentView;
 
@@ -871,6 +897,10 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		CreateFolders();
 		if (Intent != null)
 		{
+			if (HandleBackgroundTaskIntent(Intent))
+			{
+				return;
+			}
 			if (Intent.Type != null && Intent.Type == "message/rfc822")
 			{
 				IntentRecive(Intent);
@@ -886,6 +916,10 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 	{
 		base.OnNewIntent(intent);
 		_ = Intent;
+		if (HandleBackgroundTaskIntent(intent))
+		{
+			return;
+		}
 		if (intent != null && presenter.LoadNotationFromWeb(intent.DataString))
 		{
 			PopupNotationInfo();
@@ -1048,8 +1082,17 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 	protected override void OnResume()
 	{
 		base.OnResume();
+		isActivityVisible_ = true;
 		PlaySE.Initialize(this);
 		presenter.Resume();
+		CancelBackgroundAnalysisNotification();
+		if (notation != null)
+		{
+			UpdateNotation(NotationEventId.OBJECT_CHANGED);
+			UpdateInfo(presenter.PvInfos);
+			UpdateHitInfo();
+			UpdateState();
+		}
 #if DEBUG
 		RegisterDebugReceiver();
 #endif
@@ -1060,16 +1103,19 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 #if DEBUG
 		UnregisterDebugReceiver();
 #endif
+		isActivityVisible_ = false;
 		base.OnPause();
 		shogiBoard.AnimationStop();
 		StoreSettings();
 		presenter.Pause();
+		UpdateBackgroundAnalysisNotification();
 		PlaySE.Destory();
 	}
 
 	protected override void OnDestroy()
 	{
 		base.OnDestroy();
+		CancelBackgroundAnalysisNotification();
 		StopRemoteMonitor();
 		presenter.Destory();
 		PlaySE.Destory();
@@ -1716,6 +1762,86 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			evalGraphView.DispComGraph = presenter.GameMode != GameMode.Play || Settings.AppSettings.ShowComputerThinking || presenter.BothComputer;
 		}
 		UpdateScreenOn();
+		UpdateBackgroundAnalysisNotification();
+	}
+
+	private void UpdateBackgroundAnalysisNotification()
+	{
+		if (isActivityVisible_ || !ShouldShowBackgroundAnalysisNotification())
+		{
+			CancelBackgroundAnalysisNotification();
+			return;
+		}
+
+		StartBackgroundAnalysisService(presenter.GameMode == GameMode.Consider);
+	}
+
+	private bool ShouldShowBackgroundAnalysisNotification()
+	{
+		if (Settings.EngineSettings.EngineNo != RemoteEnginePlayer.RemoteEngineNo)
+		{
+			return false;
+		}
+
+		if (presenter.GameMode != GameMode.Analyzer && presenter.GameMode != GameMode.Consider)
+		{
+			return false;
+		}
+
+		return presenter.Busy || presenter.ComState.IsThinking();
+	}
+
+	private PendingIntent BuildOpenMainActivityPendingIntent()
+	{
+		var openIntent = new Intent(this, typeof(MainActivity));
+		openIntent.SetFlags(ActivityFlags.SingleTop | ActivityFlags.ClearTop);
+		return PendingIntent.GetActivity(
+			this,
+			2,
+			openIntent,
+			PendingIntentFlags.UpdateCurrent | PendingIntentFlags.Immutable);
+	}
+
+	private void CreateBackgroundAnalysisNotificationChannel()
+	{
+		if (Build.VERSION.SdkInt < BuildVersionCodes.O)
+		{
+			return;
+		}
+
+		var manager = (NotificationManager)GetSystemService(NotificationService);
+		if (manager.GetNotificationChannel(BACKGROUND_ANALYSIS_NOTIFICATION_CHANNEL_ID) != null)
+		{
+			return;
+		}
+
+		var channel = new NotificationChannel(
+			BACKGROUND_ANALYSIS_NOTIFICATION_CHANNEL_ID,
+			GetString(Resource.String.BackgroundAnalyzeNotificationChannel_Text),
+			NotificationImportance.Low)
+		{
+			Description = GetString(Resource.String.BackgroundAnalyzeNotificationChannelDescription_Text)
+		};
+		manager.CreateNotificationChannel(channel);
+	}
+
+	private void CancelBackgroundAnalysisNotification()
+	{
+		StopBackgroundAnalysisService();
+		NotificationManagerCompat.From(this).Cancel(BACKGROUND_ANALYSIS_NOTIFICATION_ID);
+	}
+
+	private void StartBackgroundAnalysisService(bool isConsider)
+	{
+		var serviceIntent = new Intent(this, typeof(BackgroundAnalysisService));
+		serviceIntent.SetAction(BackgroundAnalysisService.ActionStart);
+		serviceIntent.PutExtra(BackgroundAnalysisService.ExtraIsConsider, isConsider);
+		ContextCompat.StartForegroundService(this, serviceIntent);
+	}
+
+	private void StopBackgroundAnalysisService()
+	{
+		StopService(new Intent(this, typeof(BackgroundAnalysisService)));
 	}
 
 	public void UpdateInfo(PvInfos pvinfos)
@@ -2035,6 +2161,15 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			if (grantResults.Length != 0 && grantResults[0] == Permission.Granted)
 			{
 				CreateFolders();
+			}
+		}
+		else if (requestCode == NOTIFICATION_PERMISSION_REQUEST_CODE)
+		{
+			if (pendingBackgroundParallelAnalyzeRequest_ != null)
+			{
+				bool granted = grantResults.Length != 0 && grantResults[0] == Permission.Granted;
+				StartParallelAnalysisService(pendingBackgroundParallelAnalyzeRequest_, showPermissionWarning: !granted);
+				pendingBackgroundParallelAnalyzeRequest_ = null;
 			}
 		}
 		else
@@ -2383,11 +2518,6 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		analyzeStartDialog.Show(FragmentManager, "AnalyzeStartDialog");
 	}
 
-	private CancellationTokenSource parallelAnalyzeCts_;
-	private AlertDialog parallelProgressDialog_;
-	private TextView parallelProgressText_;
-	private ProgressBar parallelProgressBar_;
-
 	private void ShowParallelSettingsDialog()
 	{
 		var layout = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Vertical };
@@ -2416,7 +2546,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 				if (int.TryParse(hashEdit.Text, out int h) && h > 0)
 					Settings.AnalyzeSettings.ParallelHashPerWorker = h;
 				Settings.Save();
-				RunParallelAnalysis();
+				StartParallelAnalysisInBackground();
 			})
 			.SetNegativeButton("キャンセル", (s, e) => { })
 			.Show();
@@ -2443,109 +2573,98 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		return et;
 	}
 
-	private async void RunParallelAnalysis()
+	private void StartParallelAnalysisInBackground()
 	{
-		int workers = Settings.AnalyzeSettings.ParallelWorkers;
-		long nodesPerMove = (long)Settings.AnalyzeSettings.ParallelNodesMillions * 1000000L;
-
-		parallelAnalyzeCts_ = new CancellationTokenSource();
-		var game = ShogiGUI.Domain.Game;
-
-		// 進捗ダイアログ作成
-		ShowParallelProgressDialog();
-
-		game.ParallelAnalyzeProgress += OnParallelProgress;
-
-		try
+		if (ParallelAnalysisService.IsRunning)
 		{
-			await game.ParallelAnalyzeAsync(workers, nodesPerMove, parallelAnalyzeCts_.Token);
-			RunOnUiThread(() =>
-			{
-				DismissParallelProgressDialog();
-				Toast.MakeText(this, "並列解析完了", ToastLength.Short).Show();
-				UpdateNotation(ShogiGUI.Events.NotationEventId.OBJECT_CHANGED);
-			});
+			Toast.MakeText(this, GetString(Resource.String.ParallelAnalyzeAlreadyRunning_Text), ToastLength.Short).Show();
+			return;
 		}
-		catch (System.OperationCanceledException)
+		if (!storagePermission)
 		{
-			RunOnUiThread(() =>
+			CreateFolders();
+			if (!storagePermission)
 			{
-				DismissParallelProgressDialog();
-				Toast.MakeText(this, "解析キャンセル", ToastLength.Short).Show();
-			});
-		}
-		catch (Exception ex)
-		{
-			RunOnUiThread(() =>
-			{
-				DismissParallelProgressDialog();
-				Toast.MakeText(this, $"解析エラー: {ex.Message}", ToastLength.Long).Show();
-			});
-		}
-		finally
-		{
-			game.ParallelAnalyzeProgress -= OnParallelProgress;
-			parallelAnalyzeCts_ = null;
-		}
-	}
-
-	private void ShowParallelProgressDialog()
-	{
-		var layout = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Vertical };
-		layout.SetPadding(48, 32, 48, 16);
-
-		parallelProgressText_ = new TextView(this) { Text = "並列解析を準備中..." };
-		parallelProgressText_.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
-		layout.AddView(parallelProgressText_);
-
-		parallelProgressBar_ = new ProgressBar(this, null, Android.Resource.Attribute.ProgressBarStyleHorizontal);
-		parallelProgressBar_.Indeterminate = true;
-		var barLp = new LinearLayout.LayoutParams(
-			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
-		barLp.TopMargin = 16;
-		parallelProgressBar_.LayoutParameters = barLp;
-		layout.AddView(parallelProgressBar_);
-
-		parallelProgressDialog_ = new AlertDialog.Builder(this)
-			.SetTitle("並列解析")
-			.SetView(layout)
-			.SetNegativeButton("キャンセル", (s, e) =>
-			{
-				parallelAnalyzeCts_?.Cancel();
-			})
-			.SetCancelable(false)
-			.Create();
-		parallelProgressDialog_.Show();
-	}
-
-	private void DismissParallelProgressDialog()
-	{
-		try { parallelProgressDialog_?.Dismiss(); } catch { }
-		parallelProgressDialog_ = null;
-		parallelProgressText_ = null;
-		parallelProgressBar_ = null;
-	}
-
-	private void OnParallelProgress(string msg)
-	{
-		RunOnUiThread(() =>
-		{
-			if (parallelProgressText_ != null)
-				parallelProgressText_.Text = msg;
-
-			// "解析中... 15/68" のような進捗からプログレスバーを更新
-			if (parallelProgressBar_ != null)
-			{
-				var m = System.Text.RegularExpressions.Regex.Match(msg, @"(\d+)/(\d+)");
-				if (m.Success && int.TryParse(m.Groups[1].Value, out int done)
-					&& int.TryParse(m.Groups[2].Value, out int total) && total > 0)
-				{
-					parallelProgressBar_.Indeterminate = false;
-					parallelProgressBar_.Max = total;
-					parallelProgressBar_.Progress = done;
-				}
+				return;
 			}
-		});
+		}
+
+		string baseFileName = presenter.NotationFileName != string.Empty
+			? presenter.NotationFileName
+			: presenter.NotationNewFileName;
+		string inputPath = CreateParallelAnalysisSnapshot(baseFileName);
+		var request = new BackgroundParallelAnalyzeRequest
+		{
+			InputPath = inputPath,
+			BaseFileName = baseFileName,
+			Workers = Settings.AnalyzeSettings.ParallelWorkers,
+			NodesPerMove = (long)Settings.AnalyzeSettings.ParallelNodesMillions * 1000000L,
+			ThreadsPerWorker = Settings.AnalyzeSettings.ParallelThreadsPerWorker,
+			HashPerWorker = Settings.AnalyzeSettings.ParallelHashPerWorker
+		};
+
+		if (Build.VERSION.SdkInt >= BuildVersionCodes.Tiramisu
+			&& ContextCompat.CheckSelfPermission(this, "android.permission.POST_NOTIFICATIONS") != Permission.Granted)
+		{
+			pendingBackgroundParallelAnalyzeRequest_ = request;
+			ActivityCompat.RequestPermissions(this, new[] { "android.permission.POST_NOTIFICATIONS" }, NOTIFICATION_PERMISSION_REQUEST_CODE);
+			return;
+		}
+
+		StartParallelAnalysisService(request, showPermissionWarning: false);
+	}
+
+	private string CreateParallelAnalysisSnapshot(string baseFileName)
+	{
+		string stem = System.IO.Path.GetFileNameWithoutExtension(baseFileName);
+		if (string.IsNullOrEmpty(stem))
+		{
+			stem = "parallel";
+		}
+		stem = stem.ReplaceInvalidFileNameChars();
+		string inputPath = System.IO.Path.Combine(LocalFile.PersonalFolderPath, $"parallel_input_{stem}_{DateTime.Now:yyyyMMdd_HHmmssfff}.kif");
+
+		var snapshot = new SNotation(presenter.Notation);
+		var kifu = new Kifu();
+		string ext = System.IO.Path.GetExtension(inputPath).ToLower();
+		Encoding encoding = ext.Length == 0 || ext[ext.Length - 1] != 'u'
+			? Encoding.GetEncoding(932)
+			: Encoding.UTF8;
+		kifu.Save(snapshot, inputPath, encoding);
+		return inputPath;
+	}
+
+	private void StartParallelAnalysisService(BackgroundParallelAnalyzeRequest request, bool showPermissionWarning)
+	{
+		var serviceIntent = new Intent(this, typeof(ParallelAnalysisService));
+		serviceIntent.SetAction(ParallelAnalysisService.ActionStart);
+		serviceIntent.PutExtra(ParallelAnalysisService.ExtraInputPath, request.InputPath);
+		serviceIntent.PutExtra(ParallelAnalysisService.ExtraBaseFileName, request.BaseFileName);
+		serviceIntent.PutExtra(ParallelAnalysisService.ExtraWorkers, request.Workers);
+		serviceIntent.PutExtra(ParallelAnalysisService.ExtraNodesPerMove, request.NodesPerMove);
+		serviceIntent.PutExtra(ParallelAnalysisService.ExtraThreadsPerWorker, request.ThreadsPerWorker);
+		serviceIntent.PutExtra(ParallelAnalysisService.ExtraHashPerWorker, request.HashPerWorker);
+		ContextCompat.StartForegroundService(this, serviceIntent);
+
+		int messageResId = showPermissionWarning
+			? Resource.String.ParallelAnalyzeNotificationPermissionMissing_Text
+			: Resource.String.ParallelAnalyzeStarted_Text;
+		Toast.MakeText(this, GetString(messageResId), ToastLength.Long).Show();
+	}
+
+	private bool HandleBackgroundTaskIntent(Intent intent)
+	{
+		string resultPath = intent?.GetStringExtra(ParallelAnalysisService.ExtraResultPath);
+		if (string.IsNullOrEmpty(resultPath) || !System.IO.File.Exists(resultPath))
+		{
+			return false;
+		}
+		if (presenter.LoadNotation(resultPath))
+		{
+			PopupNotationInfo();
+			return true;
+		}
+		return false;
 	}
 
 	private void CreateShortcutMenu(IMenu menu)

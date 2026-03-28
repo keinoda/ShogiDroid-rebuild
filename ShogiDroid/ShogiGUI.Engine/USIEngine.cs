@@ -33,6 +33,27 @@ public class USIEngine : IDisposable
 
 	public USIOptions Options => options_;
 
+	public bool IsAlive
+	{
+		get
+		{
+			lock (lockObj)
+			{
+				if (!initialized_ || string_queue_ == null || string_queue_.IsClose())
+				{
+					return false;
+				}
+				if (isRemote_)
+				{
+					bool sshAlive = sshClient_ != null && sshClient_.IsConnected && sshStream_ != null && sshStream_.CanRead;
+					bool tcpAlive = tcpClient_ != null && tcpClient_.Connected;
+					return sshAlive || tcpAlive;
+				}
+				return process_ != null && !process_.HasExited;
+			}
+		}
+	}
+
 	public void Dispose()
 	{
 		lock (lockObj)
@@ -377,23 +398,34 @@ public class USIEngine : IDisposable
 		return string_queue_.Pop(out str, timeout);
 	}
 
-	public void WriteLine(string str)
+	public bool WriteLine(string str)
 	{
 		try
 		{
 			if (isRemote_)
 			{
+				if (tcpWriter_ == null)
+				{
+					return false;
+				}
 				tcpWriter_.WriteLine(str);
 				tcpWriter_.Flush();
 			}
 			else
 			{
+				if (process_ == null || process_.HasExited)
+				{
+					return false;
+				}
 				process_.StandardInput.WriteLine(str);
 				process_.StandardInput.Flush();
 			}
+			return true;
 		}
-		catch
+		catch (Exception ex)
 		{
+			AppDebug.Log.ErrorException(ex, $"USIEngine.WriteLine failed: {str}");
+			return false;
 		}
 	}
 

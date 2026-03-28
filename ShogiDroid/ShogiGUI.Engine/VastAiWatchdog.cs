@@ -21,7 +21,9 @@ public sealed class VastAiWatchdog : IDisposable
 	private int idleTimeoutMinutes_;
 	private int monitoredInstanceId_;
 	private bool suspended_;
+	private bool statusPollInFlight_;
 	private string apiKey_;
+	private string lastKnownStatus_;
 
 	public static VastAiWatchdog Instance
 	{
@@ -42,6 +44,7 @@ public sealed class VastAiWatchdog : IDisposable
 	public int MonitoredInstanceId => monitoredInstanceId_;
 	public DateTime LastActivityTime => lastActivityTime_;
 	public int IdleTimeoutMinutes => idleTimeoutMinutes_;
+	public string LastKnownStatus => lastKnownStatus_;
 
 	/// <summary>Raised when an instance is auto-suspended.</summary>
 	public event Action<int> InstanceAutoSuspended;
@@ -64,6 +67,8 @@ public sealed class VastAiWatchdog : IDisposable
 			apiKey_ = apiKey;
 			idleTimeoutMinutes_ = idleTimeoutMinutes;
 			suspended_ = false;
+			statusPollInFlight_ = false;
+			lastKnownStatus_ = string.Empty;
 			lastActivityTime_ = DateTime.UtcNow;
 
 			// Check every 5 minutes
@@ -124,32 +129,105 @@ public sealed class VastAiWatchdog : IDisposable
 
 	private void CheckIdle(object state)
 	{
+		int instanceId;
+		string apiKey;
 		lock (lockObj_)
 		{
-			if (monitoredInstanceId_ <= 0 || suspended_)
+			if (monitoredInstanceId_ <= 0 || suspended_ || statusPollInFlight_)
 				return;
 
-			var idleTime = GetIdleTime();
-			AppDebug.Log.Info($"VastAiWatchdog: idle check — {idleTime.TotalMinutes:F0}min / {idleTimeoutMinutes_}min");
+			statusPollInFlight_ = true;
+			instanceId = monitoredInstanceId_;
+			apiKey = apiKey_;
+		}
 
-			if (idleTime.TotalMinutes >= idleTimeoutMinutes_)
+		_ = CheckIdleAsync(instanceId, apiKey);
+	}
+
+	private async System.Threading.Tasks.Task CheckIdleAsync(int instanceId, string apiKey)
+	{
+		try
+		{
+			VastAiInstance instance = null;
+			if (!string.IsNullOrEmpty(apiKey))
 			{
-				AppDebug.Log.Info($"VastAiWatchdog: idle timeout reached, suspending instance {monitoredInstanceId_}");
-				SuspendInstanceAsync();
+				using var manager = new VastAiManager(apiKey);
+				instance = await manager.GetInstanceAsync(instanceId);
+			}
+
+			bool shouldSuspend = false;
+			TimeSpan idleTime;
+
+			lock (lockObj_)
+			{
+				if (monitoredInstanceId_ != instanceId || suspended_)
+				{
+					return;
+				}
+
+				if (instance != null)
+				{
+					lastKnownStatus_ = instance.ActualStatus ?? string.Empty;
+					AppDebug.Log.Info($"VastAiWatchdog: instance {instanceId} status={instance.ActualStatus}, intended={instance.IntendedStatus}");
+
+					if (instance.IsStopped)
+					{
+						suspended_ = true;
+						checkTimer_?.Dispose();
+						checkTimer_ = null;
+						Settings.EngineSettings.VastAiInstanceId = instanceId;
+						Settings.Save();
+						AppDebug.Log.Info($"VastAiWatchdog: instance {instanceId} is already stopped");
+						return;
+					}
+
+					if (!instance.IsRunning && !instance.IsLoading)
+					{
+						AppDebug.Log.Info($"VastAiWatchdog: skip idle suspend because status is {instance.ActualStatus}");
+						return;
+					}
+				}
+
+				idleTime = GetIdleTime();
+				AppDebug.Log.Info($"VastAiWatchdog: idle check — {idleTime.TotalMinutes:F0}min / {idleTimeoutMinutes_}min");
+				shouldSuspend = idleTime.TotalMinutes >= idleTimeoutMinutes_;
+			}
+
+			if (!shouldSuspend)
+			{
+				return;
+			}
+
+			AppDebug.Log.Info($"VastAiWatchdog: idle timeout reached, suspending instance {instanceId}");
+			await SuspendInstanceAsync(instanceId, apiKey);
+		}
+		catch (Exception ex)
+		{
+			AppDebug.Log.Error($"VastAiWatchdog: idle poll failed: {ex.Message}");
+		}
+		finally
+		{
+			lock (lockObj_)
+			{
+				statusPollInFlight_ = false;
 			}
 		}
 	}
 
-	private async void SuspendInstanceAsync()
+	private async System.Threading.Tasks.Task SuspendInstanceAsync(int instanceId, string apiKey)
 	{
-		int instanceId = monitoredInstanceId_;
-		suspended_ = true;
-
 		try
 		{
-			using var manager = new VastAiManager(apiKey_);
+			using var manager = new VastAiManager(apiKey);
 			await manager.StopInstanceAsync(instanceId);
 			AppDebug.Log.Info($"VastAiWatchdog: instance {instanceId} auto-suspended");
+
+			lock (lockObj_)
+			{
+				suspended_ = true;
+				checkTimer_?.Dispose();
+				checkTimer_ = null;
+			}
 
 			Settings.EngineSettings.VastAiInstanceId = instanceId; // keep ID for resume
 			Settings.Save();
@@ -159,7 +237,6 @@ public sealed class VastAiWatchdog : IDisposable
 		catch (Exception ex)
 		{
 			AppDebug.Log.Error($"VastAiWatchdog: auto-suspend failed: {ex.Message}");
-			suspended_ = false; // retry next check
 		}
 	}
 
@@ -169,6 +246,9 @@ public sealed class VastAiWatchdog : IDisposable
 		checkTimer_ = null;
 		monitoredInstanceId_ = 0;
 		suspended_ = false;
+		statusPollInFlight_ = false;
+		apiKey_ = string.Empty;
+		lastKnownStatus_ = string.Empty;
 	}
 
 	public void Dispose()

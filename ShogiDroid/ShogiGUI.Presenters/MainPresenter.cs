@@ -53,6 +53,8 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public HintInfo HintInfo => Domain.Game.HintInfo;
 
+	public PvInfos PvInfos => Domain.Game.PvInfos;
+
 	public ThreatmateInfo ThreatmateInfo => Domain.Game.ThreatmateInfo;
 
 	public bool BothComputer => Domain.Game.BothComputer;
@@ -88,11 +90,24 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public override void Pause()
 	{
-		Domain.Game.Stop(pause: true);
-		if (Domain.Game.Notation.Count != 0)
+		bool keepRemoteAnalysisRunning = Domain.Game.ShouldKeepRemoteAnalysisRunningOnPause();
+		if (keepRemoteAnalysisRunning)
+		{
+			VastAiWatchdog.Instance.RecordActivity();
+		}
+		else
+		{
+			Domain.Game.Stop(pause: true);
+		}
+
+		if (!keepRemoteAnalysisRunning && Domain.Game.Notation.Count != 0)
 		{
 			Settings.AppSettings.FileName = Domain.Game.NotationModel.FileName;
 			Domain.Game.NotationModel.SaveTemp();
+		}
+		else
+		{
+			Settings.AppSettings.FileName = Domain.Game.NotationModel.FileName;
 		}
 		AutoPlayStop();
 		Settings.Save();
