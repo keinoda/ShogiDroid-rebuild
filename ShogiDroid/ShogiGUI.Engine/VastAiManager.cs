@@ -131,8 +131,9 @@ public class VastAiManager : IDisposable
 			throw new VastAiException($"インスタンス情報の取得に失敗しました: {response.StatusCode}");
 		}
 
-		var instance = JsonSerializer.Deserialize<VastAiInstance>(body);
-		return instance;
+		// API は {"instances": {…}} 形式で返す
+		var wrapper = JsonSerializer.Deserialize<VastAiInstanceWrapper>(body);
+		return wrapper?.Instance;
 	}
 
 	/// <summary>
@@ -149,20 +150,21 @@ public class VastAiManager : IDisposable
 			ct.ThrowIfCancellationRequested();
 
 			var instance = await GetInstanceAsync(instanceId, ct);
-			string status = instance?.ActualStatus ?? "unknown";
+			string actual = instance?.ActualStatus ?? "unknown";
+			string intended = instance?.IntendedStatus ?? "unknown";
 
-			progress?.Report($"ステータス: {status} ({attempt * 5}秒経過)");
-			AppDebug.Log.Info($"VastAi: instance {instanceId} status={status}, attempt={attempt}");
+			progress?.Report($"ステータス: {actual} (intended: {intended}, {attempt * 5}秒経過)");
+			AppDebug.Log.Info($"VastAi: instance {instanceId} actual={actual}, intended={intended}, attempt={attempt}");
 
-			if (status == "running" && !string.IsNullOrEmpty(instance.PublicIpAddr))
+			if (actual == "running" && !string.IsNullOrEmpty(instance.PublicIpAddr))
 			{
 				AppDebug.Log.Info($"VastAi: instance ready! IP={instance.PublicIpAddr}");
 				return instance;
 			}
 
-			if (status == "exited" || status == "error" || status == "offline")
+			if (instance != null && instance.HasStartupFailure)
 			{
-				throw new VastAiException($"インスタンスが異常終了しました: {status}");
+				throw new VastAiException($"インスタンスが異常終了しました: {actual} (intended: {intended})");
 			}
 
 			await Task.Delay(5000, ct);
@@ -577,16 +579,32 @@ public class VastAiInstance
 
 	public bool IsShogiInstance => Label == VastAiManager.ShogiLabel;
 	public bool IsRunning => ActualStatus == "running";
-	public bool IsStopped => ActualStatus == "exited" || IntendedStatus == "stopped";
-	public bool IsLoading => ActualStatus == "loading" || ActualStatus == "created";
+	public bool HasStartupFailure => ActualStatus == "error"
+		|| ActualStatus == "offline"
+		|| (ActualStatus == "exited" && IntendedStatus == "running");
+	/// <summary>
+	/// intended_status 基準で判定。actual_status は遅延するため信用しない。
+	/// </summary>
+	public bool IsStopped => IntendedStatus == "stopped"
+		|| (ActualStatus == "exited" && IntendedStatus != "running");
+	/// <summary>
+	/// actual がまだ running でないが intended が running の場合は起動中。
+	/// </summary>
+	public bool IsLoading => !HasStartupFailure
+		&& !IsStopped
+		&& ((IntendedStatus == "running" && ActualStatus != "running")
+			|| ActualStatus == "loading"
+			|| ActualStatus == "created");
 
 	public string StatusDisplay
 	{
 		get
 		{
-			if (IsRunning) return "稼働中";
-			if (IsStopped) return "休止中";
+			if (ActualStatus == "running") return "稼働中";
+			if (HasStartupFailure) return "エラー";
 			if (IsLoading) return "起動中";
+			if (IsStopped) return "休止中";
+			if (ActualStatus == "error") return "エラー";
 			return ActualStatus ?? "不明";
 		}
 	}
@@ -628,6 +646,18 @@ public class VastAiPortMapping
 	public string HostPort { get; set; }
 }
 
+/// <summary>
+/// GET /instances/{id} のレスポンス: {"instances": {…}}（単一オブジェクト）
+/// </summary>
+public class VastAiInstanceWrapper
+{
+	[JsonPropertyName("instances")]
+	public VastAiInstance Instance { get; set; }
+}
+
+/// <summary>
+/// GET /instances のレスポンス: {"instances": [{…}, …]}（配列）
+/// </summary>
 public class VastAiInstanceList
 {
 	[JsonPropertyName("instances")]

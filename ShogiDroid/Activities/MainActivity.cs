@@ -148,6 +148,12 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 
 	private bool isActivityVisible_;
 
+	private CancellationTokenSource vastAiBootCts_;
+
+	private Task vastAiBootTask_;
+
+	private bool isDestroyed_;
+
 	private View contextMenuParentView;
 
 	private ViewPager infoPager;
@@ -865,14 +871,9 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		InitCommand();
 		InitDrawer();
 
-		// vast.ai watchdog: notify user when instance is auto-suspended
-		VastAiWatchdog.Instance.InstanceAutoSuspended += (instanceId) =>
-		{
-			RunOnUiThread(() =>
-			{
-				Toast.MakeText(this, $"vast.ai インスタンス #{instanceId} をアイドルのため自動休止しました", ToastLength.Long).Show();
-			});
-		};
+		// vast.ai watchdog: 解析終了後のアイドルで全インスタンスを自動終了
+		VastAiWatchdog.Instance.InstanceAutoStopped -= OnVastAiAutoStopped;
+		VastAiWatchdog.Instance.InstanceAutoStopped += OnVastAiAutoStopped;
 		UpdateSettings();
 		UpdateNotation(NotationEventId.OBJECT_CHANGED);
 		CreateFolders();
@@ -1077,6 +1078,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		UnregisterDebugReceiver();
 #endif
 		isActivityVisible_ = false;
+		DismissVastAiBootDialog();
 		base.OnPause();
 		shogiBoard.AnimationStop();
 		StoreSettings();
@@ -1087,6 +1089,9 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 
 	protected override void OnDestroy()
 	{
+		isDestroyed_ = true;
+		CancelAutoBootVastAi();
+		VastAiWatchdog.Instance.InstanceAutoStopped -= OnVastAiAutoStopped;
 		base.OnDestroy();
 		CancelBackgroundAnalysisNotification();
 		StopRemoteMonitor();
@@ -2357,6 +2362,292 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			StopRemoteMonitor();
 	}
 
+	private void OnVastAiAutoStopped()
+	{
+		RunOnUiThread(() =>
+		{
+			Toast.MakeText(this, "vast.ai インスタンスをアイドルのため一時停止しました", ToastLength.Long).Show();
+		});
+	}
+
+	private bool HasActiveVastAiBoot()
+	{
+		return vastAiBootTask_ != null && !vastAiBootTask_.IsCompleted;
+	}
+
+	private void CancelAutoBootVastAi()
+	{
+		if (vastAiBootCts_ != null && !vastAiBootCts_.IsCancellationRequested)
+		{
+			vastAiBootCts_.Cancel();
+		}
+
+		DismissVastAiBootDialog();
+	}
+
+	private void CompleteAutoBootVastAi(CancellationTokenSource cts)
+	{
+		if (ReferenceEquals(vastAiBootCts_, cts))
+		{
+			vastAiBootCts_ = null;
+			vastAiBootTask_ = null;
+		}
+
+		cts.Dispose();
+	}
+
+	private void RunOnUiThreadIfAlive(CancellationToken ct, Action action)
+	{
+		if (ct.IsCancellationRequested || isDestroyed_ || IsFinishing)
+		{
+			return;
+		}
+
+		RunOnUiThread(() =>
+		{
+			if (ct.IsCancellationRequested || isDestroyed_ || IsFinishing)
+			{
+				return;
+			}
+
+			action();
+		});
+	}
+
+	private void RunOnUiThreadIfVisible(CancellationToken ct, Action action)
+	{
+		RunOnUiThreadIfAlive(ct, () =>
+		{
+			if (!isActivityVisible_)
+			{
+				return;
+			}
+
+			action();
+		});
+	}
+
+	private IProgress<string> CreateVastAiBootProgress(CancellationToken ct)
+	{
+		return new Progress<string>(msg =>
+		{
+			RunOnUiThreadIfVisible(ct, () => SetStatusText(msg));
+		});
+	}
+
+	public void OnVastAiBootRequired()
+	{
+		RunOnUiThread(() =>
+		{
+			if (HasActiveVastAiBoot())
+			{
+				AppDebug.Log.Info("AutoBootVastAi: boot already in progress");
+				return;
+			}
+
+			var cts = new CancellationTokenSource();
+			vastAiBootCts_ = cts;
+			vastAiBootTask_ = AutoBootVastAiAsync(cts);
+		});
+	}
+
+	private AlertDialog vastAiBootDialog_;
+	private TextView vastAiBootStatusText_;
+
+	private void ShowVastAiBootDialog(string message)
+	{
+		DismissVastAiBootDialog();
+		var layout = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Vertical };
+		layout.SetPadding(48, 32, 48, 16);
+
+		vastAiBootStatusText_ = new TextView(this) { Text = message };
+		vastAiBootStatusText_.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
+		layout.AddView(vastAiBootStatusText_);
+
+		var bar = new ProgressBar(this, null, Android.Resource.Attribute.ProgressBarStyleHorizontal);
+		bar.Indeterminate = true;
+		var barLp = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+		barLp.TopMargin = 16;
+		bar.LayoutParameters = barLp;
+		layout.AddView(bar);
+
+		vastAiBootDialog_ = new AlertDialog.Builder(this)
+			.SetTitle("インスタンス起動中")
+			.SetView(layout)
+			.SetCancelable(false)
+			.Create();
+		vastAiBootDialog_.Show();
+	}
+
+	private void DismissVastAiBootDialog()
+	{
+		try { vastAiBootDialog_?.Dismiss(); } catch { }
+		vastAiBootDialog_ = null;
+		vastAiBootStatusText_ = null;
+	}
+
+	private void SetStatusText(string text)
+	{
+		if (string.IsNullOrEmpty(text))
+		{
+			DismissVastAiBootDialog();
+			return;
+		}
+		if (vastAiBootDialog_ == null)
+		{
+			ShowVastAiBootDialog(text);
+		}
+		else if (vastAiBootStatusText_ != null)
+		{
+			vastAiBootStatusText_.Text = text;
+		}
+	}
+
+	private async System.Threading.Tasks.Task AutoBootVastAiAsync(CancellationTokenSource cts)
+	{
+		CancellationToken ct = cts.Token;
+		string apiKey = Settings.EngineSettings.VastAiApiKey;
+		int lastInstanceId = Settings.EngineSettings.VastAiInstanceId;
+
+		if (string.IsNullOrEmpty(apiKey) || lastInstanceId <= 0)
+		{
+			Toast.MakeText(this, GetString(Resource.String.VastAiBootFailed_Text), ToastLength.Long).Show();
+			return;
+		}
+
+		// プログレスダイアログを表示
+		ShowVastAiBootDialog(GetString(Resource.String.VastAiBooting_Text));
+
+		try
+		{
+			using var manager = new VastAiManager(apiKey);
+
+			// 前回のインスタンスを探す
+			var instances = await manager.ListInstancesAsync(ct);
+			VastAiInstance target = null;
+			foreach (var inst in instances)
+			{
+				if (inst.Id == lastInstanceId)
+				{
+					target = inst;
+					break;
+				}
+			}
+
+			var bootProgress = CreateVastAiBootProgress(ct);
+
+			if (target != null && target.IsRunning && !string.IsNullOrEmpty(target.PublicIpAddr))
+			{
+				// 既に稼働中ならSSH待ちだけ行う
+				AppDebug.Log.Info($"AutoBootVastAi: instance {lastInstanceId} は稼働中");
+			}
+			else if (target != null && (target.IsRunning || target.IsLoading))
+			{
+				RunOnUiThreadIfVisible(ct, () => SetStatusText("既存インスタンスの起動完了を待機中..."));
+				target = await manager.WaitForReadyAsync(lastInstanceId, bootProgress, ct);
+			}
+			else if (target != null && target.IsStopped)
+			{
+				// 休止中なら再開
+				RunOnUiThreadIfVisible(ct, () => SetStatusText("インスタンス再開中..."));
+				await manager.StartInstanceAsync(lastInstanceId, ct);
+				target = await manager.WaitForReadyAsync(lastInstanceId, bootProgress, ct);
+			}
+			else
+			{
+				// インスタンスが存在しない場合は新規検索＆作成
+				RunOnUiThreadIfVisible(ct, () => SetStatusText("新規インスタンスを検索中..."));
+				target = await SearchAndCreateInstance(manager, ct);
+			}
+
+			ct.ThrowIfCancellationRequested();
+
+			if (target == null || !target.IsRunning)
+			{
+				throw new VastAiException("インスタンスの起動に失敗しました");
+			}
+
+			// エンジン接続設定を更新
+			var (sshHost, sshPort) = target.GetSshEndpoint();
+			Settings.EngineSettings.RemoteHost = sshHost;
+			Settings.EngineSettings.VastAiSshPort = sshPort;
+			Settings.EngineSettings.VastAiInstanceId = target.Id;
+			Settings.EngineSettings.VastAiCpuCores = (int)target.CpuCoresEffective;
+			Settings.EngineSettings.VastAiRamMb = (int)(target.CpuRamGb * 1024);
+			Settings.EngineSettings.VastAiGpuRamMb = (int)(target.GpuRamGb * 1024);
+			Settings.Save();
+
+			// Watchdog を再開
+			VastAiWatchdog.Instance.StartMonitoring(target.Id, apiKey);
+			VastAiWatchdog.Instance.SaveLastConnectionInfo(
+				target.Id, sshHost, sshPort,
+				Settings.EngineSettings.VastAiSshEngineCommand);
+
+			RunOnUiThreadIfAlive(ct, () =>
+			{
+				SetStatusText(string.Empty);
+				// 保留中の操作を再開
+				ShogiGUI.Domain.Game.ResumeAfterVastAiBoot();
+			});
+		}
+		catch (System.OperationCanceledException)
+		{
+			AppDebug.Log.Info("AutoBootVastAi: cancelled");
+		}
+		catch (Exception ex)
+		{
+			AppDebug.Log.Error($"AutoBootVastAi: {ex.Message}");
+			RunOnUiThreadIfVisible(ct, () =>
+			{
+				SetStatusText(string.Empty);
+				Toast.MakeText(this, $"{GetString(Resource.String.VastAiBootFailed_Text)}: {ex.Message}", ToastLength.Long).Show();
+			});
+		}
+		finally
+		{
+			CompleteAutoBootVastAi(cts);
+		}
+	}
+
+	private async System.Threading.Tasks.Task<VastAiInstance> SearchAndCreateInstance(
+		VastAiManager manager,
+		CancellationToken ct)
+	{
+		// 前回の検索条件で新規インスタンスを作成
+		var criteria = new VastAiSearchCriteria
+		{
+			GpuNames = Settings.EngineSettings.VastAiGpuNames?.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries)
+				?? new[] { "RTX 4090" },
+			MinCpuCoresEffective = Settings.EngineSettings.VastAiMinCpuCores,
+			MaxDphTotal = Settings.EngineSettings.VastAiMaxDph,
+			MinCudaVersion = Settings.EngineSettings.VastAiMinCudaVersion,
+			RentType = "bid"
+		};
+
+		var offers = await manager.SearchOffersAsync(criteria, ct);
+		if (offers == null || offers.Count == 0)
+			throw new VastAiException("条件に合うオファーが見つかりません");
+
+		var offer = offers[0]; // 最安値
+		RunOnUiThreadIfVisible(ct, () => SetStatusText($"インスタンス作成中... ({offer.GpuName})"));
+
+		var config = new VastAiInstanceConfig
+		{
+			DockerImage = Settings.EngineSettings.VastAiDockerImage,
+			Ports = Array.Empty<int>(),
+			DiskGb = 8.0,
+			OnStartCmd = Settings.EngineSettings.VastAiOnStartCmd,
+			BidPrice = offer.DphTotal
+		};
+
+		int newId = await manager.CreateInstanceAsync(offer.Id, config, ct);
+		Settings.EngineSettings.VastAiInstanceId = newId;
+		Settings.Save();
+
+		return await manager.WaitForReadyAsync(newId, CreateVastAiBootProgress(ct), ct);
+	}
+
 	private void StartRemoteMonitor()
 	{
 		// 既に動作中なら何もしない
@@ -2970,9 +3261,22 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 				SystemUiFlags.LayoutHideNavigation |
 				SystemUiFlags.LayoutFullscreen);
 			Window.Attributes.Flags |= WindowManagerFlags.Fullscreen;
+			// ステータスバー・ナビバーを完全透明にしてウィンドウ背景を透過
+			Window.SetStatusBarColor(Android.Graphics.Color.Transparent);
+			Window.SetNavigationBarColor(Android.Graphics.Color.Transparent);
+			// ノッチ・カットアウト領域にもコンテンツを描画
+			if (Android.OS.Build.VERSION.SdkInt >= Android.OS.BuildVersionCodes.P)
+			{
+				Window.Attributes.LayoutInDisplayCutoutMode =
+					Android.Views.LayoutInDisplayCutoutMode.ShortEdges;
+			}
 			AndroidX.Core.View.WindowCompat.SetDecorFitsSystemWindows(Window, false);
-			var drawer = FindViewById<Android.Views.View>(Resource.Id.drawer_layout);
-			if (drawer != null) drawer.SetFitsSystemWindows(false);
+			var drawer = FindViewById<AndroidX.DrawerLayout.Widget.DrawerLayout>(Resource.Id.drawer_layout);
+			if (drawer != null)
+			{
+				drawer.SetFitsSystemWindows(false);
+				drawer.SetStatusBarBackgroundColor(Android.Graphics.Color.Transparent);
+			}
 		}
 
 		UpdateTopShortcutVisibility();

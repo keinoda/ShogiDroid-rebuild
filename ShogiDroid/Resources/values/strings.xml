@@ -125,6 +125,8 @@
     <string name="MessageGameStop_Text">対局中断</string>
     <string name="MessageInitializeError_Text">エンジン起動エラー</string>
     <string name="MessageInitialized_Text">エンジン起動中</string>
+    <string name="VastAiBooting_Text">インスタンス起動中...</string>
+    <string name="VastAiBootFailed_Text">vast.ai インスタンスの自動起動に失敗しました</string>
     <string name="Min_Text">最小値</string>
     <string name="Moves_Text">読み筋</string>
     <string name="Nodes_Text">ノード数</string>

@@ -873,6 +873,9 @@ public class MainPresenter : PresenterBase<IMainView>
 		case GameEventId.InitializeError:
 			view.Message(MainViewMessageId.InitializeError);
 			break;
+		case GameEventId.VastAiBootRequired:
+			view.OnVastAiBootRequired();
+			break;
 		case GameEventId.GameStart:
 			if (gameStartPopup)
 			{
