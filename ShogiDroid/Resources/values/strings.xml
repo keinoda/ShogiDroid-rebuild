@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">将棋ドロイドR</string>
+    <string name="app_name">ShogiDroid</string>
     <string name="ActivityNotFound_Text">アプリがありません</string>
     <string name="Analysis_Text">解析</string>
     <string name="Analysis_comment_Text" formatted="false">一致率 先手 {0}% = {1}/{2} 後手 {3}% = {4}/{5}</string>
@@ -243,7 +243,8 @@
     <string name="fallback_menu_item_share_link">リンクの共有</string>
     <string name="hide_bottom_view_on_scroll_behavior">com.google.android.material.behavior.HideBottomViewOnScrollBehavior</string>
     <string name="permission_external_storage">ストレージの書き込みを許可しますか？</string>
-    <string name="app_text">将棋ドロイドR</string>
+    <string name="app_text">ShogiDroid</string>
+    <string name="EngineDownloadPageUnavailable_Text">エンジンダウンロードページは未設定です</string>
     <string name="Menu_CameraRead_Text">盤面読み取り</string>
     <string name="SettingsIncrement_Text">加算(フィッシャー)</string>
     <string name="EngineSettingsTitle_Text">エンジン設定</string>

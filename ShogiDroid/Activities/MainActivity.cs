@@ -996,7 +996,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		// ドロワーのアダプター設定はpresenter初期化後にInitDrawer()で行う
 		TextView textView = FindViewById<TextView>(Resource.Id.app_name);
 		AssemblyName name = Assembly.GetExecutingAssembly().GetName();
-		textView.Text = "ShogiDroidR ver " + name.Version;
+		textView.Text = "ShogiDroid ver " + name.Version;
 		topName = FindViewById<TextView>(Resource.Id.top_name);
 		topTime = FindViewById<TextView>(Resource.Id.top_time);
 		bottomName = FindViewById<TextView>(Resource.Id.bottom_name);
@@ -1556,7 +1556,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			drawerLayout.CloseDrawers();
 			break;
 		case Resource.Id.menu_about:
-			ShowUrl("http://shogidroid.siganus.com");
+			MessagePopup(GetString(Resource.String.app_name) + " ver " + Assembly.GetExecutingAssembly().GetName().Version, lengthShort: true);
 			break;
 		case Resource.Id.thinkinfo_add_branch:
 			presenter.AddBranch(selpvnum, infoPageAdepter.DispMode);
@@ -3049,7 +3049,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 	{
 		if (debugReceiver != null) return;
 		debugReceiver = new DebugCommandReceiver(this);
-		var filter = new IntentFilter("com.siganus.ShogiDroid.rebuild.DEBUG");
+		var filter = new IntentFilter("com.ngs43.shogidroid.DEBUG");
 		if ((int)Build.VERSION.SdkInt >= 33)
 			RegisterReceiver(debugReceiver, filter, (ActivityFlags)0x2 /* RECEIVER_EXPORTED */);
 		else

@@ -1,4 +1,4 @@
-# 開発ノート — ShogiDroid Rebuild
+# 開発ノート — ShogiDroid (ngs43 build)
 
 デコンパイル → .NET 9 Android 移植で得られた知見をまとめる。
 
@@ -51,7 +51,7 @@ process_.StartInfo.Arguments = actualBinaryPath;
 
 ### 2.4 ContentProvider の競合
 - **問題**: 元のアプリと同じ authority だと `INSTALL_FAILED_CONFLICTING_PROVIDER` でインストールできない
-- **対策**: authority を `com.siganus.ShogiDroid.rebuild.provider` に変更
+- **対策**: authority を `com.ngs43.shogidroid.provider` に変更
 
 ## 3. デコンパイラの不具合
 
@@ -92,7 +92,7 @@ process_.StartInfo.Arguments = actualBinaryPath;
 DOTNET_ROOT=/usr/local/share/dotnet /usr/local/share/dotnet/dotnet build -c Debug
 ```
 - `android-arm64` 単一アーキテクチャでビルド
-- 出力 APK: `ShogiDroid/bin/Debug/net9.0-android/android-arm64/com.siganus.ShogiDroid.rebuild-Signed.apk`
+- 出力 APK: `ShogiDroid/bin/Debug/net9.0-android/android-arm64/com.ngs43.shogidroid-Signed.apk`
 
 #### Release ビルド
 ```bash
@@ -100,12 +100,12 @@ DOTNET_ROOT=/usr/local/share/dotnet /usr/local/share/dotnet/dotnet build -c Rele
 ```
 - AOT コンパイルが走るため Debug より時間がかかる
 - 目安時間は約2分
-- 出力 APK: `ShogiDroid/bin/Release/net9.0-android/android-arm64/com.siganus.ShogiDroid.rebuild-Signed.apk`
+- 出力 APK: `ShogiDroid/bin/Release/net9.0-android/android-arm64/com.ngs43.shogidroid-Signed.apk`
 
 #### 実機インストール
 ```bash
-adb install -r ShogiDroid/bin/Release/net9.0-android/android-arm64/com.siganus.ShogiDroid.rebuild-Signed.apk
-adb shell am start -n com.siganus.ShogiDroid.rebuild/crc64721063ab64a94a2e.MainActivity
+adb install -r ShogiDroid/bin/Release/net9.0-android/android-arm64/com.ngs43.shogidroid-Signed.apk
+adb shell am start -n com.ngs43.shogidroid/crc64721063ab64a94a2e.MainActivity
 ```
 
 #### ワイヤレスデバッグ接続

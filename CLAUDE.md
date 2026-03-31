@@ -1,4 +1,4 @@
-# ShogiDroid Rebuild (将棋ドロイドR)
+# ShogiDroid (ngs43 build)
 
 配布終了した将棋ドロイド改造版をデコンパイルし、.NET 9 Android で再ビルドしたフォーク。
 
@@ -23,28 +23,28 @@ DOTNET_ROOT=/usr/local/share/dotnet /usr/local/share/dotnet/dotnet build -c Rele
 
 ```bash
 # インストール
-adb install -r ShogiDroid/bin/Debug/net9.0-android/android-arm64/com.siganus.ShogiDroid.rebuild-Signed.apk
+adb install -r ShogiDroid/bin/Debug/net9.0-android/android-arm64/com.ngs43.shogidroid-Signed.apk
 
 # 起動
-adb shell am start -n com.siganus.ShogiDroid.rebuild/crc64721063ab64a94a2e.MainActivity
+adb shell am start -n com.ngs43.shogidroid/crc64721063ab64a94a2e.MainActivity
 
 # ログ確認
 adb logcat -s ShogiDroid
 
 # ストレージ権限付与（API 30+）
-adb shell appops set com.siganus.ShogiDroid.rebuild MANAGE_EXTERNAL_STORAGE allow
+adb shell appops set com.ngs43.shogidroid MANAGE_EXTERNAL_STORAGE allow
 
 # デバッグコマンド（Debug ビルドのみ）
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd analyze
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd next
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd prev
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd first
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd last
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd reverse
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd menu
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd stop
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd screenshot
-adb shell am broadcast -a com.siganus.ShogiDroid.rebuild.DEBUG --es cmd book_load --es path /sdcard/book.db
+adb shell am broadcast -a com.ngs43.shogidroid.DEBUG --es cmd analyze
+adb shell am broadcast -a com.ngs43.shogidroid.DEBUG --es cmd next
+adb shell am broadcast -a com.ngs43.shogidroid.DEBUG --es cmd prev
+adb shell am broadcast -a com.ngs43.shogidroid.DEBUG --es cmd first
+adb shell am broadcast -a com.ngs43.shogidroid.DEBUG --es cmd last
+adb shell am broadcast -a com.ngs43.shogidroid.DEBUG --es cmd reverse
+adb shell am broadcast -a com.ngs43.shogidroid.DEBUG --es cmd menu
+adb shell am broadcast -a com.ngs43.shogidroid.DEBUG --es cmd stop
+adb shell am broadcast -a com.ngs43.shogidroid.DEBUG --es cmd screenshot
+adb shell am broadcast -a com.ngs43.shogidroid.DEBUG --es cmd book_load --es path /sdcard/book.db
 ```
 
 ## プロジェクト構成
@@ -78,8 +78,8 @@ ShogiDroid/
 - chmod 値: 484 (10進) = 0744 (8進) = rwxr--r--
 
 ### アプリ識別
-- ApplicationId: `com.siganus.ShogiDroid.rebuild`（元の `com.siganus.ShogiDroid` と共存可能）
-- ContentProvider authority: `com.siganus.ShogiDroid.rebuild.provider`
+- ApplicationId: `com.ngs43.shogidroid`
+- ContentProvider authority: `com.ngs43.shogidroid.provider`
 
 ### vast.ai クラウドエンジン接続
 - SSH.NET ライブラリによる SSH 接続（平文 TCP から移行済み）
@@ -92,7 +92,7 @@ ShogiDroid/
 
 ### 棋神アナリティクス連携
 - `kishin-analytics.heroz.jp` の Deep Link 対応
-- 将棋ウォーズのAIボタンからShogiDroidで棋譜を直接読み込み可能
+- 将棋ウォーズのAIボタンから ShogiDroid で棋譜を直接読み込み可能
 - 端末側で「デフォルトで開く」設定が必要（Android 12+ のドメイン検証制約）
 
 ## 元のアプリとの差分

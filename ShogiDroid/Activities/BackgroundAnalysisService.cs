@@ -9,9 +9,9 @@ namespace ShogiDroid;
 [Service(Exported = false, ForegroundServiceType = ForegroundService.TypeDataSync)]
 public class BackgroundAnalysisService : Service
 {
-	public const string ActionStart = "com.siganus.ShogiDroid.rebuild.action.START_BACKGROUND_ANALYSIS";
+	public const string ActionStart = "com.ngs43.shogidroid.action.START_BACKGROUND_ANALYSIS";
 
-	public const string ActionStop = "com.siganus.ShogiDroid.rebuild.action.STOP_BACKGROUND_ANALYSIS";
+	public const string ActionStop = "com.ngs43.shogidroid.action.STOP_BACKGROUND_ANALYSIS";
 
 	public const string ExtraIsConsider = "extra_is_consider";
 

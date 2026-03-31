@@ -1,5 +1,5 @@
 #!/bin/bash
-# ShogiDroid Rebuild - ビルドスクリプト
+# ShogiDroid - ビルドスクリプト
 set -e
 
 DOTNET=/usr/local/share/dotnet/dotnet
@@ -15,7 +15,7 @@ echo ""
 
 $DOTNET build -c "$CONFIG" "$CSPROJ"
 
-APK="$PROJECT_DIR/ShogiDroid/bin/${CONFIG}/net9.0-android/android-arm64/com.siganus.ShogiDroid.rebuild-Signed.apk"
+APK="$PROJECT_DIR/ShogiDroid/bin/${CONFIG}/net9.0-android/android-arm64/com.ngs43.shogidroid-Signed.apk"
 if [ -f "$APK" ]; then
     echo ""
     echo "=== APK generated ==="

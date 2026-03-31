@@ -16,7 +16,7 @@ namespace ShogiGUI.Engine;
 public class VastAiManager : IDisposable
 {
 	private const string BaseUrl = "https://console.vast.ai/api/v0";
-	public const string ShogiLabel = "ShogiDroidR";
+	public const string ShogiLabel = "ShogiDroid-ngs43";
 	private readonly HttpClient httpClient_;
 	private string apiKey_;
 	private int? currentInstanceId_;
@@ -418,7 +418,7 @@ public class VastAiSearchCriteria
 
 public class VastAiInstanceConfig
 {
-	public string DockerImage = "keinoda/shogi:v9.0";
+	public string DockerImage = "ngs43/shogi:v9.0";
 	public int[] Ports = Array.Empty<int>();
 	public double DiskGb = 8.0;
 	public string OnStartCmd = "";

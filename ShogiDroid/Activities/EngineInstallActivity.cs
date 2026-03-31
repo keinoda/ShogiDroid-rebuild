@@ -183,9 +183,7 @@ public class EngineInstallActivity : ThemedActivity, IEngineInstallView
 
 	public void DownloadWebPage()
 	{
-		Android.Net.Uri uri = Android.Net.Uri.Parse("http://shogidroid.siganus.com/engines.html");
-		Intent intent = new Intent("android.intent.action.VIEW", uri);
-		StartActivity(intent);
+		MessagePopup(Resource.String.EngineDownloadPageUnavailable_Text);
 	}
 
 	public void InstallProgress(string filename, int progress)
