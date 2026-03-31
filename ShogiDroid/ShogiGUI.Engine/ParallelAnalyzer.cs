@@ -163,7 +163,7 @@ public class ParallelAnalyzer
 	}
 
 	/// <summary>
-	/// エンジンコマンド ("cd /workspace/X && exec ./Y") からパスと作業ディレクトリを抽出
+	/// エンジンコマンド (<c>cd /workspace/X &amp;&amp; exec ./Y</c>) からパスと作業ディレクトリを抽出
 	/// </summary>
 	private void ParseEngineCommand(string cmd, out string enginePath, out string engineCwd)
 	{
