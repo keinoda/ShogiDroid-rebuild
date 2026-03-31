@@ -18,6 +18,8 @@ public class LocalFile
 
 	public static string BookPath => Path.Combine(StorageFolderPath, "book");
 
+	public static string SettingsPath => Path.Combine(StorageFolderPath, "settings");
+
 	public static void CreateFolders()
 	{
 		string storageFolderPath = StorageFolderPath;
@@ -26,6 +28,7 @@ public class LocalFile
 			Directory.CreateDirectory(KifPath);
 			Directory.CreateDirectory(EnginePath);
 			Directory.CreateDirectory(Path.Combine(storageFolderPath, "book"));
+			Directory.CreateDirectory(SettingsPath);
 			MediaScannerConnection.ScanFile(Application.Context, new string[1] { storageFolderPath }, null, new MediaScannerClient());
 		}
 		catch
