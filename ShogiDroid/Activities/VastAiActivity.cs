@@ -654,10 +654,12 @@ public class VastAiActivity : ThemedActivity
 		Settings.EngineSettings.VastAiGpuRamMb = (int)(inst.GpuRamGb * 1024);
 		Settings.Save();
 
-		// アイドル自動サスペンド監視
+		// アイドル自動終了監視を開始し、接続情報を保存
 		VastAiWatchdog.Instance.StartMonitoring(
 			inst.Id,
 			Settings.EngineSettings.VastAiApiKey);
+		VastAiWatchdog.Instance.SaveLastConnectionInfo(
+			inst.Id, sshHost, sshPort, engineCommand);
 
 		var resultIntent = new Intent();
 		resultIntent.PutExtra(ExtraHost, inst.PublicIpAddr);
@@ -720,9 +722,6 @@ public class VastAiActivity : ThemedActivity
 			});
 
 			await manager.WaitForReadyAsync(instanceId, progress, cts_.Token);
-
-			RunOnUiThread(() => statusText_.Text = "SSH起動待機中 (10秒)...");
-			await Task.Delay(10000, cts_.Token);
 
 			RunOnUiThread(() =>
 			{
@@ -946,9 +945,6 @@ public class VastAiActivity : ThemedActivity
 			});
 
 			await manager.WaitForReadyAsync(instanceId, progress, cts_.Token);
-
-			RunOnUiThread(() => statusText_.Text = "SSH起動待機中 (10秒)...");
-			await Task.Delay(10000, cts_.Token);
 
 			RunOnUiThread(() =>
 			{
