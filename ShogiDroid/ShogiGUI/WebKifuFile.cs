@@ -48,15 +48,15 @@ public class WebKifuFile
 		try
 		{
 			byte[] array = Load(address);
-			ReadJEnc.JP.GetEncoding(array, array.Length, out text);
-			if (text == null)
-			{
-				text = string.Empty;
-			}
+			text = DecodeDownloadedText(array);
 			if (IsHtml(text))
 			{
 				string warsKifu;
 				if ((warsKifu = GetKishinKifu(text)) != string.Empty)
+				{
+					text = warsKifu;
+				}
+				else if ((warsKifu = Get6ShogiKifu(text, address)) != string.Empty)
 				{
 					text = warsKifu;
 				}
@@ -74,7 +74,7 @@ public class WebKifuFile
 					if (kifAddress != string.Empty)
 					{
 						array = Load(kifAddress);
-						ReadJEnc.JP.GetEncoding(array, array.Length, out text);
+						text = DecodeDownloadedText(array);
 					}
 				}
 			}
@@ -84,6 +84,12 @@ public class WebKifuFile
 			throw ex;
 		}
 		return text;
+	}
+
+	private static string DecodeDownloadedText(byte[] data)
+	{
+		ReadJEnc.JP.GetEncoding(data, data.Length, out string text);
+		return text ?? string.Empty;
 	}
 
 	public static bool IsHtml(string html)
@@ -376,6 +382,47 @@ public class WebKifuFile
 		// JavaScriptのエスケープを解除
 		string kif = Regex.Unescape(escaped);
 		return kif;
+	}
+
+	/// <summary>
+	/// 6shogi の HTML から KIF 形式棋譜を抽出
+	/// 現行サイトは Kifu.ajax(...) 経由で txt 棋譜を読み込んでいる。
+	/// 念のため jsb_moves クラスへの直埋め込みも拾う。
+	/// </summary>
+	public static string Get6ShogiKifu(string html, string address)
+	{
+		var match = Regex.Match(
+			html,
+			@"Kifu\.ajax\(\s*\{\s*url\s*:\s*['""]([^'""]+)['""]\s*\}\s*,\s*['""]kif['""]",
+			RegexOptions.IgnoreCase | RegexOptions.Singleline);
+		if (match.Success)
+		{
+			string relativeUrl = WebUtility.HtmlDecode(match.Groups[1].Value);
+			string kifUrl = new Uri(new Uri(address), relativeUrl).ToString();
+			return DecodeDownloadedText(Load(kifUrl));
+		}
+
+		match = Regex.Match(
+			html,
+			@"<[^>]*class\s*=\s*[""'][^""']*\bjsb_moves\b[^""']*[""'][^>]*>(.*?)</[^>]+>",
+			RegexOptions.IgnoreCase | RegexOptions.Singleline);
+		if (!match.Success)
+		{
+			return string.Empty;
+		}
+
+		string kif = match.Groups[1].Value;
+		kif = Regex.Replace(kif, @"<br\s*/?>", "\n", RegexOptions.IgnoreCase);
+		kif = Regex.Replace(kif, @"</p\s*>", "\n", RegexOptions.IgnoreCase);
+		kif = Regex.Replace(kif, @"<[^>]+>", string.Empty, RegexOptions.IgnoreCase | RegexOptions.Singleline);
+		kif = WebUtility.HtmlDecode(kif).Trim();
+
+		if (kif.Contains("手数") || kif.Contains("開始日時") || kif.Contains("先手：") || kif.Contains("後手："))
+		{
+			return kif;
+		}
+
+		return string.Empty;
 	}
 
 	public static string GetUrl(string str)
