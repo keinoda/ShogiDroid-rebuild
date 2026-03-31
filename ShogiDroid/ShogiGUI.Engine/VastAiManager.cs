@@ -427,7 +427,7 @@ public class VastAiSearchCriteria
 
 public class VastAiInstanceConfig
 {
-	public string DockerImage = "ngs43/shogi:v9.0";
+	public string DockerImage = "keinoda/shogi:v9.0";
 	public int[] Ports = Array.Empty<int>();
 	public double DiskGb = 8.0;
 	public string OnStartCmd = "";

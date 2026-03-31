@@ -23,7 +23,7 @@ public class EngineSettings
 	// vast.ai settings
 	public string VastAiApiKey = string.Empty;
 
-	public string VastAiDockerImage = "ngs43/shogi:v9.21nnue";
+	public string VastAiDockerImage = "keinoda/shogi:v9.21nnue";
 
 	public string VastAiOnStartCmd = "env >> /etc/environment; touch ~/.no_auto_tmux;";
 
