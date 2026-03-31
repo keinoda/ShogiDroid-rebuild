@@ -84,8 +84,15 @@ public class VastAiManager : IDisposable
 			["runtype"] = "ssh_direc"
 		};
 
+		// interruptible（bid）モード：入札価格を指定
+		if (config.BidPrice > 0)
+		{
+			body["price"] = config.BidPrice;
+		}
+
 		string json = JsonSerializer.Serialize(body);
-		AppDebug.Log.Info($"VastAi: creating instance from offer {offerId}");
+		string mode = config.BidPrice > 0 ? $"interruptible (${config.BidPrice:F3}/h)" : "on-demand";
+		AppDebug.Log.Info($"VastAi: creating instance from offer {offerId}, mode={mode}");
 
 		var content = new StringContent(json, Encoding.UTF8, "application/json");
 		var response = await httpClient_.PutAsync(url, content, ct);
@@ -422,6 +429,10 @@ public class VastAiInstanceConfig
 	public int[] Ports = Array.Empty<int>();
 	public double DiskGb = 8.0;
 	public string OnStartCmd = "";
+	/// <summary>
+	/// 入札価格（$/GPU/h）。0より大きい場合interruptible（bid）モードで予約する。
+	/// </summary>
+	public double BidPrice = 0;
 }
 
 public class VastAiSearchResult

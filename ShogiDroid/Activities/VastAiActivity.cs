@@ -888,7 +888,13 @@ public class VastAiActivity : ThemedActivity
 		row.SetGravity(GravityFlags.CenterVertical);
 
 		bool isOnDemand = interruptibleCheck_ != null && !interruptibleCheck_.Checked;
-		string priceLabel = isOnDemand ? $"${offer.DphTotal:F3}/h (on-demand)" : $"${offer.DphTotal:F3}/h";
+		string priceLabel;
+		if (isOnDemand)
+			priceLabel = $"${offer.DphTotal:F3}/h (on-demand)";
+		else if (offer.MinBid > 0)
+			priceLabel = $"${offer.DphTotal:F3}/h (最低入札: ${offer.MinBid:F3})";
+		else
+			priceLabel = $"${offer.DphTotal:F3}/h (interruptible)";
 		var priceText = new TextView(this) { Text = priceLabel };
 		priceText.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
 		priceText.SetTextColor(ColorUtils.Get(this, Resource.Color.title_background));
@@ -916,12 +922,15 @@ public class VastAiActivity : ThemedActivity
 
 		try
 		{
+			bool isInterruptible = interruptibleCheck_ != null && interruptibleCheck_.Checked;
 			var config = new VastAiInstanceConfig
 			{
 				DockerImage = Settings.EngineSettings.VastAiDockerImage,
 				Ports = Array.Empty<int>(),
 				DiskGb = 8.0,
-				OnStartCmd = Settings.EngineSettings.VastAiOnStartCmd
+				OnStartCmd = Settings.EngineSettings.VastAiOnStartCmd,
+				// interruptibleの場合、オファーの表示価格を入札額として使用
+				BidPrice = isInterruptible ? offer.DphTotal : 0
 			};
 
 			int instanceId = await manager.CreateInstanceAsync(offer.Id, config, cts_.Token);
