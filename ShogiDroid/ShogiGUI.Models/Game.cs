@@ -61,6 +61,11 @@ public class Game
 
 	private EngineMode engineMode;
 
+	/// <summary>
+	/// vast.ai起動完了後に再開すべきエンジンモード。Noneなら保留なし。
+	/// </summary>
+	private EngineMode pendingEngineMode_ = EngineMode.None;
+
 	private static string gameText = Application.Context.GetString(Resource.String.Game_Text);
 
 	private static string analysisText = Application.Context.GetString(Resource.String.Analysis_Text);
@@ -177,6 +182,10 @@ public class Game
 		{
 			if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 			{
+				if (RequestVastAiBoot(EngineMode.None))
+				{
+					return;
+				}
 				EngineTerminate();
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
@@ -199,6 +208,71 @@ public class Game
 			enginePlayer = null;
 			comState = ComputerState.None;
 			busy = false;
+			OnGameEvent(new GameEventArgs(GameEventId.AnalyzeEnd));
+		}
+	}
+
+	/// <summary>
+	/// リモートエンジン選択中で vast.ai 設定がある場合 true。
+	/// </summary>
+	private bool CanAutoBootVastAi()
+	{
+		return Settings.EngineSettings.EngineNo == RemoteEnginePlayer.RemoteEngineNo
+			&& Settings.EngineSettings.VastAiInstanceId > 0
+			&& !string.IsNullOrEmpty(Settings.EngineSettings.VastAiApiKey);
+	}
+
+	private bool RequestVastAiBoot(EngineMode pendingMode)
+	{
+		if (!CanAutoBootVastAi())
+		{
+			return false;
+		}
+
+		pendingEngineMode_ = pendingMode;
+		OnGameEvent(new GameEventArgs(GameEventId.VastAiBootRequired));
+		return true;
+	}
+
+	private void ResumePlayAfterVastAiBoot()
+	{
+		if (gameParam == null)
+		{
+			EngineWakeup();
+			return;
+		}
+
+		GameStart(new GameParam(gameParam));
+	}
+
+	/// <summary>
+	/// vast.ai インスタンス起動完了後に呼び出す。
+	/// 保留中だった操作（解析・検討等）を再開する。
+	/// </summary>
+	public void ResumeAfterVastAiBoot()
+	{
+		EngineMode pending = pendingEngineMode_;
+		pendingEngineMode_ = EngineMode.None;
+
+		AppDebug.Log.Info($"ResumeAfterVastAiBoot: pendingMode={pending}");
+
+		switch (pending)
+		{
+			case EngineMode.Analyze:
+				AnalyzerStart();
+				break;
+			case EngineMode.Hint:
+				ConsiderStart();
+				break;
+			case EngineMode.Mate:
+				Mate();
+				break;
+			case EngineMode.Play:
+				ResumePlayAfterVastAiBoot();
+				break;
+			default:
+				EngineWakeup();
+				break;
 		}
 	}
 
@@ -238,6 +312,10 @@ public class Game
 				flag = true;
 				if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 				{
+					if (RequestVastAiBoot(EngineMode.Play))
+					{
+						return;
+					}
 					GameTerminate();
 					OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 					return;
@@ -324,6 +402,10 @@ public class Game
 		{
 			if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 			{
+				if (RequestVastAiBoot(EngineMode.Hint))
+				{
+					return;
+				}
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
 			}
@@ -362,6 +444,10 @@ public class Game
 		{
 			if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 			{
+				if (RequestVastAiBoot(EngineMode.Mate))
+				{
+					return;
+				}
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
 			}
@@ -422,6 +508,10 @@ public class Game
 		{
 			if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 			{
+				if (RequestVastAiBoot(EngineMode.Analyze))
+				{
+					return;
+				}
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
 			}
@@ -515,6 +605,10 @@ public class Game
 		{
 			if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 			{
+				if (RequestVastAiBoot(EngineMode.Hint))
+				{
+					return;
+				}
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
 			}
@@ -547,6 +641,7 @@ public class Game
 				enginePlayer.Stop();
 			}
 			gameMode = GameMode.Input;
+			OnGameEvent(new GameEventArgs(GameEventId.AnalyzeEnd));
 		}
 	}
 
@@ -628,6 +723,13 @@ public class Game
 					AppDebug.Log.Error($"initEnginePlayer: remote connection failed for {host}");
 					enginePlayer.Terminate();
 					enginePlayer = null;
+
+					// vast.ai設定がある場合、インスタンス自動起動を要求
+					if (CanAutoBootVastAi())
+					{
+						AppDebug.Log.Info("initEnginePlayer: vast.ai自動起動を要求");
+						return false; // 呼び出し元で VastAiBootRequired イベントを処理
+					}
 					return false;
 				}
 				AppDebug.Log.Info("initEnginePlayer: remote engine connected successfully");
@@ -637,6 +739,11 @@ public class Game
 					VastAiWatchdog.Instance.StartMonitoring(
 						Settings.EngineSettings.VastAiInstanceId,
 						Settings.EngineSettings.VastAiApiKey);
+					VastAiWatchdog.Instance.SaveLastConnectionInfo(
+						Settings.EngineSettings.VastAiInstanceId,
+						host,
+						Settings.EngineSettings.VastAiSshPort,
+						Settings.EngineSettings.VastAiSshEngineCommand);
 				}
 			}
 			else
