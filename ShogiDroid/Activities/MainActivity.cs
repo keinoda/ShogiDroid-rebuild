@@ -192,82 +192,81 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 
 		// 1. クイック操作（常時展開）
 		var quick = new DrawerSectionModel("クイック操作", isQuickAction: true);
-		quick.Add(Resource.Id.game_start, GetString(Resource.String.Menu_NewGame_Text), isEnabled: enabled(Resource.Id.game_start));
-		quick.Add(Resource.Id.game_continue, GetString(Resource.String.Menu_ContinuedGame_Text), isEnabled: enabled(Resource.Id.game_continue));
 		quick.Add(Resource.Id.notation_analysis, GetString(Resource.String.Menu_Analysis_Text), isEnabled: enabled(Resource.Id.notation_analysis));
-		quick.Add(Resource.Id.game_stop, GetString(Resource.String.Menu_StopGame_Text), isEnabled: enabled(Resource.Id.game_stop));
-		quick.Add(Resource.Id.game_resign, GetString(Resource.String.Menu_ResignGame_Text), isEnabled: enabled(Resource.Id.game_resign));
+		quick.Add(Resource.Id.consider, GetString(Resource.String.Consider_Text), isEnabled: enabled(Resource.Id.consider));
+		quick.Add(Resource.Id.camera_read, GetString(Resource.String.Menu_CameraRead_Text), isEnabled: enabled(Resource.Id.camera_read));
+		quick.Add(Resource.Id.book_browse, GetString(Resource.String.Menu_BookBrowse_Text), isEnabled: enabled(Resource.Id.book_browse));
+		quick.Add(Resource.Id.engine_select, GetString(Resource.String.Menu_EngineSelect_Text), isEnabled: enabled(Resource.Id.engine_select));
+		quick.Add(Resource.Id.menu_vastai, GetString(Resource.String.Menu_VastAi_Text), isEnabled: enabled(Resource.Id.menu_vastai));
 		sections.Add(quick);
 
-		// 2. 棋譜
-		var kifu = new DrawerSectionModel("棋譜");
-		kifu.Add(Resource.Id.file_load, GetString(Resource.String.Menu_FileLoad_Text), isEnabled: enabled(Resource.Id.file_load));
-		kifu.Add(Resource.Id.file_load_last, GetString(Resource.String.Menu_FileLoadLast_Text), isEnabled: enabled(Resource.Id.file_load_last));
-		kifu.Add(Resource.Id.file_save, GetString(Resource.String.Menu_FileSave_Text), isEnabled: enabled(Resource.Id.file_save));
-		kifu.Add(Resource.Id.file_save_overwrite, GetString(Resource.String.Menu_FileSaveOverwrite_Text), isEnabled: enabled(Resource.Id.file_save_overwrite));
-		kifu.Add(Resource.Id.file_send, GetString(Resource.String.Menu_FileSend_Text), isEnabled: enabled(Resource.Id.file_send));
-		kifu.Add(Resource.Id.file_import, GetString(Resource.String.Menu_FileImport_Text), isEnabled: enabled(Resource.Id.file_import));
-		kifu.Add(Resource.Id.file_web_import, GetString(Resource.String.Menu_FileWebExport_Text), isEnabled: enabled(Resource.Id.file_web_import));
-		kifu.Add(Resource.Id.file_open_folder, GetString(Resource.String.Menu_OpenKifuFolder_Text), isEnabled: enabled(Resource.Id.file_open_folder));
-		kifu.Add(Resource.Id.notation_copy, GetString(Resource.String.Menu_NotaitonCopy_Text), isEnabled: enabled(Resource.Id.notation_copy));
-		kifu.Add(Resource.Id.notation_paste, GetString(Resource.String.Menu_NotaitonPaste_Text), isEnabled: enabled(Resource.Id.notation_paste));
-		kifu.Add(Resource.Id.comment_edit, GetString(Resource.String.CommentMenuEdit_Text), isEnabled: enabled(Resource.Id.comment_edit));
-		kifu.Add(Resource.Id.comment_info_select, GetString(Resource.String.CommentInfoSelect_Text), isEnabled: enabled(Resource.Id.comment_info_select));
-		sections.Add(kifu);
-
-		// 3. 定跡
-		var book = new DrawerSectionModel("定跡");
-		book.Add(Resource.Id.book_load, GetString(Resource.String.Menu_BookLoad_Text), isEnabled: enabled(Resource.Id.book_load));
-		book.Add(Resource.Id.book_browse, GetString(Resource.String.Menu_BookBrowse_Text), isEnabled: enabled(Resource.Id.book_browse));
-		sections.Add(book);
-
-		// 4. 局面
-		var board = new DrawerSectionModel("局面");
-		board.Add(Resource.Id.menu_board_edit, GetString(Resource.String.Menu_EditBoard_Text), isEnabled: enabled(Resource.Id.menu_board_edit));
-		board.Add(Resource.Id.camera_read, GetString(Resource.String.Menu_CameraRead_Text), isEnabled: enabled(Resource.Id.camera_read));
-		board.Add(Resource.Id.cmd_input_cancel, GetString(Resource.String.MenuInputCancel_Text), isEnabled: enabled(Resource.Id.cmd_input_cancel));
-		board.Add(Resource.Id.cmd_pass, GetString(Resource.String.MenuPass_Text), isEnabled: enabled(Resource.Id.cmd_pass));
-		board.Add(Resource.Id.cmd_reverse, GetString(Resource.String.MenuReverse_Text), isEnabled: enabled(Resource.Id.cmd_reverse));
-		board.Add(Resource.Id.cmd_first, GetString(Resource.String.MenuFirst_Text), isEnabled: enabled(Resource.Id.cmd_first));
-		board.Add(Resource.Id.cmd_last, GetString(Resource.String.MenuLast_Text), isEnabled: enabled(Resource.Id.cmd_last));
-		board.Add(Resource.Id.cmd_joint_board, GetString(Resource.String.MenuJointBoard_Text), isEnabled: enabled(Resource.Id.cmd_joint_board));
-		board.Add(Resource.Id.cmd_kyokumen, GetString(Resource.String.MenuKyokumen_Text), isEnabled: enabled(Resource.Id.cmd_kyokumen));
-		board.Add(Resource.Id.cmd_export_board_image, GetString(Resource.String.Menu_ExportBoardImage_Text), isEnabled: enabled(Resource.Id.cmd_export_board_image));
-		sections.Add(board);
-
-		// 5. 解析
+		// 2. 解析
 		var analyze = new DrawerSectionModel("解析");
-		analyze.Add(Resource.Id.notation_analysis, GetString(Resource.String.Menu_Analysis_Text), isEnabled: enabled(Resource.Id.notation_analysis));
-		analyze.Add(Resource.Id.cmd_auto_play, GetString(Resource.String.MenuAutoPlay_Text), isEnabled: enabled(Resource.Id.cmd_auto_play));
-		analyze.Add(Resource.Id.consider, GetString(Resource.String.Consider_Text), isEnabled: enabled(Resource.Id.consider));
 		analyze.Add(Resource.Id.analysis_settings, GetString(Resource.String.Menu_AnalysisSettings_Text), isEnabled: enabled(Resource.Id.analysis_settings));
 		analyze.Add(Resource.Id.display_settings, GetString(Resource.String.Menu_DisplaySettings_Text), isEnabled: enabled(Resource.Id.display_settings));
+		analyze.Add(Resource.Id.notation_analysis, GetString(Resource.String.Menu_Analysis_Text), isEnabled: enabled(Resource.Id.notation_analysis));
+		analyze.Add(Resource.Id.consider, GetString(Resource.String.Consider_Text), isEnabled: enabled(Resource.Id.consider));
 		sections.Add(analyze);
+
+		// 3. 棋譜
+		var kifu = new DrawerSectionModel("棋譜");
+		kifu.Add(Resource.Id.file_save, GetString(Resource.String.Menu_FileSave_Text), isEnabled: enabled(Resource.Id.file_save));
+		kifu.Add(Resource.Id.file_save_overwrite, GetString(Resource.String.Menu_FileSaveOverwrite_Text), isEnabled: enabled(Resource.Id.file_save_overwrite));
+		kifu.Add(Resource.Id.notation_paste, GetString(Resource.String.Menu_NotaitonPaste_Text), isEnabled: enabled(Resource.Id.notation_paste));
+		kifu.Add(Resource.Id.file_open_folder, GetString(Resource.String.Menu_OpenKifuFolder_Text), isEnabled: enabled(Resource.Id.file_open_folder));
+		kifu.Add(Resource.Id.file_load, GetString(Resource.String.Menu_FileLoad_Text), isEnabled: enabled(Resource.Id.file_load));
+		kifu.Add(Resource.Id.file_web_import, GetString(Resource.String.Menu_FileWebExport_Text), isEnabled: enabled(Resource.Id.file_web_import));
+		kifu.Add(Resource.Id.notation_copy, GetString(Resource.String.Menu_NotaitonCopy_Text), isEnabled: enabled(Resource.Id.notation_copy));
+		sections.Add(kifu);
+
+		// 4. 定跡
+		var book = new DrawerSectionModel("定跡");
+		book.Add(Resource.Id.book_browse, GetString(Resource.String.Menu_BookBrowse_Text), isEnabled: enabled(Resource.Id.book_browse));
+		book.Add(Resource.Id.book_load, GetString(Resource.String.Menu_BookLoad_Text), isEnabled: enabled(Resource.Id.book_load));
+		sections.Add(book);
+
+		// 5. 局面
+		var board = new DrawerSectionModel("局面");
+		board.Add(Resource.Id.position_load, GetString(Resource.String.Menu_PositionLoad_Text), isEnabled: enabled(Resource.Id.position_load));
+		board.Add(Resource.Id.camera_read, GetString(Resource.String.Menu_CameraRead_Text), isEnabled: enabled(Resource.Id.camera_read));
+		board.Add(Resource.Id.cmd_reverse, GetString(Resource.String.MenuReverse_Text), isEnabled: enabled(Resource.Id.cmd_reverse));
+		board.Add(Resource.Id.menu_board_edit, GetString(Resource.String.Menu_EditBoard_Text), isEnabled: enabled(Resource.Id.menu_board_edit));
+		sections.Add(board);
 
 		// 6. エンジン
 		var engine = new DrawerSectionModel("エンジン");
 		engine.Add(Resource.Id.engine_select, GetString(Resource.String.Menu_EngineSelect_Text), isEnabled: enabled(Resource.Id.engine_select));
 		engine.Add(Resource.Id.engine_settings_wrapper, GetString(Resource.String.Menu_EngineSettings_Text), isEnabled: enabled(Resource.Id.engine_settings_wrapper));
 		engine.Add(Resource.Id.engine_options, GetString(Resource.String.EngineSettingsAllOptions_Text), isEnabled: enabled(Resource.Id.engine_options));
-		engine.Add(Resource.Id.engine_connection_settings, GetString(Resource.String.Menu_RemoteConnectionSettings_Text), isEnabled: enabled(Resource.Id.engine_connection_settings));
-		engine.Add(Resource.Id.engine_install, GetString(Resource.String.Menu_EngineInstall_Text), isEnabled: enabled(Resource.Id.engine_install));
-		engine.Add(Resource.Id.engine_folder, GetString(Resource.String.Menu_EngineFolder_Text), isEnabled: enabled(Resource.Id.engine_folder));
 		sections.Add(engine);
 
-		// 7. クラウド（子項目1つ = グループクリックで直接遷移）
-		var cloud = new DrawerSectionModel("クラウド");
-		cloud.Add(Resource.Id.menu_vastai, GetString(Resource.String.Menu_VastAi_Text), isEnabled: enabled(Resource.Id.menu_vastai));
-		sections.Add(cloud);
+		// 7. 対局
+		var game = new DrawerSectionModel("対局");
+		game.Add(Resource.Id.game_start, GetString(Resource.String.Menu_NewGame_Text), isEnabled: enabled(Resource.Id.game_start));
+		game.Add(Resource.Id.game_continue, GetString(Resource.String.Menu_ContinuedGame_Text), isEnabled: enabled(Resource.Id.game_continue));
+		game.Add(Resource.Id.game_stop, GetString(Resource.String.Menu_StopGame_Text), isEnabled: enabled(Resource.Id.game_stop));
+		game.Add(Resource.Id.game_resign, GetString(Resource.String.Menu_ResignGame_Text), isEnabled: enabled(Resource.Id.game_resign));
+		sections.Add(game);
 
 		// 8. アプリ設定（子項目1つ = グループクリックで直接遷移）
 		var settings = new DrawerSectionModel("アプリ設定");
 		settings.Add(Resource.Id.action_settings, GetString(Resource.String.action_settings), isEnabled: enabled(Resource.Id.action_settings));
 		sections.Add(settings);
 
-		// 9. 情報（子項目1つ = グループクリックで直接遷移）
-		var info = new DrawerSectionModel("情報");
-		info.Add(Resource.Id.menu_about, GetString(Resource.String.Menu_About_Text), isEnabled: enabled(Resource.Id.menu_about));
-		sections.Add(info);
+		// 9. 詳細操作
+		var detail = new DrawerSectionModel("詳細操作");
+		detail.Add(Resource.Id.file_load_last, GetString(Resource.String.Menu_FileLoadLast_Text), isEnabled: enabled(Resource.Id.file_load_last));
+		detail.Add(Resource.Id.file_send, GetString(Resource.String.Menu_FileSend_Text), isEnabled: enabled(Resource.Id.file_send));
+		detail.Add(Resource.Id.file_import, GetString(Resource.String.Menu_FileImport_Text), isEnabled: enabled(Resource.Id.file_import));
+		detail.Add(Resource.Id.comment_edit, GetString(Resource.String.CommentMenuEdit_Text), isEnabled: enabled(Resource.Id.comment_edit));
+		detail.Add(Resource.Id.comment_info_select, GetString(Resource.String.CommentInfoSelect_Text), isEnabled: enabled(Resource.Id.comment_info_select));
+		detail.Add(Resource.Id.cmd_kyokumen, GetString(Resource.String.MenuKyokumen_Text), isEnabled: enabled(Resource.Id.cmd_kyokumen));
+		detail.Add(Resource.Id.cmd_auto_play, GetString(Resource.String.MenuAutoPlay_Text), isEnabled: enabled(Resource.Id.cmd_auto_play));
+		detail.Add(Resource.Id.engine_connection_settings, GetString(Resource.String.Menu_RemoteConnectionSettings_Text), isEnabled: enabled(Resource.Id.engine_connection_settings));
+		detail.Add(Resource.Id.engine_install, GetString(Resource.String.Menu_EngineInstall_Text), isEnabled: enabled(Resource.Id.engine_install));
+		detail.Add(Resource.Id.engine_folder, GetString(Resource.String.Menu_EngineFolder_Text), isEnabled: enabled(Resource.Id.engine_folder));
+		detail.Add(Resource.Id.menu_about, GetString(Resource.String.Menu_About_Text), isEnabled: enabled(Resource.Id.menu_about));
+		sections.Add(detail);
 
 		return sections;
 	}
@@ -338,6 +337,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		commands.Add(CmdNo.FileSave, Resource.Id.file_save, FileSave, CanSaveNotation);
 		commands.Add(CmdNo.FileSaveOverwrite, Resource.Id.file_save_overwrite, FileSaveOverwrite, CanSaveNotation);
 		commands.Add(CmdNo.FileImport, Resource.Id.file_import, NotationSelectRequest, presenter.CanLoadNotaton);
+		commands.Add(CmdNo.PositionLoad, Resource.Id.position_load, NotationSelectRequest, presenter.CanLoadNotaton);
 		commands.Add(CmdNo.FileWebImport, Resource.Id.file_web_import, ShowWEBNoationDialog, presenter.CanLoadNotaton);
 		commands.Add(CmdNo.FileSend, Resource.Id.file_send, FileSend, null);
 		commands.Add(CmdNo.FileWebImportAs, Resource.Id.file_web_import_as, WebImportAs, presenter.CanLoadNotaton);
@@ -2153,10 +2153,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		OpenNotationDialog openNotationDialog = openDialog;
 		openNotationDialog.OKClick = (EventHandler<EventArgs>)Delegate.Combine(openNotationDialog.OKClick, (EventHandler<EventArgs>)delegate
 		{
-			if (presenter.LoadNotation(openDialog.FileName))
-			{
-				PopupNotationInfo();
-			}
+			LoadNotationOrPositionCollection(openDialog.FileName);
 		});
 		openDialog.Show(FragmentManager, "OpenNotationDialog");
 	}
@@ -2229,17 +2226,85 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		if (uri.Scheme == "file")
 		{
 			string path = Util.GetPath(this, uri);
-			if (presenter.LoadNotation(path))
-			{
-				PopupNotationInfo();
-			}
+			LoadNotationOrPositionCollection(path);
 			return;
 		}
 		string text = LoadTextFile(uri);
 		if (!string.IsNullOrEmpty(text))
 		{
-			presenter.PasteNotation(text);
+			string sourceName = Util.GetFileName(this, uri);
+			if (!TryLoadPositionCollection(sourceName, text))
+			{
+				presenter.PasteNotation(text);
+				PopupNotationInfo();
+			}
+		}
+	}
+
+	private void LoadNotationOrPositionCollection(string path)
+	{
+		if (string.IsNullOrEmpty(path))
+		{
+			return;
+		}
+
+		string sourceName = System.IO.Path.GetFileName(path);
+		try
+		{
+			string text = StringUtil.Load(path, StringUtil.GetEncording(path));
+			if (TryLoadPositionCollection(sourceName, text))
+			{
+				return;
+			}
+		}
+		catch
+		{
+		}
+
+		if (presenter.LoadNotation(path))
+		{
 			PopupNotationInfo();
+		}
+	}
+
+	private bool TryLoadPositionCollection(string sourceName, string text)
+	{
+		List<PositionCollectionEntry> entries = PositionCollectionParser.Parse(text);
+		if (entries.Count == 0)
+		{
+			return false;
+		}
+
+		if (entries.Count == 1)
+		{
+			LoadPositionCollectionEntry(sourceName, entries, 0);
+			return true;
+		}
+
+		PositionCollectionDialog dialog = PositionCollectionDialog.NewInstance(sourceName, entries.Count);
+		PositionCollectionDialog positionCollectionDialog = dialog;
+		positionCollectionDialog.OKClick = (EventHandler<EventArgs>)Delegate.Combine(positionCollectionDialog.OKClick, (EventHandler<EventArgs>)delegate
+		{
+			LoadPositionCollectionEntry(sourceName, entries, dialog.SelectedIndex);
+		});
+		dialog.Show(FragmentManager, "PositionCollectionDialog");
+		return true;
+	}
+
+	private void LoadPositionCollectionEntry(string sourceName, List<PositionCollectionEntry> entries, int index)
+	{
+		if (index < 0 || index >= entries.Count)
+		{
+			return;
+		}
+
+		if (presenter.LoadNotationFromString(sourceName, entries[index].Sfen))
+		{
+			MessagePopup(string.Format(
+				GetString(Resource.String.PositionCollectionLoaded_Text),
+				string.IsNullOrEmpty(sourceName) ? GetString(Resource.String.OpenDialogTitle_Text) : sourceName,
+				index + 1,
+				entries.Count));
 		}
 	}
 

@@ -1,10 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen
   xmlns:android="http://schemas.android.com/apk/res/android">
-    <PreferenceCategory android:title="@string/SettingsAnalyze_Text">
+    <PreferenceCategory android:title="@string/SettingsFrequentlyUsed_Text">
         <shogidroid.controls.ListIntPreference android:entries="@array/SettingsAnalyzeTime_Texts" android:title="@string/SettingsAnalyzeTime_Text" android:key="Analyze.Time" android:defaultValue="@string/SettingsAnalyzeTime_Default" android:entryValues="@array/SettingsAnalyzeTime_Values" />
+        <CheckBoxPreference android:title="@string/SettingsAutoThreatmateAnalysis_Text" android:summary="@string/SettingsAutoThreatmateAnalysis_Summary" android:key="App.AutoThreatmateAnalysis" android:defaultValue="true" />
+    </PreferenceCategory>
+    <PreferenceCategory android:title="@string/SettingsDetails_Text">
         <CheckBoxPreference android:title="評価値を勝率に変換" android:summary="評価値(cp)の代わりに勝率(%)で表示" android:key="App.ConvertEvalToWinRate" android:defaultValue="false" />
         <EditTextPreference android:singleLine="true" android:title="勝率変換の係数" android:summary="シグモイド関数の定数 (推奨: 750)" android:key="App.WinRateCoefficient" android:defaultValue="750" android:inputType="number" />
-        <CheckBoxPreference android:title="@string/SettingsAutoThreatmateAnalysis_Text" android:summary="@string/SettingsAutoThreatmateAnalysis_Summary" android:key="App.AutoThreatmateAnalysis" android:defaultValue="true" />
     </PreferenceCategory>
 </PreferenceScreen>

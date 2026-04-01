@@ -41,5 +41,6 @@ public enum CmdNo
 	ShogiWars = 54,
 	CameraRead = 55,
 	BookLoad = 56,
-	BookBrowse = 57
+	BookBrowse = 57,
+	PositionLoad = 58
 }

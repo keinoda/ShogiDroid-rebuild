@@ -6,4 +6,8 @@
         <EditTextPreference android:singleLine="true" android:title="@string/SettingsShogiWarsUserName_Text" android:key="App.WarsUserName" android:defaultValue="" />
         <CheckBoxPreference android:title="@string/SettingsAutoSave_Text" android:key="App.AutoSave" android:defaultValue="true" />
     </PreferenceCategory>
+    <PreferenceCategory android:title="@string/SettingsTransferTitle_Text">
+        <Preference android:title="@string/SettingsExport_Text" android:key="Action.ExportSettings" android:persistent="false" />
+        <Preference android:title="@string/SettingsImport_Text" android:key="Action.ImportSettings" android:persistent="false" />
+    </PreferenceCategory>
 </PreferenceScreen>

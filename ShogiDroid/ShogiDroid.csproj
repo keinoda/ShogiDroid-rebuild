@@ -42,4 +42,5 @@
     <PackageReference Include="Xamarin.AndroidX.ViewPager" Version="1.1.0.6" />
     <PackageReference Include="Xamarin.Google.Android.Material" Version="1.13.0.2" />
   </ItemGroup>
+
 </Project>

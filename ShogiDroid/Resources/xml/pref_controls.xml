@@ -1,10 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <PreferenceScreen
   xmlns:android="http://schemas.android.com/apk/res/android">
-    <PreferenceCategory android:title="@string/SettingsOther_Text">
+    <PreferenceCategory android:title="@string/SettingsFrequentlyUsed_Text">
         <CheckBoxPreference android:title="@string/SettingsEnablePieceSounds_Text" android:key="App.PlaySE" android:defaultValue="true" />
     </PreferenceCategory>
-    <PreferenceCategory android:title="@string/SettingsCustom_Text">
+    <PreferenceCategory android:title="@string/SettingsDetails_Text">
         <shogidroid.controls.ListIntPreference android:entries="@array/SettingsShortcutMenu_Texts" android:title="@string/SettingsReversButton_Text" android:key="App.ReverseButotn" android:entryValues="@array/SettingsShortcutMenu_Values" />
         <shogidroid.controls.ListIntPreference android:entries="@array/SettingsShortcutMenu_Texts" android:title="@string/SettingsShortcutMenu1_Text" android:key="App.ShortcutMenu1" android:entryValues="@array/SettingsShortcutMenu_Values" />
         <shogidroid.controls.ListIntPreference android:entries="@array/SettingsShortcutMenu_Texts" android:title="@string/SettingsShortcutMenu2_Text" android:key="App.ShortcutMenu2" android:entryValues="@array/SettingsShortcutMenu_Values" />
