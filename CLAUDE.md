@@ -78,8 +78,20 @@ ShogiDroid/
 - chmod 値: 484 (10進) = 0744 (8進) = rwxr--r--
 
 ### アプリ識別
-- ApplicationId: `com.ngs43.shogidroid`
-- ContentProvider authority: `com.ngs43.shogidroid.provider`
+- `develop` / `main` の通常ビルド:
+  - ApplicationId: `com.ngs43.shogidroid`
+  - ContentProvider authority: `com.ngs43.shogidroid.provider`
+  - 表示名: `ShogiDroid`
+- `release/distribute` の通常版:
+  - ApplicationId: `com.ngs436.ShogiDroidR`
+  - ContentProvider authority: `com.ngs436.ShogiDroidR.provider`
+  - 表示名: `将棋ドロイドR`
+- `release/distribute` の Classic 版:
+  - ApplicationId: `com.ngs436.ShogiDroidRClassic`
+  - ContentProvider authority: `com.ngs436.ShogiDroidRClassic.provider`
+  - 表示名: `将棋ドロイドR Classic`
+- Classic 版は見た目のみ差し替える。機能差を作らず、Material 専用 UI/リソースを classic 側へ持ち込まない
+- release の通常版と Classic 版は共存できるように、ApplicationId / authority / debug action を必ず分ける
 
 ### vast.ai クラウドエンジン接続
 - SSH.NET ライブラリによる SSH 接続（平文 TCP から移行済み）
@@ -105,12 +117,36 @@ ShogiDroid/
 - 完成後に develop へマージし、feature ブランチは削除する
 - GitHub 上で `release` ブランチを公開する際は、通常版に加えて、機能は同一で見た目のみ異なる Classic 版もあわせてリリースする
 
-## release ブランチ向けの変更
-release ブランチを作成する際、以下の変更を適用する:
-1. `EngineSettings.VastAiDockerImage` のデフォルト値を `"keinoda/shogi:AobaNNUE"` に変更
-2. `EngineSettings.DockerImageLockFingerprint` に開発者SSH鍵のSHA256フィンガープリントを設定
-   （設定すると、一致するSSH鍵がない限り UI上でDockerイメージを変更不可にする）
-3. Dockerfile は `ShogiDroid/docker/` 以下に保存済み
+## リリース運用
+- Release 作業は `release/distribute` worktree (`/Users/keinoda/ShogiDroid-rebuild-release`) で行う
+- 先に `develop` 側の変更を内容単位で整理して commit し、その後 `release/distribute` へ取り込む
+- `release/distribute` では以下の release 固有設定を入れる:
+  1. `EngineSettings.VastAiDockerImage` のデフォルト値を `"keinoda/shogi:AobaNNUE"` にする
+  2. `EngineSettings.DockerImageLockFingerprint` に開発用 SSH 鍵の SHA256 を設定する
+     - 現状は `id_ed25519` をアプリ側で `id_rsa.pem` に rename して使う前提
+  3. Dockerfile は `ShogiDroid/docker/` に置く。新規追加時は通常 GitHub 管理対象にしない
+- Release ビルドは通常版と Classic 版の両方を必ず確認する:
+
+```bash
+dotnet build ShogiDroid/ShogiDroid.csproj -c Release
+dotnet build ShogiDroid/ShogiDroid.csproj -c Release -p:ClassicUi=true
+```
+
+- 生成物として確認する signed APK:
+  - 通常版: `ShogiDroid/bin/Release/net9.0-android/android-arm64/com.ngs436.ShogiDroidR-Signed.apk`
+  - Classic 版: `ShogiDroid/bin/Release/net9.0-android/android-arm64/com.ngs436.ShogiDroidRClassic-Signed.apk`
+- GitHub Release は tag から作成し、リリースノートは `RELEASE_NOTES_vX.Y.Z.md` をそのまま使う
+- GitHub Release には signed APK を 2 本添付する:
+  - `ShogiDroid-vX.Y.Z.apk`
+  - `ShogiDroid-Classic-vX.Y.Z.apk`
+- 公開手順の基本順序:
+  1. `release/distribute` を最新化して通常版 / Classic 版をビルド確認
+  2. `git tag vX.Y.Z`
+  3. branch と tag を GitHub へ push
+  4. `RELEASE_NOTES_vX.Y.Z.md` を使って GitHub Release を作成
+  5. signed APK 2 本を Release asset としてアップロード
+- GitHub には 100MB 制限がある。`ShogiDroid/Assets/AobaNNUE/eval/nn.bin` のような大きいファイルは Git LFS を使う
+- APK は GitHub Release asset として配布し、通常の git 管理対象にはしない
 
 ## 禁止事項
 - **クリーンインストール（adb uninstall → install）を勝手に実行しないこと**。設定・エンジンオプション等が全て消失する。必ず `adb install -r`（上書きインストール）を使う
