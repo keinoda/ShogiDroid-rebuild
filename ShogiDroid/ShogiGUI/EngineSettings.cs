@@ -23,7 +23,17 @@ public class EngineSettings
 	// vast.ai settings
 	public string VastAiApiKey = string.Empty;
 
+	/// <summary>
+	/// release ブランチでは "keinoda/shogi:AobaNNUE" に変更する。
+	/// SSH鍵フィンガープリントが一致しない場合はUI上で変更不可。
+	/// </summary>
 	public string VastAiDockerImage = "keinoda/shogi:v9.21nnue";
+
+	/// <summary>
+	/// Dockerイメージのロック用。空文字ならロックしない（develop用）。
+	/// release ブランチではフィンガープリントを設定する。
+	/// </summary>
+	public static string DockerImageLockFingerprint = string.Empty;
 
 	public string VastAiOnStartCmd = "env >> /etc/environment; touch ~/.no_auto_tmux;";
 
