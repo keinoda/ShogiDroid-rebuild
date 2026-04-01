@@ -1,3 +1,4 @@
+#if !CLASSIC_UI
 using Android.App;
 using Android.Content;
 using Android.Graphics;
@@ -154,3 +155,4 @@ public class SettingsHomeActivity : Activity
 		AndroidX.Core.View.WindowCompat.SetDecorFitsSystemWindows(Window, Settings.AppSettings.DispToolbar);
 	}
 }
+#endif

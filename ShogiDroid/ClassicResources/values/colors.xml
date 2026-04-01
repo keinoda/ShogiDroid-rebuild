@@ -33,6 +33,10 @@
     <color name="notation_box_bg">#ff37474f</color>
     <color name="notation_box_text">#ffffffff</color>
     <color name="notation_box_sub_text">#ffb0bec5</color>
+    <color name="threatmate_badge_bg">#fff2dfae</color>
+    <color name="threatmate_badge_text">#ff6d4c00</color>
+    <color name="threatmate_badge_neutral_bg">#ffe3e3e3</color>
+    <color name="threatmate_badge_neutral_text">#ff4c4c4c</color>
     <color name="primary_text">#ff000000</color>
     <color name="secondary_text">#ff888888</color>
     <color name="icon_tint">#ff333333</color>

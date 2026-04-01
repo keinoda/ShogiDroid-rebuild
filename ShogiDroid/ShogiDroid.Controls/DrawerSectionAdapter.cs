@@ -116,8 +116,13 @@ public class DrawerSectionAdapter : BaseExpandableListAdapter
 		if (tv == null)
 		{
 			tv = new TextView(activity_);
+#if CLASSIC_UI
+			tv.SetPadding(Dp(8), Dp(10), Dp(8), Dp(4));
+			tv.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+#else
 			tv.SetPadding(Dp(8), Dp(14), Dp(8), Dp(8));
 			tv.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
+#endif
 		}
 
 		tv.Text = section.Title;
@@ -136,9 +141,15 @@ public class DrawerSectionAdapter : BaseExpandableListAdapter
 		if (tv == null)
 		{
 			tv = new TextView(activity_);
+#if CLASSIC_UI
+			tv.SetPadding(Dp(14), Dp(10), Dp(14), Dp(10));
+			tv.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
+			tv.SetMinHeight(Dp(42));
+#else
 			tv.SetPadding(Dp(18), Dp(14), Dp(18), Dp(14));
 			tv.SetTextSize(Android.Util.ComplexUnitType.Sp, 15);
 			tv.SetMinHeight(Dp(48));
+#endif
 		}
 
 		tv.Text = item.Label;

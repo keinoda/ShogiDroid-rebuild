@@ -174,9 +174,12 @@
     <string name="SettingsEngineOwnBook_Text">定跡</string>
     <string name="SettingsEnginePondering_Text">先読み</string>
     <string name="SettingsEngineSettings_Text">エンジン設定</string>
+    <string name="SettingsEngineSelection_Text">エンジン選択</string>
     <string name="SettingsEngineStrength_Text">強さ</string>
     <string name="SettingsEvalGraphLiner_Text">評価値グラフを線形に描画</string>
     <string name="SettingsHashTable_Default">64</string>
+    <string name="SettingsHideInternalEngine_Text">内蔵エンジンを非表示</string>
+    <string name="SettingsHideInternalEngine_Summary">エンジン選択画面で内蔵エンジンを一覧から隠します</string>
     <string name="SettingsMenuButton_Text">メニューボタン</string>
     <string name="SettingsMoveStyle_Default">Kif</string>
     <string name="SettingsMoveStyle_Text">指し手表記</string>

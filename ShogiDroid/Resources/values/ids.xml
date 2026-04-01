@@ -190,6 +190,7 @@
     <item type="id" name="cmd_export_board_image" />
     <item type="id" name="first_move" />
     <item type="id" name="rest_moves" />
+    <item type="id" name="threatmate_badge" />
     <item type="id" name="eval_graph" />
     <item type="id" name="eval_text" />
     <item type="id" name="expand_activities_button" />

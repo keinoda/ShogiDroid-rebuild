@@ -15,7 +15,7 @@ using IOPath = System.IO.Path;
 namespace ShogiDroid;
 
 [Activity(Label = "@string/action_settings", Theme = "@style/AppTheme")]
-public class SettingActivity : PreferenceActivity
+public class SettingActivity : ThemedPreferenceActivity
 {
 	// セクション定数
 	public const string ExtraSection = "settings_section";
@@ -30,6 +30,11 @@ public class SettingActivity : PreferenceActivity
 
 	public class SettingsFragment : PreferenceFragment, ISharedPreferencesOnSharedPreferenceChangeListener, IJavaObject, IDisposable, IJavaPeerable
 	{
+		private const string HideInternalEnginePreferenceKey = "App.HideInternalEngine";
+#if CLASSIC_UI
+		private CompactListScrollListener compactListScrollListener_;
+#endif
+
 		private static readonly string[] SummeryKeys = new string[]
 		{
 			"Engine.Time", "Engine.Countdown", "Engine.RemoteHost", "Engine.RemotePort", "Analyze.Time", "App.AnimationSpeed", "App.MoveStyle", "App.PlayerName", "App.WarsUserName", "App.PlayInterval",
@@ -40,17 +45,26 @@ public class SettingActivity : PreferenceActivity
 		{
 			base.OnCreate(savedInstanceState);
 			string section = Activity?.Intent?.GetStringExtra(ExtraSection) ?? "";
-			int xmlRes = section switch
+#if CLASSIC_UI
+			if (string.IsNullOrEmpty(section))
 			{
-				SectionGame => Resource.Xml.pref_game,
-				SectionAnalyze => Resource.Xml.pref_analyze,
-				SectionDisplay => Resource.Xml.pref_display,
-				SectionControls => Resource.Xml.pref_controls,
-				SectionUser => Resource.Xml.pref_user,
-				SectionEngineConnection => Resource.Xml.pref_engine_connection,
-				_ => Resource.Xml.pref_user
-			};
-			AddPreferencesFromResource(xmlRes);
+				AddClassicPreferences();
+			}
+			else
+#endif
+			{
+				int xmlRes = section switch
+				{
+					SectionGame => Resource.Xml.pref_game,
+					SectionAnalyze => Resource.Xml.pref_analyze,
+					SectionDisplay => Resource.Xml.pref_display,
+					SectionControls => Resource.Xml.pref_controls,
+					SectionUser => Resource.Xml.pref_user,
+					SectionEngineConnection => Resource.Xml.pref_engine_connection,
+					_ => Resource.Xml.pref_user
+				};
+				AddPreferencesFromResource(xmlRes);
+			}
 			SetActionSummaries();
 			string[] summeryKeys = SummeryKeys;
 			foreach (string summary in summeryKeys)
@@ -59,10 +73,164 @@ public class SettingActivity : PreferenceActivity
 			}
 		}
 
+#if CLASSIC_UI
+		public override void OnActivityCreated(Bundle savedInstanceState)
+		{
+			base.OnActivityCreated(savedInstanceState);
+			ConfigureClassicPreferenceDensity();
+		}
+#endif
+
+#if CLASSIC_UI
+		private void AddClassicPreferences()
+		{
+			AddPreferencesFromResource(Resource.Xml.pref_game);
+			AddPreferencesFromResource(Resource.Xml.pref_analyze);
+			AddPreferencesFromResource(Resource.Xml.pref_display);
+			AddPreferencesFromResource(Resource.Xml.pref_controls);
+			AddPreferencesFromResource(Resource.Xml.pref_user);
+			AddPreferencesFromResource(Resource.Xml.pref_engine_connection);
+			AddHideInternalEnginePreference();
+		}
+
+		private void AddHideInternalEnginePreference()
+		{
+			if (PreferenceScreen == null || PreferenceScreen.FindPreference(HideInternalEnginePreferenceKey) != null)
+			{
+				return;
+			}
+
+			var category = new PreferenceCategory(Activity)
+			{
+				Title = Activity?.GetString(Resource.String.SettingsEngineSelection_Text)
+			};
+			PreferenceScreen.AddPreference(category);
+
+			var preference = new CheckBoxPreference(Activity)
+			{
+				Key = HideInternalEnginePreferenceKey,
+				Title = Activity?.GetString(Resource.String.SettingsHideInternalEngine_Text),
+				Summary = Activity?.GetString(Resource.String.SettingsHideInternalEngine_Summary),
+				Persistent = true
+			};
+			preference.SetDefaultValue(false);
+			category.AddPreference(preference);
+		}
+
+		private void ConfigureClassicPreferenceDensity()
+		{
+			var listView = Activity?.FindViewById<ListView>(Android.Resource.Id.List);
+			if (listView == null)
+			{
+				return;
+			}
+
+			listView.DividerHeight = Dp(1);
+			listView.SetPadding(0, Dp(2), 0, Dp(2));
+			listView.SetClipToPadding(false);
+
+			compactListScrollListener_ ??= new CompactListScrollListener(this);
+			listView.SetOnScrollListener(compactListScrollListener_);
+			listView.Post(() => ApplyCompactDensity(listView));
+		}
+
+		private void ApplyCompactDensity(View view)
+		{
+			if (view == null)
+			{
+				return;
+			}
+
+			if (view is TextView textView)
+			{
+				if (textView.Id == Android.Resource.Id.Title)
+				{
+					bool isCategory = textView.Parent is AbsListView;
+					textView.SetTextSize(Android.Util.ComplexUnitType.Sp, isCategory ? 12.5f : 14f);
+					if (isCategory)
+					{
+						textView.SetPadding(Dp(10), Dp(8), Dp(10), Dp(4));
+					}
+				}
+				else if (textView.Id == Android.Resource.Id.Summary)
+				{
+					textView.SetTextSize(Android.Util.ComplexUnitType.Sp, 11.5f);
+				}
+				return;
+			}
+
+			if (view is not ViewGroup group)
+			{
+				return;
+			}
+
+			if (group.Parent is AbsListView)
+			{
+				group.SetMinimumHeight(0);
+				group.SetPadding(0, 0, 0, 0);
+			}
+			else if (group.Id == Android.Resource.Id.WidgetFrame)
+			{
+				group.SetMinimumHeight(0);
+				group.SetPadding(group.PaddingLeft, Dp(4), Dp(8), Dp(4));
+			}
+			else if (HasDirectPreferenceText(group))
+			{
+				group.SetMinimumHeight(0);
+				group.SetPadding(Dp(14), Dp(8), Dp(14), Dp(8));
+			}
+
+			for (int i = 0; i < group.ChildCount; i++)
+			{
+				ApplyCompactDensity(group.GetChildAt(i));
+			}
+		}
+
+		private static bool HasDirectPreferenceText(ViewGroup group)
+		{
+			for (int i = 0; i < group.ChildCount; i++)
+			{
+				int childId = group.GetChildAt(i).Id;
+				if (childId == Android.Resource.Id.Title || childId == Android.Resource.Id.Summary)
+				{
+					return true;
+				}
+			}
+			return false;
+		}
+
+		private int Dp(int dp)
+		{
+			return (int)(dp * Resources.DisplayMetrics.Density + 0.5f);
+		}
+
+		private sealed class CompactListScrollListener : Java.Lang.Object, AbsListView.IOnScrollListener
+		{
+			private readonly SettingsFragment owner_;
+
+			public CompactListScrollListener(SettingsFragment owner)
+			{
+				owner_ = owner;
+			}
+
+			public void OnScroll(AbsListView view, int firstVisibleItem, int visibleItemCount, int totalItemCount)
+			{
+				owner_.ApplyCompactDensity(view);
+			}
+
+			public void OnScrollStateChanged(AbsListView view, [GeneratedEnum] ScrollState scrollState)
+			{
+			}
+		}
+#endif
+
 		public override void OnResume()
 		{
 			base.OnResume();
 			PreferenceScreen.SharedPreferences.RegisterOnSharedPreferenceChangeListener(this);
+#if CLASSIC_UI
+			ConfigureClassicPreferenceDensity();
+#endif
 		}
 
 		public override void OnPause()
@@ -137,12 +305,14 @@ public class SettingActivity : PreferenceActivity
 	{
 		base.OnCreate(savedInstanceState);
 		string section = Intent?.GetStringExtra(ExtraSection) ?? "";
+#if !CLASSIC_UI
 		if (string.IsNullOrEmpty(section))
 		{
 			StartActivity(new Intent(this, typeof(SettingsHomeActivity)));
 			Finish();
 			return;
 		}
+#endif
 
 		string title = section switch
 		{

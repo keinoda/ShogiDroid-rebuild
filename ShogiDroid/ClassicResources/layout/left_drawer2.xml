@@ -13,11 +13,12 @@
         android:layout_height="wrap_content"
         android:background="@color/title_background"
         android:paddingLeft="8dp"
-        android:paddingTop="4dp"
+        android:paddingTop="3dp"
         android:paddingRight="8dp"
-        android:paddingBottom="4dp"
+        android:paddingBottom="3dp"
         android:text="@string/app_text"
         android:textColor="@color/title_text"
+        android:textSize="13sp"
         android:textStyle="bold" />
     <Space
         android:layout_width="16.0dip"

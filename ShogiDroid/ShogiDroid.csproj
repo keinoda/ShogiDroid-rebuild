@@ -61,6 +61,7 @@
       Resources/values-night/styles.xml;
       Resources/values-night/colors.xml;
       Resources/layout/maina.xml;
+      Resources/layout/left_drawer.xml;
       Resources/layout/left_drawer2.xml;
       Resources/layout/right_drawer.xml;
       Resources/layout/thinkinfopage.xml;
@@ -68,6 +69,9 @@
       Resources/layout/editboard.xml;
       Resources/layout/jointboard.xml;
       Resources/layout-land/maina.xml;
+      Resources/layout-land/material_clock_period_toggle_land.xml;
+      Resources/layout-land/material_timepicker.xml;
+      Resources/layout-land/mtrl_picker_header_dialog.xml;
       Resources/layout-land/editboard.xml;
       Resources/layout-land/jointboard.xml;
       Resources/drawable/analyze_btn_bg_active.xml;
