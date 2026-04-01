@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using System.IO;
+using ShogiGUI.Engine;
 using ShogiGUI.Events;
 using ShogiGUI.Models;
 
@@ -106,8 +107,8 @@ public class EngineInstallPresenter : PresenterBase<IEngineInstallView>
 		installer.Uninstall(engine_folder);
 		if (Settings.EngineSettings.EngineNo == engineNo)
 		{
-			Settings.EngineSettings.EngineNo = 1;
-			Settings.EngineSettings.EngineName = string.Empty;
+			Settings.EngineSettings.EngineNo = InternalEngineCatalog.DefaultEngineNo;
+			Settings.EngineSettings.EngineName = InternalEngineCatalog.DefaultEngineName;
 			Domain.Game.EngineTerminate();
 		}
 	}

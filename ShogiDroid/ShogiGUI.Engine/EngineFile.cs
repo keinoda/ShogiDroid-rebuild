@@ -73,6 +73,70 @@ public class EngineFile
 		return result;
 	}
 
+	public static bool AssetExists(string path)
+	{
+		try
+		{
+			string normalized = path.Replace('\\', '/');
+			string directory = Path.GetDirectoryName(normalized)?.Replace('\\', '/') ?? string.Empty;
+			string fileName = Path.GetFileName(normalized);
+			return Array.Exists(EmbResource.GetFiles(directory), (string file) => file == fileName);
+		}
+		catch
+		{
+			return false;
+		}
+	}
+
+	public static bool AssetDirectoryExists(string path)
+	{
+		try
+		{
+			return EmbResource.GetFiles(path).Length != 0;
+		}
+		catch
+		{
+			return false;
+		}
+	}
+
+	public static List<string> GetPreferredAbis()
+	{
+		List<string> list = new List<string>();
+		AddAbi(list, Build.CpuAbi);
+		AddAbi(list, Build.CpuAbi2);
+		if (Build.CpuAbi == "x86_64")
+		{
+			AddAbi(list, "x86");
+		}
+		else if (Build.CpuAbi == "arm64-v8a")
+		{
+			AddAbi(list, "armeabi-v7a");
+			AddAbi(list, "armeabi");
+		}
+		else
+		{
+			AddAbi(list, "armeabi");
+		}
+		return list;
+	}
+
+	public static string FindAssetBinary(string assetFolder)
+	{
+		string[] files = EmbResource.GetFiles(assetFolder);
+		foreach (string abi in GetPreferredAbis())
+		{
+			foreach (string file in files)
+			{
+				if (Path.GetFileNameWithoutExtension(file).EndsWith(abi, StringComparison.OrdinalIgnoreCase))
+				{
+					return Path.Combine(assetFolder, file);
+				}
+			}
+		}
+		return string.Empty;
+	}
+
 	private static bool CopyFileFromResource(string dest, string src)
 	{
 		bool result = false;
@@ -111,27 +175,8 @@ public class EngineFile
 	public static string FindEngine(string dir)
 	{
 		string[] files = Directory.GetFiles(dir);
-		List<string> list = new List<string>();
-		list.Add(Build.CpuAbi);
-		if (Build.CpuAbi2 != string.Empty)
-		{
-			list.Add(Build.CpuAbi2);
-		}
-		if (Build.CpuAbi == "x86_64")
-		{
-			list.Add("x86");
-		}
-		else if (Build.CpuAbi == "arm64-v8a")
-		{
-			list.Add("armeabi-v7a");
-			list.Add("armeabi");
-		}
-		else
-		{
-			list.Add("armeabi");
-		}
 		string text = string.Empty;
-		foreach (string ext in list)
+		foreach (string ext in GetPreferredAbis())
 		{
 			int num = Array.FindIndex(files, (string file) => Path.GetFileNameWithoutExtension(file).EndsWith(ext));
 			if (num >= 0)
@@ -153,29 +198,28 @@ public class EngineFile
 
 	public static bool Compare(string dest, string src)
 	{
-		bool result = false;
 		try
 		{
-			byte[] array = new byte[4];
-			byte[] array2 = new byte[4];
-			using Stream stream = EmbResource.Open(src);
-			using Stream stream2 = System.IO.File.Open(dest, FileMode.Open);
-			stream.Read(array, 0, 4);
-			stream2.Read(array2, 0, 4);
-			result = true;
-			for (int i = 0; i < 4; i++)
+			if (!AssetExists(src) || !System.IO.File.Exists(dest))
 			{
-				if (array[i] != array2[i])
-				{
-					result = false;
-					break;
-				}
+				return false;
 			}
+			using Stream stream = EmbResource.Open(src);
+			using StreamReader reader = new StreamReader(stream);
+			return reader.ReadToEnd().Trim() == System.IO.File.ReadAllText(dest).Trim();
 		}
 		catch
 		{
+			return false;
 		}
-		return result;
+	}
+
+	private static void AddAbi(List<string> list, string abi)
+	{
+		if (!string.IsNullOrEmpty(abi) && !list.Contains(abi))
+		{
+			list.Add(abi);
+		}
 	}
 
 	public static int Chmod(string path, int mode)

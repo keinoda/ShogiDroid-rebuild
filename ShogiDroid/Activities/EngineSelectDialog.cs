@@ -5,6 +5,7 @@ using System.Linq;
 using Android.App;
 using Android.Content;
 using Android.OS;
+using ShogiGUI;
 using ShogiGUI.Engine;
 
 namespace ShogiDroid;
@@ -74,7 +75,9 @@ public class EngineSelectDialog : DialogFragment
 				CancelClick(sender, e);
 			}
 		});
-		list.Add(InternalEnginePlayer.EngineBaseName);
+		bool hideInternal = Settings.AppSettings.HideInternalEngine;
+		if (!hideInternal)
+			list.AddRange(InternalEngineCatalog.EngineBaseNames);
 		file_list = LoadFileList(path);
 		list.AddRange(file_list);
 		list.Add(RemoteEngineLabel);
@@ -83,12 +86,17 @@ public class EngineSelectDialog : DialogFragment
 		{
 			num = list.Count - 1;
 		}
-		else if (engineNo != 1)
+		else if (!hideInternal && InternalEngineCatalog.IsInternalEngineNo(engineNo))
 		{
+			num = engineNo - 1;
+		}
+		else
+		{
+			int offset = hideInternal ? 0 : InternalEngineCatalog.Count;
 			num = Array.IndexOf(file_list, enginename);
 			if (num >= 0)
 			{
-				num++;
+				num += offset;
 			}
 		}
 		builder.SetSingleChoiceItems(list.ToArray(), num, ListClicked);
@@ -98,11 +106,13 @@ public class EngineSelectDialog : DialogFragment
 
 	private void ListClicked(object sender, DialogClickEventArgs e)
 	{
-		int remoteIndex = 1 + file_list.Length;
-		if (e.Which == 0)
+		bool hideInternal = Settings.AppSettings.HideInternalEngine;
+		int offset = hideInternal ? 0 : InternalEngineCatalog.Count;
+		int remoteIndex = offset + file_list.Length;
+		if (!hideInternal && e.Which < InternalEngineCatalog.Count)
 		{
-			enginename = InternalEnginePlayer.EngineBaseName;
-			engineNo = 1;
+			engineNo = e.Which + 1;
+			enginename = InternalEngineCatalog.GetEngineName(engineNo);
 		}
 		else if (e.Which == remoteIndex)
 		{
@@ -111,8 +121,8 @@ public class EngineSelectDialog : DialogFragment
 		}
 		else
 		{
-			enginename = file_list[e.Which - 1];
-			engineNo = e.Which + 1;
+			enginename = file_list[e.Which - offset];
+			engineNo = e.Which - offset + InternalEngineCatalog.Count + 1;
 		}
 		if (OKClick != null)
 		{
@@ -128,7 +138,7 @@ public class EngineSelectDialog : DialogFragment
 			AppDebug.Log.Info($"EngineSelectDialog: scanning {path}");
 			var result = (from filename in Directory.GetDirectories(path, "*.*")
 				select Path.GetFileName(filename) into name
-				where name != InternalEnginePlayer.EngineBaseName
+				where !InternalEngineCatalog.IsInternalEngineName(name)
 				select name).ToArray();
 			AppDebug.Log.Info($"EngineSelectDialog: found {result.Length} engines: {string.Join(", ", result)}");
 			return result;

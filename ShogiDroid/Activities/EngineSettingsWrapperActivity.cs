@@ -103,9 +103,9 @@ public class EngineSettingsWrapperActivity : ThemedActivity, IEngineOptions
 		cancelButton.Click += CancelButton_Click;
 		allOptionsButton.Click += AllOptionsButton_Click;
 
-		if (Settings.EngineSettings.EngineNo == 1)
+		if (InternalEngineCatalog.IsInternalEngineNo(Settings.EngineSettings.EngineNo))
 		{
-			engineNameText.Text = InternalEnginePlayer.EngineBaseName;
+			engineNameText.Text = InternalEngineCatalog.GetEngineName(Settings.EngineSettings.EngineNo);
 		}
 		else
 		{

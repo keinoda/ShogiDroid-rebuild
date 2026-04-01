@@ -80,7 +80,7 @@ public class ExternalEngineSelectDialog : DialogFragment
 	private void ListClicked(object sender, DialogClickEventArgs e)
 	{
 		engineName = file_list[e.Which];
-		engineNo = e.Which + 1 + 1;
+		engineNo = e.Which + InternalEngineCatalog.Count + 1;
 		if (OKClick != null)
 		{
 			OKClick(sender, e);
@@ -94,7 +94,7 @@ public class ExternalEngineSelectDialog : DialogFragment
 		{
 			return (from filename in Directory.GetDirectories(path, "*.*")
 				select Path.GetFileName(filename) into name
-				where name != InternalEnginePlayer.EngineBaseName
+				where !InternalEngineCatalog.IsInternalEngineName(name)
 				select name).ToArray();
 		}
 		catch

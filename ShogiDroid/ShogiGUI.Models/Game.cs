@@ -161,8 +161,11 @@ public class Game
 
 	protected virtual void OnGameEvent(GameEventArgs e)
 	{
-		// Notify watchdog of engine activity for auto-suspend
-		VastAiWatchdog.Instance.OnGameEvent(e.EventId);
+		// リモートエンジン使用中のみ Watchdog にイベントを転送
+		if (Settings.EngineSettings.EngineNo == RemoteEnginePlayer.RemoteEngineNo)
+		{
+			VastAiWatchdog.Instance.OnGameEvent(e.EventId);
+		}
 
 		if (this.GameEventHandler != null)
 		{
@@ -208,6 +211,8 @@ public class Game
 			enginePlayer = null;
 			comState = ComputerState.None;
 			busy = false;
+			// エンジン切替時に Watchdog 監視を停止（ローカルエンジンへの切替で課金が続くのを防止）
+			VastAiWatchdog.Instance.StopMonitoring();
 			OnGameEvent(new GameEventArgs(GameEventId.AnalyzeEnd));
 		}
 	}
@@ -749,9 +754,9 @@ public class Game
 			else
 			{
 				string enginePath;
-				if (playerNo == 1)
+				if (InternalEngineCatalog.IsInternalEngineNo(playerNo))
 				{
-					InternalEnginePlayer internalEnginePlayer = new InternalEnginePlayer(PlayerColor.Black);
+					InternalEnginePlayer internalEnginePlayer = new InternalEnginePlayer(PlayerColor.Black, InternalEngineCatalog.GetEngineName(playerNo));
 					if (!internalEnginePlayer.CopyFiles())
 					{
 						AppDebug.Log.Error("initEnginePlayer: InternalEngine CopyFiles failed");

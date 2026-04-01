@@ -1,0 +1,4 @@
+source=aobannue
+edition=YANEURAOU_ENGINE_NNUE_HALFKP_768X2_16_64
+abis=arm64-v8a
+revision=514c956e914d

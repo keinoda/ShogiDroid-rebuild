@@ -76,6 +76,8 @@ public class AppSettings
 
 	public bool AutoThreatmateAnalysis = true;
 
+	public bool HideInternalEngine = false;
+
 	public AppSettings()
 	{
 	}
