@@ -452,7 +452,7 @@ public class VastAiSearchCriteria
 
 public class VastAiInstanceConfig
 {
-	public string DockerImage = "";
+	public string DockerImage = "keinoda/shogi:AobaNNUE";
 	public int[] Ports = Array.Empty<int>();
 	public double DiskGb = 8.0;
 	public string OnStartCmd = "";

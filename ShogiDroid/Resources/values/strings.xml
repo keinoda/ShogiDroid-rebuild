@@ -242,7 +242,8 @@
     <string name="hide_bottom_view_on_scroll_behavior">com.google.android.material.behavior.HideBottomViewOnScrollBehavior</string>
     <string name="permission_external_storage">ストレージの書き込みを許可しますか？</string>
     <string name="EngineDownloadPageUnavailable_Text">エンジンダウンロードページは未設定です</string>
-    <string name="Menu_CameraRead_Text">盤面読み取り</string>
+    <string name="Menu_CameraRead_Text">局面画像認識</string>
+    <string name="Menu_PositionLoad_Text">局面読み込み</string>
     <string name="SettingsIncrement_Text">加算(フィッシャー)</string>
     <string name="SettingsTransferTitle_Text">設定のバックアップ</string>
     <string name="SettingsTransferSummary_Text">アプリ設定を外部ストレージへ出力し、アプリ名変更後に復元できます。保存先: {0}</string>

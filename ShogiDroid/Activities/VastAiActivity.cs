@@ -143,7 +143,16 @@ public class VastAiActivity : Activity
 		apiKeyEdit_ = AddEditField(rootLayout_, "APIキー", "vast.ai API Key");
 		apiKeyEdit_.InputType = Android.Text.InputTypes.ClassText | Android.Text.InputTypes.TextVariationPassword;
 
-		dockerImageEdit_ = AddEditField(rootLayout_, "Dockerイメージ", "");
+		dockerImageEdit_ = AddEditField(rootLayout_, "Dockerイメージ", "keinoda/shogi:AobaNNUE");
+		// Dockerイメージのロック判定
+		if (!string.IsNullOrEmpty(EngineSettings.DockerImageLockFingerprint))
+		{
+			if (!IsDockerImageUnlocked())
+			{
+				dockerImageEdit_.Enabled = false;
+				dockerImageEdit_.Alpha = 0.5f;
+			}
+		}
 
 		onStartCmdEdit_ = AddEditField(rootLayout_, "起動コマンド", "onstart command");
 		onStartCmdEdit_.SetMaxLines(3);
@@ -329,6 +338,30 @@ public class VastAiActivity : Activity
 		Settings.EngineSettings.VastAiSortAsc = true;
 
 		Settings.Save();
+	}
+
+	/// <summary>
+	/// SSH鍵ファイルのSHA256フィンガープリントがロック用フィンガープリントと一致するか判定。
+	/// 一致すればDockerイメージの編集を許可する。
+	/// </summary>
+	private bool IsDockerImageUnlocked()
+	{
+		try
+		{
+			string keyPath = Settings.EngineSettings.VastAiSshKeyPath;
+			if (string.IsNullOrEmpty(keyPath) || !System.IO.File.Exists(keyPath))
+				return false;
+
+			byte[] keyBytes = System.IO.File.ReadAllBytes(keyPath);
+			using var sha256 = System.Security.Cryptography.SHA256.Create();
+			byte[] hash = sha256.ComputeHash(keyBytes);
+			string fingerprint = BitConverter.ToString(hash).Replace("-", "").ToLowerInvariant();
+			return fingerprint == EngineSettings.DockerImageLockFingerprint;
+		}
+		catch
+		{
+			return false;
+		}
 	}
 
 	private VastAiManager GetManager()

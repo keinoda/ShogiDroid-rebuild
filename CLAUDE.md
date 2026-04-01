@@ -105,6 +105,13 @@ ShogiDroid/
 - 完成後に develop へマージし、feature ブランチは削除する
 - GitHub 上で `release` ブランチを公開する際は、通常版に加えて、機能は同一で見た目のみ異なる Classic 版もあわせてリリースする
 
+## release ブランチ向けの変更
+release ブランチを作成する際、以下の変更を適用する:
+1. `EngineSettings.VastAiDockerImage` のデフォルト値を `"keinoda/shogi:AobaNNUE"` に変更
+2. `EngineSettings.DockerImageLockFingerprint` に開発者SSH鍵のSHA256フィンガープリントを設定
+   （設定すると、一致するSSH鍵がない限り UI上でDockerイメージを変更不可にする）
+3. Dockerfile は `ShogiDroid/docker/` 以下に保存済み
+
 ## 禁止事項
 - **クリーンインストール（adb uninstall → install）を勝手に実行しないこと**。設定・エンジンオプション等が全て消失する。必ず `adb install -r`（上書きインストール）を使う
 ## 既知の問題

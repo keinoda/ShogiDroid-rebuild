@@ -227,6 +227,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 
 		// 5. 局面
 		var board = new DrawerSectionModel("局面");
+		board.Add(Resource.Id.position_load, GetString(Resource.String.Menu_PositionLoad_Text), isEnabled: enabled(Resource.Id.position_load));
 		board.Add(Resource.Id.camera_read, GetString(Resource.String.Menu_CameraRead_Text), isEnabled: enabled(Resource.Id.camera_read));
 		board.Add(Resource.Id.cmd_reverse, GetString(Resource.String.MenuReverse_Text), isEnabled: enabled(Resource.Id.cmd_reverse));
 		board.Add(Resource.Id.menu_board_edit, GetString(Resource.String.Menu_EditBoard_Text), isEnabled: enabled(Resource.Id.menu_board_edit));
@@ -336,6 +337,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		commands.Add(CmdNo.FileSave, Resource.Id.file_save, FileSave, CanSaveNotation);
 		commands.Add(CmdNo.FileSaveOverwrite, Resource.Id.file_save_overwrite, FileSaveOverwrite, CanSaveNotation);
 		commands.Add(CmdNo.FileImport, Resource.Id.file_import, NotationSelectRequest, presenter.CanLoadNotaton);
+		commands.Add(CmdNo.PositionLoad, Resource.Id.position_load, NotationSelectRequest, presenter.CanLoadNotaton);
 		commands.Add(CmdNo.FileWebImport, Resource.Id.file_web_import, ShowWEBNoationDialog, presenter.CanLoadNotaton);
 		commands.Add(CmdNo.FileSend, Resource.Id.file_send, FileSend, null);
 		commands.Add(CmdNo.FileWebImportAs, Resource.Id.file_web_import_as, WebImportAs, presenter.CanLoadNotaton);
