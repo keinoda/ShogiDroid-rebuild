@@ -1478,7 +1478,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			OpenSettingsHome();
 			break;
 		case Resource.Id.menu_vastai:
-			StartActivityForResult(new Intent(this, typeof(VastAiActivity)), VASTAI_ACTIVITY_CODE);
+			StartActivityForResult(new Intent(this, typeof(CloudActivity)), VASTAI_ACTIVITY_CODE);
 			drawerLayout.CloseDrawers();
 			break;
 		case Resource.Id.analysis_settings:
@@ -3312,8 +3312,13 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			Window.DecorView.SystemUiVisibility = (StatusBarVisibility)SystemUiFlags.Visible;
 			Window.ClearFlags(WindowManagerFlags.Fullscreen);
 			AndroidX.Core.View.WindowCompat.SetDecorFitsSystemWindows(Window, true);
-			var drawer = FindViewById<Android.Views.View>(Resource.Id.drawer_layout);
-			if (drawer != null) drawer.SetFitsSystemWindows(true);
+			var drawer = FindViewById<AndroidX.DrawerLayout.Widget.DrawerLayout>(Resource.Id.drawer_layout);
+			if (drawer != null)
+			{
+				drawer.SetFitsSystemWindows(true);
+				drawer.SetStatusBarBackgroundColor(Android.Graphics.Color.Black);
+				drawer.RequestFitSystemWindows();
+			}
 		}
 		else
 		{
@@ -3341,6 +3346,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			{
 				drawer.SetFitsSystemWindows(false);
 				drawer.SetStatusBarBackgroundColor(Android.Graphics.Color.Transparent);
+				drawer.RequestFitSystemWindows();
 			}
 		}
 

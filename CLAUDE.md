@@ -150,6 +150,8 @@ dotnet build ShogiDroid/ShogiDroid.csproj -c Release -p:ClassicUi=true
 
 ## 禁止事項
 - **クリーンインストール（adb uninstall → install）を勝手に実行しないこと**。設定・エンジンオプション等が全て消失する。必ず `adb install -r`（上書きインストール）を使う
+- **release/distribute ブランチで `dotnet build` を実行しないこと**。release ブランチは ApplicationId が異なり（`com.ngs436.ShogiDroidR`）、ビルドすると署名キーの状態が汚染され、develop 側（`com.ngs43.shogidroid`）の上書きインストールが署名不一致で失敗し、端末からアプリが消失する恐れがある。Release ビルドは必ず専用 worktree (`/Users/keinoda/ShogiDroid-rebuild-release`) で行う
+- **ブランチ切り替え時は `bin/` `obj/` を意識すること**。異なる ApplicationId のブランチでビルドした後は、`bin/Release/` に古い APK が混在する。正しい APK パスを必ず確認してからインストールする
 
 ## 既知の問題
 - エンジンオプション画面が不安定な場合がある

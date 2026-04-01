@@ -49,6 +49,24 @@ public class EngineSettings
 
 	public int VastAiInstanceId = 0;
 
+	// AWS スポットインスタンス設定
+	public string AwsAccessKey = string.Empty;
+	public string AwsSecretKey = string.Empty;
+	public string AwsRegion = "eu-north-1";
+	public string AwsAvailabilityZone = string.Empty;
+	public string AwsInstanceType = "c7a.metal-48xl";
+	public string AwsDockerImage = "keinoda/shogi:v9.21nnue";
+	public string AwsInstanceId = string.Empty;
+	public string AwsKeyPairName = string.Empty;
+	public string AwsSecurityGroupId = string.Empty;
+	public string AwsVolumeId = string.Empty;
+	public string AwsCustomAmiId = string.Empty;
+
+	/// <summary>
+	/// 現在どのクラウドプロバイダーで接続中か ("vastai" or "aws")
+	/// </summary>
+	public string CloudProvider = string.Empty;
+
 	// vast.ai search criteria
 	public string VastAiGpuNames = "RTX 4090, RTX 5090";
 	public int VastAiMinCpuCores = 32;
