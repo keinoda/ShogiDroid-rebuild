@@ -2,45 +2,54 @@
 <LinearLayout
     android:layout_width="fill_parent"
     android:layout_height="wrap_content"
-    android:minHeight="52dp"
+    android:minHeight="42dp"
     android:orientation="horizontal"
-    android:paddingLeft="12dp"
-    android:paddingTop="8dp"
-    android:paddingRight="12dp"
-    android:paddingBottom="8dp"
-    xmlns:android="http://schemas.android.com/apk/res/android">
+    android:paddingLeft="10dp"
+    android:paddingTop="6dp"
+    android:paddingRight="10dp"
+    android:paddingBottom="6dp"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
     <TextView
         android:id="@id/state_info_text"
-        android:layout_width="18dp"
+        android:layout_width="14dp"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
+        android:includeFontPadding="false"
         android:textSize="12sp" />
     <TextView
         android:id="@id/state_comment_text"
-        android:layout_width="18dp"
+        android:layout_width="14dp"
         android:layout_height="wrap_content"
         android:gravity="center_vertical"
+        android:includeFontPadding="false"
         android:textSize="12sp" />
     <TextView
         android:id="@id/move_text"
         android:layout_width="0dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="6dp"
+        android:layout_marginStart="4dp"
         android:layout_weight="1"
         android:ellipsize="end"
         android:gravity="center_vertical"
+        android:includeFontPadding="false"
         android:singleLine="true"
-        android:textSize="14sp" />
+        android:textSize="13sp"
+        app:autoSizeMaxTextSize="13sp"
+        app:autoSizeMinTextSize="10sp"
+        app:autoSizeStepGranularity="1sp"
+        app:autoSizeTextType="uniform" />
     <TextView
         android:id="@id/branch_text"
-        android:layout_width="20dp"
+        android:layout_width="16dp"
         android:layout_height="wrap_content"
         android:gravity="center"
+        android:includeFontPadding="false"
         android:textSize="12sp" />
     <LinearLayout
-        android:layout_width="72dp"
+        android:layout_width="58dp"
         android:layout_height="wrap_content"
-        android:layout_marginStart="8dp"
+        android:layout_marginStart="6dp"
         android:gravity="end"
         android:orientation="vertical">
         <TextView
@@ -48,12 +57,14 @@
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:gravity="end"
-            android:textSize="10sp" />
+            android:includeFontPadding="false"
+            android:textSize="9sp" />
         <TextView
             android:id="@id/eval_text"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
             android:gravity="end"
-            android:textSize="10sp" />
+            android:includeFontPadding="false"
+            android:textSize="9sp" />
     </LinearLayout>
 </LinearLayout>

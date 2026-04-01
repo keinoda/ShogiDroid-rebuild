@@ -654,10 +654,12 @@ public class VastAiActivity : Activity
 		Settings.EngineSettings.VastAiGpuRamMb = (int)(inst.GpuRamGb * 1024);
 		Settings.Save();
 
-		// アイドル自動サスペンド監視
+		// アイドル自動終了監視を開始し、接続情報を保存
 		VastAiWatchdog.Instance.StartMonitoring(
 			inst.Id,
 			Settings.EngineSettings.VastAiApiKey);
+		VastAiWatchdog.Instance.SaveLastConnectionInfo(
+			inst.Id, sshHost, sshPort, engineCommand);
 
 		var resultIntent = new Intent();
 		resultIntent.PutExtra(ExtraHost, inst.PublicIpAddr);
@@ -720,9 +722,6 @@ public class VastAiActivity : Activity
 			});
 
 			await manager.WaitForReadyAsync(instanceId, progress, cts_.Token);
-
-			RunOnUiThread(() => statusText_.Text = "SSH起動待機中 (10秒)...");
-			await Task.Delay(10000, cts_.Token);
 
 			RunOnUiThread(() =>
 			{
@@ -888,7 +887,13 @@ public class VastAiActivity : Activity
 		row.SetGravity(GravityFlags.CenterVertical);
 
 		bool isOnDemand = interruptibleCheck_ != null && !interruptibleCheck_.Checked;
-		string priceLabel = isOnDemand ? $"${offer.DphTotal:F3}/h (on-demand)" : $"${offer.DphTotal:F3}/h";
+		string priceLabel;
+		if (isOnDemand)
+			priceLabel = $"${offer.DphTotal:F3}/h (on-demand)";
+		else if (offer.MinBid > 0)
+			priceLabel = $"${offer.DphTotal:F3}/h (最低入札: ${offer.MinBid:F3})";
+		else
+			priceLabel = $"${offer.DphTotal:F3}/h (interruptible)";
 		var priceText = new TextView(this) { Text = priceLabel };
 		priceText.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
 		priceText.SetTextColor(ColorUtils.Get(this, Resource.Color.title_background));
@@ -916,12 +921,15 @@ public class VastAiActivity : Activity
 
 		try
 		{
+			bool isInterruptible = interruptibleCheck_ != null && interruptibleCheck_.Checked;
 			var config = new VastAiInstanceConfig
 			{
 				DockerImage = Settings.EngineSettings.VastAiDockerImage,
 				Ports = Array.Empty<int>(),
 				DiskGb = 8.0,
-				OnStartCmd = Settings.EngineSettings.VastAiOnStartCmd
+				OnStartCmd = Settings.EngineSettings.VastAiOnStartCmd,
+				// interruptibleの場合、オファーの表示価格を入札額として使用
+				BidPrice = isInterruptible ? offer.DphTotal : 0
 			};
 
 			int instanceId = await manager.CreateInstanceAsync(offer.Id, config, cts_.Token);
@@ -937,9 +945,6 @@ public class VastAiActivity : Activity
 			});
 
 			await manager.WaitForReadyAsync(instanceId, progress, cts_.Token);
-
-			RunOnUiThread(() => statusText_.Text = "SSH起動待機中 (10秒)...");
-			await Task.Delay(10000, cts_.Token);
 
 			RunOnUiThread(() =>
 			{

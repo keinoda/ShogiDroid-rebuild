@@ -1,27 +1,38 @@
 using System;
+using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 using ShogiGUI.Events;
 
 namespace ShogiGUI.Engine;
 
 /// <summary>
-/// Monitors vast.ai instance idle time and auto-suspends after a configured period.
-/// Singleton — lives for the app lifetime.
+/// vast.ai インスタンスのアイドル自動終了を管理するシングルトン。
+/// 解析終了後に一定時間（デフォルト5分）新しい解析が開始されなければ
+/// 全インスタンスを Destroy し、最後の接続設定を保持する。
 /// </summary>
 public sealed class VastAiWatchdog : IDisposable
 {
 	private static VastAiWatchdog instance_;
 	private static readonly object lockObj_ = new object();
 
-	/// <summary>Default idle timeout: 60 minutes.</summary>
-	public const int DefaultIdleMinutes = 60;
+	/// <summary>解析終了後、自動終了までのデフォルト待機時間（分）</summary>
+	public const int DefaultIdleMinutes = 5;
 
-	private Timer checkTimer_;
-	private DateTime lastActivityTime_;
+	private Timer shutdownTimer_;
 	private int idleTimeoutMinutes_;
-	private int monitoredInstanceId_;
-	private bool suspended_;
+	private bool isAnalyzing_;
+	private bool shutdownInFlight_;
 	private string apiKey_;
+
+	/// <summary>
+	/// 最後に接続したインスタンスの設定を一時保存するフラグ。
+	/// 自動終了前に設定を保持し、次回接続時に復元可能にする。
+	/// </summary>
+	public int LastInstanceId { get; private set; }
+	public string LastSshHost { get; private set; } = string.Empty;
+	public int LastSshPort { get; private set; }
+	public string LastEngineCommand { get; private set; } = string.Empty;
 
 	public static VastAiWatchdog Instance
 	{
@@ -38,13 +49,12 @@ public sealed class VastAiWatchdog : IDisposable
 		}
 	}
 
-	public bool IsMonitoring => monitoredInstanceId_ > 0 && checkTimer_ != null;
-	public int MonitoredInstanceId => monitoredInstanceId_;
-	public DateTime LastActivityTime => lastActivityTime_;
+	public bool IsMonitoring => !string.IsNullOrEmpty(apiKey_);
+	public bool IsShutdownPending => shutdownTimer_ != null;
 	public int IdleTimeoutMinutes => idleTimeoutMinutes_;
 
-	/// <summary>Raised when an instance is auto-suspended.</summary>
-	public event Action<int> InstanceAutoSuspended;
+	/// <summary>全インスタンスが自動終了されたときに発火する。</summary>
+	public event Action InstanceAutoStopped;
 
 	private VastAiWatchdog()
 	{
@@ -52,123 +62,195 @@ public sealed class VastAiWatchdog : IDisposable
 	}
 
 	/// <summary>
-	/// Start monitoring a vast.ai instance. Call when a remote engine backed by vast.ai connects.
+	/// 監視を開始する。リモートエンジン接続時に呼び出す。
 	/// </summary>
 	public void StartMonitoring(int instanceId, string apiKey, int idleTimeoutMinutes = DefaultIdleMinutes)
 	{
 		lock (lockObj_)
 		{
-			StopMonitoringInternal();
-
-			monitoredInstanceId_ = instanceId;
 			apiKey_ = apiKey;
 			idleTimeoutMinutes_ = idleTimeoutMinutes;
-			suspended_ = false;
-			lastActivityTime_ = DateTime.UtcNow;
+			LastInstanceId = instanceId;
+			isAnalyzing_ = false;
+			shutdownInFlight_ = false;
+			CancelShutdownTimer();
 
-			// Check every 5 minutes
-			checkTimer_ = new Timer(CheckIdle, null, TimeSpan.FromMinutes(5), TimeSpan.FromMinutes(5));
-
-			AppDebug.Log.Info($"VastAiWatchdog: started monitoring instance {instanceId}, timeout={idleTimeoutMinutes}min");
+			AppDebug.Log.Info($"VastAiWatchdog: 監視開始 instance={instanceId}, timeout={idleTimeoutMinutes}分");
 		}
 	}
 
 	/// <summary>
-	/// Stop monitoring. Call when engine is terminated or instance is manually stopped.
+	/// 監視を停止する。エンジン切断時や手動停止時に呼び出す。
 	/// </summary>
 	public void StopMonitoring()
 	{
 		lock (lockObj_)
 		{
-			StopMonitoringInternal();
-			AppDebug.Log.Info("VastAiWatchdog: monitoring stopped");
+			CancelShutdownTimer();
+			apiKey_ = string.Empty;
+			isAnalyzing_ = false;
+			shutdownInFlight_ = false;
+			AppDebug.Log.Info("VastAiWatchdog: 監視停止");
 		}
 	}
 
 	/// <summary>
-	/// Record engine activity. Resets the idle timer.
-	/// Call on: analysis start, go, info received, bestmove, etc.
+	/// アクティビティを記録する（互換性のため残す）。
+	/// 解析中のフラグをリセットし、シャットダウンタイマーをキャンセルする。
 	/// </summary>
 	public void RecordActivity()
 	{
-		lastActivityTime_ = DateTime.UtcNow;
-	}
-
-	/// <summary>
-	/// Handle a game event to automatically track engine activity.
-	/// </summary>
-	public void OnGameEvent(GameEventId eventId)
-	{
-		switch (eventId)
-		{
-			case GameEventId.AnalyzeStart:
-			case GameEventId.GameStart:
-			case GameEventId.MateStart:
-			case GameEventId.Info:
-			case GameEventId.Moved:
-				RecordActivity();
-				break;
-		}
-	}
-
-	public TimeSpan GetIdleTime()
-	{
-		return DateTime.UtcNow - lastActivityTime_;
-	}
-
-	public TimeSpan GetRemainingTime()
-	{
-		var remaining = TimeSpan.FromMinutes(idleTimeoutMinutes_) - GetIdleTime();
-		return remaining > TimeSpan.Zero ? remaining : TimeSpan.Zero;
-	}
-
-	private void CheckIdle(object state)
-	{
 		lock (lockObj_)
 		{
-			if (monitoredInstanceId_ <= 0 || suspended_)
-				return;
-
-			var idleTime = GetIdleTime();
-			AppDebug.Log.Info($"VastAiWatchdog: idle check — {idleTime.TotalMinutes:F0}min / {idleTimeoutMinutes_}min");
-
-			if (idleTime.TotalMinutes >= idleTimeoutMinutes_)
+			if (shutdownTimer_ != null)
 			{
-				AppDebug.Log.Info($"VastAiWatchdog: idle timeout reached, suspending instance {monitoredInstanceId_}");
-				SuspendInstanceAsync();
+				CancelShutdownTimer();
+				AppDebug.Log.Info("VastAiWatchdog: アクティビティ検知、シャットダウンタイマーをキャンセル");
 			}
 		}
 	}
 
-	private async void SuspendInstanceAsync()
+	/// <summary>
+	/// ゲームイベントを処理し、解析の開始・終了を追跡する。
+	/// </summary>
+	public void OnGameEvent(GameEventId eventId)
 	{
-		int instanceId = monitoredInstanceId_;
-		suspended_ = true;
+		lock (lockObj_)
+		{
+			if (string.IsNullOrEmpty(apiKey_))
+				return;
 
+			switch (eventId)
+			{
+				// 解析開始: シャットダウンタイマーをキャンセル
+				case GameEventId.AnalyzeStart:
+				case GameEventId.GameStart:
+				case GameEventId.MateStart:
+					isAnalyzing_ = true;
+					CancelShutdownTimer();
+					AppDebug.Log.Info($"VastAiWatchdog: 解析開始検知 ({eventId})、タイマーキャンセル");
+					break;
+
+				// 解析中のアクティビティ: 何もしない（解析中フラグは維持）
+				case GameEventId.Info:
+				case GameEventId.Moved:
+					break;
+
+				// 解析終了: シャットダウンタイマーを起動
+				case GameEventId.AnalyzeEnd:
+				case GameEventId.NotationAnalyzeEnd:
+				case GameEventId.MateEnd:
+				case GameEventId.GameEnd:
+				case GameEventId.GameOver:
+					isAnalyzing_ = false;
+					StartShutdownTimer();
+					AppDebug.Log.Info($"VastAiWatchdog: 解析終了検知 ({eventId})、{idleTimeoutMinutes_}分後にシャットダウン予定");
+					break;
+			}
+		}
+	}
+
+	/// <summary>
+	/// 最後に接続したインスタンスの設定を保存する。
+	/// 自動終了前に呼び出し、次回の再接続に備える。
+	/// </summary>
+	public void SaveLastConnectionInfo(int instanceId, string sshHost, int sshPort, string engineCommand)
+	{
+		LastInstanceId = instanceId;
+		LastSshHost = sshHost ?? string.Empty;
+		LastSshPort = sshPort;
+		LastEngineCommand = engineCommand ?? string.Empty;
+		AppDebug.Log.Info($"VastAiWatchdog: 接続情報を保存 instance={instanceId}, host={sshHost}:{sshPort}");
+	}
+
+	private void StartShutdownTimer()
+	{
+		CancelShutdownTimer();
+		int delayMs = idleTimeoutMinutes_ * 60 * 1000;
+		shutdownTimer_ = new Timer(OnShutdownTimerFired, null, delayMs, Timeout.Infinite);
+	}
+
+	private void CancelShutdownTimer()
+	{
+		shutdownTimer_?.Dispose();
+		shutdownTimer_ = null;
+	}
+
+	private void OnShutdownTimerFired(object state)
+	{
+		string apiKey;
+		lock (lockObj_)
+		{
+			// 解析中ならスキップ
+			if (isAnalyzing_ || shutdownInFlight_ || string.IsNullOrEmpty(apiKey_))
+			{
+				CancelShutdownTimer();
+				return;
+			}
+			shutdownInFlight_ = true;
+			apiKey = apiKey_;
+			CancelShutdownTimer();
+		}
+
+		_ = StopAllInstancesAsync(apiKey);
+	}
+
+	private async Task StopAllInstancesAsync(string apiKey)
+	{
 		try
 		{
-			using var manager = new VastAiManager(apiKey_);
-			await manager.StopInstanceAsync(instanceId);
-			AppDebug.Log.Info($"VastAiWatchdog: instance {instanceId} auto-suspended");
+			AppDebug.Log.Info("VastAiWatchdog: アイドルタイムアウト、全インスタンスを一時停止します");
 
-			Settings.EngineSettings.VastAiInstanceId = instanceId; // keep ID for resume
+			// 現在のエンジン設定を保存（次回復元用）
+			Settings.EngineSettings.VastAiInstanceId = LastInstanceId;
 			Settings.Save();
 
-			InstanceAutoSuspended?.Invoke(instanceId);
+			using var manager = new VastAiManager(apiKey);
+			List<VastAiInstance> instances = await manager.ListInstancesAsync();
+
+			int stopped = 0;
+			foreach (var inst in instances)
+			{
+				if ((inst.IsShogiInstance || inst.Id == LastInstanceId) && inst.IsRunning)
+				{
+					try
+					{
+						await manager.StopInstanceAsync(inst.Id);
+						stopped++;
+						AppDebug.Log.Info($"VastAiWatchdog: インスタンス #{inst.Id} を一時停止しました");
+					}
+					catch (Exception ex)
+					{
+						AppDebug.Log.Error($"VastAiWatchdog: インスタンス #{inst.Id} の一時停止に失敗: {ex.Message}");
+					}
+				}
+			}
+
+			AppDebug.Log.Info($"VastAiWatchdog: {stopped}個のインスタンスを一時停止しました");
+
+			lock (lockObj_)
+			{
+				shutdownInFlight_ = false;
+			}
+
+			InstanceAutoStopped?.Invoke();
 		}
 		catch (Exception ex)
 		{
-			AppDebug.Log.Error($"VastAiWatchdog: auto-suspend failed: {ex.Message}");
-			suspended_ = false; // retry next check
+			AppDebug.Log.Error($"VastAiWatchdog: 自動一時停止に失敗: {ex.Message}");
+			lock (lockObj_)
+			{
+				shutdownInFlight_ = false;
+			}
 		}
 	}
 
 	private void StopMonitoringInternal()
 	{
-		checkTimer_?.Dispose();
-		checkTimer_ = null;
-		monitoredInstanceId_ = 0;
-		suspended_ = false;
+		CancelShutdownTimer();
+		apiKey_ = string.Empty;
+		isAnalyzing_ = false;
+		shutdownInFlight_ = false;
 	}
 
 	public void Dispose()

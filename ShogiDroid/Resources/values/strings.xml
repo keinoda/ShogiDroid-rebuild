@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">将棋ドロイドR</string>
     <string name="ActivityNotFound_Text">アプリがありません</string>
     <string name="Analysis_Text">解析</string>
     <string name="Analysis_comment_Text" formatted="false">一致率 先手 {0}% = {1}/{2} 後手 {3}% = {4}/{5}</string>
@@ -10,6 +9,11 @@
     <string name="AnalyzeRange_Text">範囲</string>
     <string name="AnalyzeReverse_Text">逆順解析（終局側から）</string>
     <string name="ParallelAnalyze_Text">並列解析（リモート）</string>
+    <string name="BackgroundAnalyzeNotificationChannel_Text">クラウド解析状態</string>
+    <string name="BackgroundAnalyzeNotificationChannelDescription_Text">バックグラウンドで継続中のクラウド解析を表示します</string>
+    <string name="BackgroundAnalyzeNotificationTitle_Text">クラウド解析を継続中</string>
+    <string name="BackgroundAnalyzeNotificationText_Text">クラウド解析をバックグラウンドで継続しています</string>
+    <string name="BackgroundConsiderNotificationText_Text">クラウド検討をバックグラウンドで継続しています</string>
     <string name="AnalyzeStartDialog_Text">棋譜解析</string>
     <string name="AnalyzeTime_Text">時間</string>
     <string name="Analyzing_Text">解析中</string>
@@ -89,7 +93,8 @@
     <string name="Menu_FileImport_Text">棋譜を取り込み</string>
     <string name="Menu_FileLoadLast_Text">前回の棋譜を開く</string>
     <string name="Menu_FileLoad_Text">棋譜を開く</string>
-    <string name="Menu_FileSave_Text">棋譜を保存</string>
+    <string name="Menu_FileSave_Text">名前を付けて保存</string>
+    <string name="Menu_FileSaveOverwrite_Text">上書き保存</string>
     <string name="Menu_FileSend_Text">棋譜を送る</string>
     <string name="Menu_FileWebExport_Text">WEBから棋譜を取り込み</string>
     <string name="Menu_NewGame_Text">新規対局</string>
@@ -119,6 +124,8 @@
     <string name="MessageGameStop_Text">対局中断</string>
     <string name="MessageInitializeError_Text">エンジン起動エラー</string>
     <string name="MessageInitialized_Text">エンジン起動中</string>
+    <string name="VastAiBooting_Text">インスタンス起動中...</string>
+    <string name="VastAiBootFailed_Text">vast.ai インスタンスの自動起動に失敗しました</string>
     <string name="Min_Text">最小値</string>
     <string name="Moves_Text">読み筋</string>
     <string name="Nodes_Text">ノード数</string>
@@ -146,6 +153,8 @@
     <string name="SettingsAnalyzeTime_Default">10000</string>
     <string name="SettingsAnalyzeTime_Text">自動解析終了時間</string>
     <string name="SettingsAnalyze_Text">解析</string>
+    <string name="SettingsAutoThreatmateAnalysis_Text">詰めろ自動解析</string>
+    <string name="SettingsAutoThreatmateAnalysis_Summary">Komoringで局面ごとの詰めろをバックグラウンド判定する。局面によっては重くなる場合があります</string>
     <string name="SettingsAnimateMoves_Text">駒移動アニメーション</string>
     <string name="SettingsAnimateSpeed_Default">Normal</string>
     <string name="SettingsAppearance_Text">表示</string>
@@ -194,6 +203,14 @@
     <string name="String_Text">文字列</string>
     <string name="ThinkInfoMenuAddBranch_Text">分岐に追加</string>
     <string name="ThinkInfoMenuAddComment_Text">コメントに追加</string>
+    <string name="JointBoardTitle_Text">局面確認</string>
+    <string name="JointBoardAddBranch_Text">棋譜に追加</string>
+    <string name="JointBoardAdded_Text">読み筋を棋譜に追加しました</string>
+    <string name="ThreatmateAnalyzing_Text">詰めろ判定中</string>
+    <string name="Threatmate_Text">詰めろ</string>
+    <string name="ThreatmateLineUnavailable_Text">詰み筋取得中</string>
+    <string name="ThreatmateNone_Text">詰めろなし</string>
+    <string name="ThreatmateUnknown_Text">詰めろ不明</string>
     <string name="ThinkListDialogTitle_Text">思考情報</string>
     <string name="Think_Text">思考</string>
     <string name="Thinking_Text">思考中</string>
@@ -215,9 +232,19 @@
     <string name="fallback_menu_item_share_link">リンクの共有</string>
     <string name="hide_bottom_view_on_scroll_behavior">com.google.android.material.behavior.HideBottomViewOnScrollBehavior</string>
     <string name="permission_external_storage">ストレージの書き込みを許可しますか？</string>
-    <string name="app_text">将棋ドロイドR</string>
+    <string name="EngineDownloadPageUnavailable_Text">エンジンダウンロードページは未設定です</string>
     <string name="Menu_CameraRead_Text">盤面読み取り</string>
     <string name="SettingsIncrement_Text">加算(フィッシャー)</string>
+    <string name="SettingsTransferTitle_Text">設定のバックアップ</string>
+    <string name="SettingsTransferSummary_Text">アプリ設定を外部ストレージへ出力し、アプリ名変更後に復元できます。保存先: {0}</string>
+    <string name="SettingsExport_Text">設定を出力</string>
+    <string name="SettingsImport_Text">設定を読み取り</string>
+    <string name="SettingsExportCompleted_Text">設定を書き出しました: {0}</string>
+    <string name="SettingsImportCompleted_Text">設定を復元しました</string>
+    <string name="SettingsImportMissing_Text">バックアップ設定ファイルが見つかりません</string>
+    <string name="SettingsImportConfirmTitle_Text">設定を復元</string>
+    <string name="SettingsImportConfirmMessage_Text">現在の設定を上書きして、{0} から復元しますか？</string>
+    <string name="SettingsTransferFailed_Text">設定の入出力に失敗しました: {0}</string>
     <string name="EngineSettingsTitle_Text">エンジン設定</string>
     <string name="EngineSettingsAllOptions_Text">全オプション</string>
     <string name="Menu_EngineSettings_Text">エンジン設定</string>

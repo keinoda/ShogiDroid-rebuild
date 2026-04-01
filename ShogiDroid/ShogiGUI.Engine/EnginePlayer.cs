@@ -54,6 +54,10 @@ public class EnginePlayer : IPlayer
 
 	private System.Timers.Timer timer_;
 
+	private bool suppressTransportErrors_;
+
+	private bool transportErrorReported_;
+
 	public USIOptions Options => engine_.Options;
 
 	public string Name => name_;
@@ -69,6 +73,24 @@ public class EnginePlayer : IPlayer
 				return state_ != EnginePlayerState.INITIALIZING;
 			}
 			return false;
+		}
+	}
+
+	public bool IsAlive => engine_ != null && engine_.IsAlive;
+
+	public bool CanQueueGoRequest
+	{
+		get
+		{
+			lock (lockObj)
+			{
+				return engine_ != null
+					&& engine_.IsAlive
+					&& (state_ == EnginePlayerState.IDLE
+						|| state_ == EnginePlayerState.GO
+						|| state_ == EnginePlayerState.PONDER
+						|| state_ == EnginePlayerState.STOP);
+			}
 		}
 	}
 
@@ -102,14 +124,22 @@ public class EnginePlayer : IPlayer
 			{
 				return false;
 			}
-			engine_ = new USIEngine();
-			cancel_ = false;
-			if (!engine_.Initialize(filename, WorkingDirectory))
+				engine_ = new USIEngine();
+				cancel_ = false;
+				suppressTransportErrors_ = false;
+				transportErrorReported_ = false;
+				if (!engine_.Initialize(filename, WorkingDirectory))
 			{
 				engine_ = null;
 				return false;
 			}
-			return StartProtocol();
+				if (!StartProtocol())
+				{
+					engine_.Terminate();
+					engine_ = null;
+					return false;
+				}
+				return true;
 		}
 	}
 
@@ -121,14 +151,22 @@ public class EnginePlayer : IPlayer
 			{
 				return false;
 			}
-			engine_ = new USIEngine();
-			cancel_ = false;
-			if (!engine_.InitializeRemote(host, port))
+				engine_ = new USIEngine();
+				cancel_ = false;
+				suppressTransportErrors_ = false;
+				transportErrorReported_ = false;
+				if (!engine_.InitializeRemote(host, port))
 			{
 				engine_ = null;
 				return false;
 			}
-			return StartProtocol();
+				if (!StartProtocol())
+				{
+					engine_.Terminate();
+					engine_ = null;
+					return false;
+				}
+				return true;
 		}
 	}
 
@@ -140,14 +178,22 @@ public class EnginePlayer : IPlayer
 			{
 				return false;
 			}
-			engine_ = new USIEngine();
-			cancel_ = false;
-			if (!engine_.InitializeRemoteSsh(host, sshPort, keyPath, engineCommand))
+				engine_ = new USIEngine();
+				cancel_ = false;
+				suppressTransportErrors_ = false;
+				transportErrorReported_ = false;
+				if (!engine_.InitializeRemoteSsh(host, sshPort, keyPath, engineCommand))
 			{
 				engine_ = null;
 				return false;
 			}
-			return StartProtocol();
+				if (!StartProtocol())
+				{
+					engine_.Terminate();
+					engine_ = null;
+					return false;
+				}
+				return true;
 		}
 	}
 
@@ -158,7 +204,10 @@ public class EnginePlayer : IPlayer
 			th_.Start();
 			mre.Reset();
 			state_ = EnginePlayerState.INITIALIZING;
-			send_cmd("usi");
+			if (!send_cmd("usi"))
+			{
+				return false;
+			}
 			timer_ = new System.Timers.Timer();
 			timer_.Elapsed += InitTimeout;
 			timer_.Interval = 60000.0;
@@ -168,16 +217,24 @@ public class EnginePlayer : IPlayer
 
 	public void Terminate()
 	{
-		Stop();
 		lock (lockObj)
 		{
 			if (state_ != EnginePlayerState.NONE && engine_ != null)
 			{
-				state_ = EnginePlayerState.NONE;
-				timer_.Stop();
-				send_cmd("quit");
-				engine_.Terminate();
+				suppressTransportErrors_ = true;
+				transportErrorReported_ = true;
 				cancel_ = true;
+				if (state_ == EnginePlayerState.GO || state_ == EnginePlayerState.PONDER)
+				{
+					state_ = EnginePlayerState.STOP;
+					is_go_req_ = false;
+					ponder_ = null;
+					send_cmd("stop", reportFailure: false);
+				}
+				state_ = EnginePlayerState.TERMINATING;
+				timer_.Stop();
+				send_cmd("quit", reportFailure: false);
+				engine_.Terminate();
 				if (th_ != null)
 				{
 					th_.Join();
@@ -193,6 +250,7 @@ public class EnginePlayer : IPlayer
 					timer_.Dispose();
 					timer_ = null;
 				}
+				state_ = EnginePlayerState.NONE;
 			}
 		}
 	}
@@ -206,6 +264,11 @@ public class EnginePlayer : IPlayer
 	{
 		lock (lockObj)
 		{
+			if (engine_ == null || !engine_.IsAlive)
+			{
+				ReportTransportError(PlayerErrorId.EngineDisconnected);
+				return;
+			}
 			if (state_ == EnginePlayerState.INISIALIZED || state_ == EnginePlayerState.IDLE)
 			{
 				send_isready();
@@ -256,6 +319,46 @@ public class EnginePlayer : IPlayer
 		}
 	}
 
+	private static bool HasPassInCurrentLine(SNotation notation)
+	{
+		foreach (MoveNode moveNode in notation.MoveNodes)
+		{
+			if (moveNode.MoveType == MoveType.Pass)
+			{
+				return true;
+			}
+			if (moveNode == notation.MoveCurrent)
+			{
+				break;
+			}
+		}
+		return false;
+	}
+
+	private static void SetGoRequestPosition(GoRequest goRequest, SNotation notation, MoveData extraMove = null)
+	{
+		if (HasPassInCurrentLine(notation))
+		{
+			goRequest.Sfen = notation.Position.PositionToString(notation.MoveCurrent.Number + 1);
+			goRequest.Moves = string.Empty;
+		}
+		else
+		{
+			if (notation.IsOutputInitialPosition || notation.Handicap != Handicap.HIRATE)
+			{
+				goRequest.Sfen = notation.InitialPosition.PositionToString(1);
+			}
+			goRequest.Moves = notation.MovesToString();
+		}
+
+		if (extraMove != null && extraMove.MoveType.IsMove())
+		{
+			goRequest.Moves = string.IsNullOrEmpty(goRequest.Moves)
+				? extraMove.MoveToString()
+				: goRequest.Moves + " " + extraMove.MoveToString();
+		}
+	}
+
 	public int Go(SNotation notation, GameTimer time_info)
 	{
 		lock (lockObj)
@@ -282,11 +385,7 @@ public class EnginePlayer : IPlayer
 			GoRequest goRequest = new GoRequest(time_info.BlackTime.RemainTime, time_info.WhiteTime.RemainTime, byoyomi);
 			goRequest.Binc = time_info.BlackTime.Increment;
 			goRequest.Winc = time_info.WhiteTime.Increment;
-			if (notation.IsOutputInitialPosition || notation.Handicap != Handicap.HIRATE)
-			{
-				goRequest.Sfen = notation.InitialPosition.PositionToString(1);
-			}
-			goRequest.Moves = notation.MovesToString();
+			SetGoRequestPosition(goRequest, notation);
 			goRequest.Pos = (SPosition)notation.Position.Clone();
 			goRequest.TransactionNo = ++transactionCounter_;
 			if (state_ != EnginePlayerState.IDLE)
@@ -303,20 +402,30 @@ public class EnginePlayer : IPlayer
 			{
 				is_go_req_ = false;
 				state_ = EnginePlayerState.GO;
-				ExecGoReeust(goRequest);
+				if (!ExecGoReeust(goRequest))
+				{
+					state_ = EnginePlayerState.IDLE;
+					return -1;
+				}
 			}
 		}
 		return transactionCounter_;
 	}
 
-	private void ExecGoReeust(GoRequest req)
+	private bool ExecGoReeust(GoRequest req)
 	{
 		mre.Reset();
 		pos_ = req.Pos;
 		string text = "position ";
 		text += ((req.Sfen == string.Empty) ? "startpos" : ("sfen " + req.Sfen));
-		text = text + " moves " + req.Moves;
-		send_cmd(text);
+		if (!string.IsNullOrEmpty(req.Moves))
+		{
+			text = text + " moves " + req.Moves;
+		}
+		if (!send_cmd(text))
+		{
+			return false;
+		}
 		if (req.ReqType == GoRequest.Type.NORMAL)
 		{
 			if (req.Binc > 0 || req.Winc > 0)
@@ -327,7 +436,10 @@ public class EnginePlayer : IPlayer
 			{
 				text = $"go btime {req.Btime} wtime {req.Wtime} byoyomi {req.Byoyomi}";
 			}
-			send_cmd(text);
+			if (!send_cmd(text))
+			{
+				return false;
+			}
 		}
 		else if (req.ReqType == GoRequest.Type.PONDER)
 		{
@@ -339,7 +451,10 @@ public class EnginePlayer : IPlayer
 			{
 				text = $"go ponder btime {req.Btime} wtime {req.Wtime} byoyomi {req.Byoyomi}";
 			}
-			send_cmd(text);
+			if (!send_cmd(text))
+			{
+				return false;
+			}
 		}
 		else if (req.ReqType == GoRequest.Type.MOVETIME)
 		{
@@ -356,18 +471,28 @@ public class EnginePlayer : IPlayer
 			{
 				text = text + " depth " + req.Depth;
 			}
-			send_cmd(text);
+			if (!send_cmd(text))
+			{
+				return false;
+			}
 		}
 		else if (req.ReqType == GoRequest.Type.MATE)
 		{
 			text = "go mate " + ((req.Time == 0L) ? "infinite" : req.Time.ToString());
-			send_cmd(text);
+			if (!send_cmd(text))
+			{
+				return false;
+			}
 		}
 		else
 		{
-			send_cmd("go infinite");
+			if (!send_cmd("go infinite"))
+			{
+				return false;
+			}
 		}
 		transactionNo_ = req.TransactionNo;
+		return true;
 	}
 
 	public int Ponder(SNotation notation, GameTimer time_info)
@@ -394,16 +519,16 @@ public class EnginePlayer : IPlayer
 				Binc = time_info.BlackTime.Increment,
 				Winc = time_info.WhiteTime.Increment
 			};
-			if (notation.IsOutputInitialPosition || notation.Handicap != Handicap.HIRATE)
-			{
-				goRequest.Sfen = notation.InitialPosition.PositionToString(1);
-			}
-			goRequest.Moves = notation.MovesToString() + " " + ponder_.MoveToString();
+			SetGoRequestPosition(goRequest, notation, ponder_);
 			goRequest.Pos = (SPosition)notation.Position.Clone();
 			goRequest.Pos.Move(ponder_);
 			goRequest.TransactionNo = ++transactionCounter_;
 			state_ = EnginePlayerState.PONDER;
-			ExecGoReeust(goRequest);
+			if (!ExecGoReeust(goRequest))
+			{
+				state_ = EnginePlayerState.IDLE;
+				return -1;
+			}
 		}
 		return transactionCounter_;
 	}
@@ -453,11 +578,7 @@ public class EnginePlayer : IPlayer
 				return -1;
 			}
 			GoRequest goRequest = new GoRequest(settings);
-			if (notation.IsOutputInitialPosition || notation.Handicap != Handicap.HIRATE)
-			{
-				goRequest.Sfen = notation.InitialPosition.PositionToString(1);
-			}
-			goRequest.Moves = notation.MovesToString();
+			SetGoRequestPosition(goRequest, notation);
 			goRequest.Pos = (SPosition)notation.Position.Clone();
 			goRequest.TransactionNo = ++transactionCounter_;
 			if (state_ != EnginePlayerState.IDLE)
@@ -474,7 +595,11 @@ public class EnginePlayer : IPlayer
 			{
 				is_go_req_ = false;
 				state_ = EnginePlayerState.GO;
-				ExecGoReeust(goRequest);
+				if (!ExecGoReeust(goRequest))
+				{
+					state_ = EnginePlayerState.IDLE;
+					return -1;
+				}
 			}
 		}
 		return transactionCounter_;
@@ -508,7 +633,11 @@ public class EnginePlayer : IPlayer
 			{
 				is_go_req_ = false;
 				state_ = EnginePlayerState.GO;
-				ExecGoReeust(goRequest);
+				if (!ExecGoReeust(goRequest))
+				{
+					state_ = EnginePlayerState.IDLE;
+					return -1;
+				}
 			}
 		}
 		return transactionCounter_;
@@ -709,9 +838,14 @@ public class EnginePlayer : IPlayer
 		}
 	}
 
-	private void send_cmd(string cmd)
+	private bool send_cmd(string cmd, bool reportFailure = true)
 	{
-		engine_.WriteLine(cmd);
+		bool result = engine_ != null && engine_.WriteLine(cmd);
+		if (!result && reportFailure)
+		{
+			ReportTransportError(PlayerErrorId.EngineDisconnected);
+		}
+		return result;
 	}
 
 	private void receive_thread()
@@ -730,6 +864,10 @@ public class EnginePlayer : IPlayer
 			case StringQueue.Error.TIMEOUT:
 				break;
 			default:
+				if (!cancel_)
+				{
+					ReportTransportError(PlayerErrorId.EngineDisconnected);
+				}
 				return;
 			}
 		}
@@ -788,7 +926,9 @@ public class EnginePlayer : IPlayer
 				}
 				break;
 			case EnginePlayerState.STOP:
-				if (new USITokenizer(str).GetToken() == "bestmove")
+			{
+				string token = new USITokenizer(str).GetToken();
+				if (token == "bestmove" || token == "checkmate")
 				{
 					if (!is_go_req_)
 					{
@@ -798,6 +938,7 @@ public class EnginePlayer : IPlayer
 					handleIdleState();
 				}
 				break;
+			}
 			case EnginePlayerState.NONE:
 			case EnginePlayerState.INISIALIZED:
 			case EnginePlayerState.IDLE:
@@ -883,18 +1024,26 @@ public class EnginePlayer : IPlayer
 			while ((token = uSITokenizer.GetToken()) != string.Empty);
 			break;
 		}
+		case "none":
+			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.None));
+			return;
 		case "notimplemented":
+			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.NotImplemented));
+			return;
 		case "timeout":
+			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.Timeout));
+			return;
 		case "nomate":
-			break;
+			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.NoMate));
+			return;
 		}
 		if (list.Count == 0)
 		{
-			OnCheckMateRecieved(new CheckMateEventArgs());
+			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.None));
 		}
 		else
 		{
-			OnCheckMateRecieved(new CheckMateEventArgs(list));
+			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, list));
 		}
 	}
 
@@ -975,29 +1124,43 @@ public class EnginePlayer : IPlayer
 				}
 				else if (token == "mate")
 				{
-					int num = 0;
+					int rawMateFromEngine = 0;
+					int rawMate = 0;
+					int mateSign = 0;
 					string text = uSITokenizer.GetToken();
-					if (text[0] == '+')
+					if (text == "+")
 					{
-						num = 1;
-						text = text.Substring(1);
+						mateSign = 1;
 					}
-					else if (text[0] == '-')
+					else if (text == "-")
 					{
-						num = -1;
-						text = text.Substring(1);
+						mateSign = -1;
 					}
-					int out_num4 = 0;
-					if (text != string.Empty && USIString.ParseNum(text, out out_num4) && num == 0)
+					else
 					{
-						num = ((out_num4 > 0) ? 1 : (-1));
+						string mateText = text;
+						if (!string.IsNullOrEmpty(mateText) && mateText[0] == '+')
+						{
+							mateText = mateText.Substring(1);
+						}
+						if (USIString.ParseNum(mateText, out rawMate))
+						{
+							rawMateFromEngine = rawMate;
+							mateSign = ((rawMate > 0) ? 1 : (-1));
+						}
 					}
+					pvInfo.RawMatePly = rawMateFromEngine;
 					if (pos_.Turn == PlayerColor.White)
 					{
-						num = -num;
+						mateSign = -mateSign;
+						rawMate = -rawMate;
 					}
-					pvInfo.Mate = num;
-					pvInfo.Score = out_num4;
+					pvInfo.Mate = mateSign;
+					if (rawMate != 0)
+					{
+						pvInfo.MatePly = rawMate;
+						pvInfo.Score = System.Math.Abs(rawMate);
+					}
 				}
 				continue;
 			case "lowerbound":
@@ -1095,7 +1258,10 @@ public class EnginePlayer : IPlayer
 			{
 				is_go_req_ = false;
 				state_ = EnginePlayerState.GO;
-				ExecGoReeust(go_req_);
+				if (!ExecGoReeust(go_req_))
+				{
+					state_ = EnginePlayerState.IDLE;
+				}
 			}
 		}
 	}
@@ -1167,7 +1333,7 @@ public class EnginePlayer : IPlayer
 		mre.Set();
 		syncContext.Post(delegate
 		{
-			if (this.CheckMateRecieved != null)
+			if (transactionCounter_ == e.TransactionNo && this.CheckMateRecieved != null)
 			{
 				this.CheckMateRecieved(this, e);
 			}
@@ -1195,6 +1361,17 @@ public class EnginePlayer : IPlayer
 				this.Stopped(this, e);
 			}
 		}, null);
+	}
+
+	private void ReportTransportError(PlayerErrorId errorId)
+	{
+		if (suppressTransportErrors_ || transportErrorReported_)
+		{
+			return;
+		}
+		transportErrorReported_ = true;
+		timer_?.Stop();
+		OnReportError(new ReportErrorEventArgs(color_, transactionNo_, errorId));
 	}
 
 	protected virtual void OnReportError(ReportErrorEventArgs e)

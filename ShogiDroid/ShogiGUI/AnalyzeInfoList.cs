@@ -195,7 +195,10 @@ public class AnalyzeInfoList : SortedList<int, AnalyzeInfo>
 		}
 		if (analyzeComment.Mate.HasValue)
 		{
-			pvInfo.Mate = analyzeComment.Mate.Value;
+			int mateSign = (analyzeComment.Value.GetValueOrDefault() >= 0) ? 1 : -1;
+			pvInfo.Mate = mateSign;
+			pvInfo.MatePly = mateSign * analyzeComment.Mate.Value;
+			pvInfo.Score = analyzeComment.Mate.Value;
 		}
 		if (analyzeComment.Time != string.Empty)
 		{

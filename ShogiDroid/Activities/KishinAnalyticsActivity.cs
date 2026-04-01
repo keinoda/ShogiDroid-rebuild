@@ -495,8 +495,8 @@ public class KishinAnalyticsActivity : Activity
 				// Camera intent
 				Intent captureIntent = new Intent(MediaStore.ActionImageCapture);
 				Java.IO.File photoFile = new Java.IO.File(activity.CacheDir, $"camera_{DateTime.Now.Ticks}.jpg");
-				activity.cameraImageUri = FileProvider.GetUriForFile(activity,
-					"com.ngs436.ShogiDroidR.provider", photoFile);
+					activity.cameraImageUri = FileProvider.GetUriForFile(activity,
+						AppIdentity.FileProviderAuthority, photoFile);
 				captureIntent.PutExtra(MediaStore.ExtraOutput, activity.cameraImageUri);
 
 				// Gallery intent

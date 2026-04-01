@@ -71,7 +71,18 @@ public class EvalBar : View
 		if (isMate)
 		{
 			winRate_ = matePly > 0 ? 1.0 : 0.0;
-			evalText_ = matePly > 0 ? $"詰{matePly}" : $"被詰{-matePly}";
+			if (matePly > 0)
+			{
+				evalText_ = $"詰{matePly}";
+			}
+			else if (matePly < 0)
+			{
+				evalText_ = $"被詰{-matePly}";
+			}
+			else
+			{
+				evalText_ = "詰";
+			}
 		}
 		else
 		{

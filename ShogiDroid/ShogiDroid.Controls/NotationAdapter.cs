@@ -65,8 +65,8 @@ public class NotationAdapter : BaseAdapter
 		}
 		else
 		{
-			textView.Text = string.Format("{0,3} {2}{1}", position, moveNode.ToString(moveStyle), moveNode.Turn.ToChar());
-			textView2.Text = $"{moveNode.Time / 60,2}:{moveNode.Time % 60:D2}";
+			textView.Text = $"{position} {moveNode.Turn.ToChar()}{moveNode.ToString(moveStyle)}";
+			textView2.Text = $"{moveNode.Time / 60}:{moveNode.Time % 60:D2}";
 		}
 		textView.SetTextColor(ColorUtils.Get(activity, Resource.Color.primary_text));
 		textView2.SetTextColor(ColorUtils.Get(activity, Resource.Color.secondary_text));

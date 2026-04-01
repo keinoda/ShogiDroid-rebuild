@@ -21,7 +21,7 @@
             android:id="@id/app_name"
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="ShogiDroid"
+            android:text="@string/app_text"
             android:textColor="@color/primary_text"
             android:textSize="20sp"
             android:textStyle="bold" />

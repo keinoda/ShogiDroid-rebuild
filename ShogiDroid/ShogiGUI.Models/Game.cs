@@ -55,9 +55,16 @@ public class Game
 
 	private AnalyzeInfoList analyzeInfoList = new AnalyzeInfoList();
 
+	private ThreatmateAnalyzer threatmateAnalyzer = new ThreatmateAnalyzer();
+
 	private int analyzeStopNumber_ = -1;
 
 	private EngineMode engineMode;
+
+	/// <summary>
+	/// vast.ai起動完了後に再開すべきエンジンモード。Noneなら保留なし。
+	/// </summary>
+	private EngineMode pendingEngineMode_ = EngineMode.None;
 
 	private static string gameText = Application.Context.GetString(Resource.String.Game_Text);
 
@@ -111,6 +118,21 @@ public class Game
 
 	public bool Busy => busy;
 
+	public bool ShouldKeepRemoteAnalysisRunningOnPause()
+	{
+		if (Settings.EngineSettings.EngineNo != RemoteEnginePlayer.RemoteEngineNo || enginePlayer == null)
+		{
+			return false;
+		}
+
+		if (gameMode != GameMode.Analyzer && gameMode != GameMode.Consider)
+		{
+			return false;
+		}
+
+		return busy || comState.IsThinking();
+	}
+
 	public HintInfo HintInfo => hint_info;
 
 	public GameRemainTime BlackTime => gameTimer.BlackRemainTime;
@@ -120,6 +142,8 @@ public class Game
 	public bool BothComputer => bothcomputer;
 
 	public EnginePlayer EnginePlayer => enginePlayer;
+
+	public ThreatmateInfo ThreatmateInfo => threatmateAnalyzer.CurrentInfo;
 
 	public event EventHandler<GameEventArgs> GameEventHandler;
 
@@ -132,6 +156,7 @@ public class Game
 		gameTimer = new GameTimer(GameTimer_Timeout);
 		gameTimer.UpdateTime += GameTimer_UpdateTime;
 		notationModel.NotationChanged += NotationModel_NotationChanged;
+		threatmateAnalyzer.Updated += ThreatmateAnalyzer_Updated;
 	}
 
 	protected virtual void OnGameEvent(GameEventArgs e)
@@ -147,6 +172,7 @@ public class Game
 
 	public void Destory()
 	{
+		threatmateAnalyzer.Dispose();
 		EngineTerminate();
 	}
 
@@ -156,6 +182,10 @@ public class Game
 		{
 			if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 			{
+				if (RequestVastAiBoot(EngineMode.None))
+				{
+					return;
+				}
 				EngineTerminate();
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
@@ -178,6 +208,71 @@ public class Game
 			enginePlayer = null;
 			comState = ComputerState.None;
 			busy = false;
+			OnGameEvent(new GameEventArgs(GameEventId.AnalyzeEnd));
+		}
+	}
+
+	/// <summary>
+	/// リモートエンジン選択中で vast.ai 設定がある場合 true。
+	/// </summary>
+	private bool CanAutoBootVastAi()
+	{
+		return Settings.EngineSettings.EngineNo == RemoteEnginePlayer.RemoteEngineNo
+			&& Settings.EngineSettings.VastAiInstanceId > 0
+			&& !string.IsNullOrEmpty(Settings.EngineSettings.VastAiApiKey);
+	}
+
+	private bool RequestVastAiBoot(EngineMode pendingMode)
+	{
+		if (!CanAutoBootVastAi())
+		{
+			return false;
+		}
+
+		pendingEngineMode_ = pendingMode;
+		OnGameEvent(new GameEventArgs(GameEventId.VastAiBootRequired));
+		return true;
+	}
+
+	private void ResumePlayAfterVastAiBoot()
+	{
+		if (gameParam == null)
+		{
+			EngineWakeup();
+			return;
+		}
+
+		GameStart(new GameParam(gameParam));
+	}
+
+	/// <summary>
+	/// vast.ai インスタンス起動完了後に呼び出す。
+	/// 保留中だった操作（解析・検討等）を再開する。
+	/// </summary>
+	public void ResumeAfterVastAiBoot()
+	{
+		EngineMode pending = pendingEngineMode_;
+		pendingEngineMode_ = EngineMode.None;
+
+		AppDebug.Log.Info($"ResumeAfterVastAiBoot: pendingMode={pending}");
+
+		switch (pending)
+		{
+			case EngineMode.Analyze:
+				AnalyzerStart();
+				break;
+			case EngineMode.Hint:
+				ConsiderStart();
+				break;
+			case EngineMode.Mate:
+				Mate();
+				break;
+			case EngineMode.Play:
+				ResumePlayAfterVastAiBoot();
+				break;
+			default:
+				EngineWakeup();
+				break;
 		}
 	}
 
@@ -217,6 +312,10 @@ public class Game
 				flag = true;
 				if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 				{
+					if (RequestVastAiBoot(EngineMode.Play))
+					{
+						return;
+					}
 					GameTerminate();
 					OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 					return;
@@ -303,6 +402,10 @@ public class Game
 		{
 			if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 			{
+				if (RequestVastAiBoot(EngineMode.Hint))
+				{
+					return;
+				}
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
 			}
@@ -311,7 +414,7 @@ public class Game
 			hint_info.Clear();
 			OnGameEvent(new GameEventArgs(GameEventId.Info));
 			engineMode = EngineMode.Hint;
-			comState = ComputerState.Analyzing;
+			comState = ComputerState.Stop;
 			OnGameEvent(new GameEventArgs(GameEventId.InitializeStart));
 			return;
 		}
@@ -322,20 +425,11 @@ public class Game
 		pvinfos.Clear();
 		hint_info.Clear();
 		OnGameEvent(new GameEventArgs(GameEventId.Info));
-		if (engineMode != EngineMode.Hint)
-		{
-			comState = ComputerState.Analyzing;
-			engineMode = EngineMode.Hint;
-			enginePlayer.Ready();
-			busy = true;
-		}
-		else
-		{
-			comState = ComputerState.Analyzing;
-			engineMode = EngineMode.Hint;
-			enginePlayer.Analyze(Notation, new AnalyzeTimeSettings(Settings.AnalyzeSettings.Time, -1L, -1L));
-			OnGameEvent(new GameEventArgs(GameEventId.AnalyzeStart));
-		}
+		comState = ComputerState.Stop;
+		engineMode = EngineMode.Hint;
+		enginePlayer.Ready();
+		busy = true;
+		OnGameEvent(new GameEventArgs(GameEventId.InitializeStart));
 	}
 
 	public void Mate()
@@ -350,11 +444,15 @@ public class Game
 		{
 			if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 			{
+				if (RequestVastAiBoot(EngineMode.Mate))
+				{
+					return;
+				}
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
 			}
 			busy = true;
-			comState = ComputerState.Mating;
+			comState = ComputerState.Stop;
 			engineMode = EngineMode.Mate;
 			OnGameEvent(new GameEventArgs(GameEventId.InitializeStart));
 			return;
@@ -363,18 +461,11 @@ public class Game
 		{
 			enginePlayer.Stop();
 		}
-		comState = ComputerState.Mating;
-		if (engineMode != EngineMode.Mate)
-		{
-			engineMode = EngineMode.Mate;
-			enginePlayer.Ready();
-			busy = true;
-		}
-		else
-		{
-			enginePlayer.Mate(Notation, 1000);
-			OnGameEvent(new GameEventArgs(GameEventId.MateStart));
-		}
+		comState = ComputerState.Stop;
+		engineMode = EngineMode.Mate;
+		enginePlayer.Ready();
+		busy = true;
+		OnGameEvent(new GameEventArgs(GameEventId.InitializeStart));
 	}
 
 	public void AnalyzerStart()
@@ -417,11 +508,15 @@ public class Game
 		{
 			if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 			{
+				if (RequestVastAiBoot(EngineMode.Analyze))
+				{
+					return;
+				}
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
 			}
 			busy = true;
-			comState = ComputerState.Analyzing;
+			comState = ComputerState.Stop;
 			engineMode = EngineMode.Analyze;
 			gameMode = GameMode.Analyzer;
 			OnGameEvent(new GameEventArgs(GameEventId.InitializeStart));
@@ -429,10 +524,11 @@ public class Game
 		else
 		{
 			busy = true;
-			comState = ComputerState.Analyzing;
+			comState = ComputerState.Stop;
 			engineMode = EngineMode.Analyze;
 			gameMode = GameMode.Analyzer;
 			enginePlayer.Ready();
+			OnGameEvent(new GameEventArgs(GameEventId.InitializeStart));
 		}
 	}
 
@@ -446,43 +542,22 @@ public class Game
 	/// </summary>
 	public async System.Threading.Tasks.Task ParallelAnalyzeAsync(int workers, long nodesPerMove, CancellationToken ct)
 	{
-		string host = Settings.EngineSettings.RemoteHost;
-		int sshPort = Settings.EngineSettings.VastAiSshPort;
-		string keyPath = Settings.EngineSettings.VastAiSshKeyPath;
-		string engineCmd = Settings.EngineSettings.VastAiSshEngineCommand;
-
-		if (string.IsNullOrEmpty(host) || sshPort <= 0 || string.IsNullOrEmpty(keyPath) || string.IsNullOrEmpty(engineCmd))
-			throw new InvalidOperationException("SSH接続設定が不完全です");
-
 		int threadsPerWorker = Settings.AnalyzeSettings.ParallelThreadsPerWorker;
 		int hashPerWorker = Settings.AnalyzeSettings.ParallelHashPerWorker;
-
-		// 保存済みエンジンオプションを読み込む（FV_SCALE等）
-		var extraSetOptions = new List<string>();
-		string settingsFile = System.IO.Path.Combine(EngineFile.EngineFolder, "remote_engine", "remote_engine.xml");
-		if (System.IO.File.Exists(settingsFile))
-		{
-			var savedOptions = EngineOptions.Load(settingsFile);
-			foreach (var opt in savedOptions.OptionList)
-			{
-				string key = opt.Key;
-				// Threads/Hashは並列用の値で上書きするのでスキップ
-				if (key == "Threads" || key == "USI_Hash" || key == "Hash")
-					continue;
-				extraSetOptions.Add($"setoption name {key} value {opt.Value}");
-			}
-		}
-
-		var analyzer = new ParallelAnalyzer();
-		analyzer.Progress += (msg) => ParallelAnalyzeProgress?.Invoke(msg);
 
 		gameMode = GameMode.Analyzer;
 		busy = true;
 
 		try
 		{
-			var results = await analyzer.ExecuteAsync(host, sshPort, keyPath, engineCmd, Notation,
-				workers, nodesPerMove, threadsPerWorker, hashPerWorker, extraSetOptions, ct);
+			var results = await ParallelAnalysisTaskRunner.ExecuteAsync(
+				Notation,
+				workers,
+				nodesPerMove,
+				threadsPerWorker,
+				hashPerWorker,
+				msg => ParallelAnalyzeProgress?.Invoke(msg),
+				ct);
 			ApplyParallelResults(results);
 			ParallelAnalyzeProgress?.Invoke($"解析完了: {results.Count}手");
 		}
@@ -505,99 +580,10 @@ public class Game
 	/// </summary>
 	private void ApplyParallelResults(List<ParallelAnalyzer.MoveResult> results)
 	{
-		string analysisText = Android.App.Application.Context.GetString(Resource.String.Analysis_Text);
-		var moveStyle = Settings.AppSettings.MoveStyle;
-
-		// 各手の局面を再構築するために初期局面からリプレイ
-		SPosition replayPos = (SPosition)Notation.InitialPosition.Clone();
-
-		int moveIndex = 0;
-		foreach (MoveNode moveNode in Notation.MoveNodes)
-		{
-			if (!moveNode.MoveType.IsMove()) continue;
-
-			// 指し手を適用して局面を進める
-			replayPos.Move(moveNode);
-			moveIndex++;
-
-			var result = results.Find(r => r.Index == moveIndex);
-			if (result == null) continue;
-
-			// 評価値をセット（先手目線に統一）
-			// エンジンは手番側視点で報告。moveNode.Turnは指した側なので、
-			// 指した後は相手の手番。先手が指した後→後手視点→反転が必要
-			if (result.Score.HasValue)
-			{
-				int score = result.Score.Value;
-				if (moveNode.Turn == PlayerColor.Black)
-					score = -score;
-				moveNode.Score = score;
-			}
-			else if (result.Mate.HasValue)
-			{
-				int mate = result.Mate.Value;
-				int mateScore = (mate > 0 ? 1 : -1) * (32000 - System.Math.Abs(mate));
-				if (moveNode.Turn == PlayerColor.Black)
-					mateScore = -mateScore;
-				moveNode.Score = mateScore;
-			}
-
-			// 最善手判定
-			if (result.BestMove == result.MoveUsi)
-				moveNode.BestMove = MoveMatche.Best;
-			else
-				moveNode.BestMove = MoveMatche.None;
-
-			// 先手目線の評価値文字列（コメント用）
-			int senteScore = moveNode.HasScore ? moveNode.Score : 0;
-			string evalStr = result.Mate.HasValue
-				? PvInfo.ValueToString(senteScore > 0 ? 1 : -1, System.Math.Abs(result.Mate.Value), 0)
-				: senteScore.ToString();
-
-			string depthStr = result.Depth.HasValue
-				? $"{result.Depth.Value}" + (result.SelDepth.HasValue ? $"/{result.SelDepth.Value}" : "")
-				: "";
-			string nodesStr = result.Nodes.HasValue ? PvInfo.NodesToString(result.Nodes.Value) : "";
-
-			// 読み筋をUSI→KIF形式に変換
-			string pvKif = ConvertPvToKif(replayPos, result.PvString, moveStyle);
-
-			string bestMark = (moveNode.BestMove == MoveMatche.Best) ? " ○" : "";
-			string comment = $"*{analysisText}{bestMark} 評価値 {evalStr}";
-			if (!string.IsNullOrEmpty(depthStr)) comment += $" 深さ {depthStr}";
-			if (!string.IsNullOrEmpty(nodesStr)) comment += $" ノード数 {nodesStr}";
-			if (!string.IsNullOrEmpty(pvKif)) comment += $" 読み筋 {pvKif}";
-
-			moveNode.CommentAdd(comment);
-		}
+		ParallelAnalysisTaskRunner.ApplyResults(Notation, results, Settings.AppSettings.MoveStyle);
 
 		// 棋譜変更を通知
 		NotationModel.OnNotationChangedPublic(new ShogiGUI.Events.NotationEventArgs(ShogiGUI.Events.NotationEventId.OBJECT_CHANGED));
-	}
-
-	/// <summary>
-	/// USI形式の読み筋をKIF形式に変換
-	/// </summary>
-	private string ConvertPvToKif(SPosition basePos, string pvString, MoveStyle style)
-	{
-		if (string.IsNullOrEmpty(pvString)) return string.Empty;
-
-		var pos = (SPosition)basePos.Clone();
-		string[] usiMoves = pvString.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-		var sb = new System.Text.StringBuilder();
-
-		foreach (string usiMove in usiMoves)
-		{
-			MoveDataEx moveData = Sfen.ParseMove(pos, usiMove);
-			if (moveData.MoveType == MoveType.NoMove || !MoveCheck.IsValid(pos, moveData))
-				break;
-
-			string turnMark = (pos.Turn == PlayerColor.Black) ? "▲" : "△";
-			sb.Append($" {turnMark}{moveData.ToString(style)}");
-			pos.Move(moveData);
-		}
-
-		return sb.ToString().TrimStart();
 	}
 
 	private void AnalyzeEnd()
@@ -613,41 +599,37 @@ public class Game
 	public void ConsiderStart()
 	{
 		cancel = false;
-		if (comState.IsThinking())
-		{
-			enginePlayer.Stop();
-		}
 		pvinfos.Clear();
 		hint_info.Clear();
 		if (enginePlayer == null)
 		{
 			if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 			{
+				if (RequestVastAiBoot(EngineMode.Hint))
+				{
+					return;
+				}
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
 			}
 			busy = true;
-			comState = ComputerState.Analyzing;
+			comState = ComputerState.Stop;
 			engineMode = EngineMode.Hint;
 			gameMode = GameMode.Consider;
 			OnGameEvent(new GameEventArgs(GameEventId.InitializeStart));
 			return;
 		}
 		gameMode = GameMode.Consider;
-		if (engineMode != EngineMode.Hint)
+		comState = ComputerState.Stop;
+		engineMode = EngineMode.Hint;
+		if (enginePlayer.CanQueueGoRequest)
 		{
-			busy = true;
-			comState = ComputerState.Analyzing;
-			engineMode = EngineMode.Hint;
-			enginePlayer.Ready();
+			StartAnalyzeCommand(new AnalyzeTimeSettings(Settings.AnalyzeSettings.Time, -1L, -1L));
+			return;
 		}
-		else
-		{
-			comState = ComputerState.Analyzing;
-			engineMode = EngineMode.Hint;
-			enginePlayer.Analyze(Notation, new AnalyzeTimeSettings(Settings.AnalyzeSettings.Time, -1L, -1L));
-			OnGameEvent(new GameEventArgs(GameEventId.AnalyzeStart));
-		}
+		busy = true;
+		enginePlayer.Ready();
+		OnGameEvent(new GameEventArgs(GameEventId.InitializeStart));
 	}
 
 	private void ConsiderEnd()
@@ -659,6 +641,7 @@ public class Game
 				enginePlayer.Stop();
 			}
 			gameMode = GameMode.Input;
+			OnGameEvent(new GameEventArgs(GameEventId.AnalyzeEnd));
 		}
 	}
 
@@ -740,9 +723,28 @@ public class Game
 					AppDebug.Log.Error($"initEnginePlayer: remote connection failed for {host}");
 					enginePlayer.Terminate();
 					enginePlayer = null;
+
+					// vast.ai設定がある場合、インスタンス自動起動を要求
+					if (CanAutoBootVastAi())
+					{
+						AppDebug.Log.Info("initEnginePlayer: vast.ai自動起動を要求");
+						return false; // 呼び出し元で VastAiBootRequired イベントを処理
+					}
 					return false;
 				}
 				AppDebug.Log.Info("initEnginePlayer: remote engine connected successfully");
+				if (Settings.EngineSettings.VastAiInstanceId > 0
+					&& !string.IsNullOrEmpty(Settings.EngineSettings.VastAiApiKey))
+				{
+					VastAiWatchdog.Instance.StartMonitoring(
+						Settings.EngineSettings.VastAiInstanceId,
+						Settings.EngineSettings.VastAiApiKey);
+					VastAiWatchdog.Instance.SaveLastConnectionInfo(
+						Settings.EngineSettings.VastAiInstanceId,
+						host,
+						Settings.EngineSettings.VastAiSshPort,
+						Settings.EngineSettings.VastAiSshEngineCommand);
+				}
 			}
 			else
 			{
@@ -1092,9 +1094,10 @@ public class Game
 		{
 			pvinfos.Clear();
 			hint_info.Clear();
-			comState = ComputerState.Analyzing;
-			enginePlayer.Analyze(Notation, new AnalyzeTimeSettings(Settings.AnalyzeSettings.AnalyzeTime, -1L, Settings.AnalyzeSettings.GetAnalyzeDepth()));
-			return;
+			if (StartAnalyzeCommand(new AnalyzeTimeSettings(Settings.AnalyzeSettings.AnalyzeTime, -1L, Settings.AnalyzeSettings.GetAnalyzeDepth())))
+			{
+				return;
+			}
 		}
 		analyzeStopNumber_ = -1;
 		AnalyzeEnd();
@@ -1219,12 +1222,7 @@ public class Game
 
 	private void Player_ReportError(object sender, ReportErrorEventArgs e)
 	{
-		if (e.ErrorId == PlayerErrorId.InitializeTimeout)
-		{
-			EngineTerminate();
-			GameTerminate();
-			OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
-		}
+		HandleEngineFailure(e.ErrorId);
 	}
 
 	private void Player_Stopped(object sender, StopEventArgs e)
@@ -1324,23 +1322,17 @@ public class Game
 		if (engineMode == EngineMode.Hint)
 		{
 			enginePlayer.GameStart();
-			comState = ComputerState.Analyzing;
-			enginePlayer.Analyze(Notation, new AnalyzeTimeSettings(Settings.AnalyzeSettings.Time, -1L, -1L));
-			OnGameEvent(new GameEventArgs(GameEventId.AnalyzeStart));
+			StartAnalyzeCommand(new AnalyzeTimeSettings(Settings.AnalyzeSettings.Time, -1L, -1L));
 		}
 		else if (engineMode == EngineMode.Mate)
 		{
-			comState = ComputerState.Mating;
 			enginePlayer.GameStart();
-			enginePlayer.Mate(Notation, 1000);
-			OnGameEvent(new GameEventArgs(GameEventId.MateStart));
+			StartMateCommand(1000);
 		}
 		else if (engineMode == EngineMode.Analyze)
 		{
 			enginePlayer.GameStart();
-			comState = ComputerState.Analyzing;
-			enginePlayer.Analyze(Notation, new AnalyzeTimeSettings(Settings.AnalyzeSettings.AnalyzeTime, -1L, Settings.AnalyzeSettings.GetAnalyzeDepth()));
-			OnGameEvent(new GameEventArgs(GameEventId.AnalyzeStart));
+			StartAnalyzeCommand(new AnalyzeTimeSettings(Settings.AnalyzeSettings.AnalyzeTime, -1L, Settings.AnalyzeSettings.GetAnalyzeDepth()));
 		}
 		else if (engineMode == EngineMode.Play)
 		{
@@ -1363,6 +1355,66 @@ public class Game
 		}, null);
 	}
 
+	private bool StartAnalyzeCommand(AnalyzeTimeSettings settings)
+	{
+		if (enginePlayer == null)
+		{
+			return false;
+		}
+
+		int transactionNo = enginePlayer.Analyze(Notation, settings);
+		if (transactionNo < 0)
+		{
+			HandleEngineFailure(PlayerErrorId.EngineDisconnected);
+			return false;
+		}
+
+		comState = ComputerState.Analyzing;
+		OnGameEvent(new GameEventArgs(GameEventId.AnalyzeStart));
+		return true;
+	}
+
+	private bool StartMateCommand(int timeMs)
+	{
+		if (enginePlayer == null)
+		{
+			return false;
+		}
+
+		int transactionNo = enginePlayer.Mate(Notation, timeMs);
+		if (transactionNo < 0)
+		{
+			HandleEngineFailure(PlayerErrorId.EngineDisconnected);
+			return false;
+		}
+
+		comState = ComputerState.Mating;
+		OnGameEvent(new GameEventArgs(GameEventId.MateStart));
+		return true;
+	}
+
+	private void HandleEngineFailure(PlayerErrorId errorId)
+	{
+		AppDebug.Log.Error($"Game: engine failure detected ({errorId})");
+
+		bool wasPlayMode = gameMode == GameMode.Play;
+		bool shouldReturnToInput = gameMode == GameMode.Analyzer || gameMode == GameMode.Consider;
+
+		EngineTerminate();
+
+		if (shouldReturnToInput)
+		{
+			gameMode = GameMode.Input;
+		}
+
+		if (wasPlayMode)
+		{
+			GameTerminate();
+		}
+
+		OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
+	}
+
 	private void GameTimer_UpdateTime(object sender, EventArgs e)
 	{
 		syncContext.Post(delegate
@@ -1371,6 +1423,26 @@ public class Game
 			gameTimer.StartUpdateTimer();
 			OnGameEvent(new GameEventArgs(GameEventId.UpdateTime));
 		}, null);
+	}
+
+	private void ThreatmateAnalyzer_Updated(object sender, EventArgs e)
+	{
+		OnGameEvent(new GameEventArgs(GameEventId.ThreatmateUpdated));
+	}
+
+	private void RefreshThreatmateAnalysis()
+	{
+		if (!Settings.AppSettings.AutoThreatmateAnalysis || Notation == null || Notation.MoveCurrent.MoveType.IsResult())
+		{
+			threatmateAnalyzer.Clear();
+			return;
+		}
+		threatmateAnalyzer.Analyze(Notation);
+	}
+
+	public void UpdateThreatmateAnalysis()
+	{
+		RefreshThreatmateAnalysis();
 	}
 
 	private void NotationModel_NotationChanged(object sender, NotationEventArgs e)
@@ -1385,6 +1457,7 @@ public class Game
 			{
 				AnalyzeStop();
 			}
+			RefreshThreatmateAnalysis();
 		}
 	}
 }

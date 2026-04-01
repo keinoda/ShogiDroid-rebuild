@@ -7,12 +7,19 @@
     <ImplicitUsings>disable</ImplicitUsings>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <ApplicationId>com.ngs436.ShogiDroidR</ApplicationId>
-    <ApplicationVersion>1</ApplicationVersion>
-    <ApplicationDisplayVersion>0.0.1</ApplicationDisplayVersion>
+    <ApplicationVersion>3</ApplicationVersion>
+    <ApplicationDisplayVersion>0.0.3</ApplicationDisplayVersion>
     <ApplicationTitle>将棋ドロイドR</ApplicationTitle>
     <LangVersion>12.0</LangVersion>
     <NoWarn>NU1603;NU1605;NU1608;CA1422;CA1416;CA2200;CA2022;CS0618;CS0219;CS0414;SYSLIB0014;SYSLIB0050</NoWarn>
     <EmbedAssembliesIntoApk>true</EmbedAssembliesIntoApk>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(ClassicUi)' == 'true'">
+    <ApplicationId>com.ngs436.ShogiDroidRClassic</ApplicationId>
+    <ApplicationTitle>将棋ドロイドR Classic</ApplicationTitle>
+    <AssemblyName>ShogiDroidClassic</AssemblyName>
+    <DefineConstants>$(DefineConstants);CLASSIC_UI</DefineConstants>
   </PropertyGroup>
 
   <!-- Debug ビルド: AOT/trimming無効、高速化 -->
@@ -40,6 +47,90 @@
     <PackageReference Include="Xamarin.AndroidX.Core" Version="1.17.0.2" />
     <PackageReference Include="Xamarin.AndroidX.DrawerLayout" Version="1.2.0.20" />
     <PackageReference Include="Xamarin.AndroidX.ViewPager" Version="1.1.0.6" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(ClassicUi)' != 'true'">
     <PackageReference Include="Xamarin.Google.Android.Material" Version="1.13.0.2" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(ClassicUi)' == 'true'">
+    <AndroidResource Remove="
+      Resources/values/app_identity.xml;
+      Resources/values/styles.xml;
+      Resources/values/colors.xml;
+      Resources/values-night/styles.xml;
+      Resources/values-night/colors.xml;
+      Resources/layout/maina.xml;
+      Resources/layout/left_drawer2.xml;
+      Resources/layout/right_drawer.xml;
+      Resources/layout/thinkinfopage.xml;
+      Resources/layout/notationlistviewitem.xml;
+      Resources/layout/editboard.xml;
+      Resources/layout/jointboard.xml;
+      Resources/layout-land/maina.xml;
+      Resources/layout-land/editboard.xml;
+      Resources/layout-land/jointboard.xml;
+      Resources/drawable/analyze_btn_bg_active.xml;
+      Resources/drawable/analyze_btn_bg_idle.xml;
+      Resources/drawable/notation_box_bg.xml;
+      Resources/drawable/first_move_border.xml" />
+
+    <AndroidResource Include="ClassicResources/values/app_identity.xml">
+      <Link>Resources/values/app_identity.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/values/styles.xml">
+      <Link>Resources/values/styles.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/values/colors.xml">
+      <Link>Resources/values/colors.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/values-night/styles.xml">
+      <Link>Resources/values-night/styles.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/values-night/colors.xml">
+      <Link>Resources/values-night/colors.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/layout/maina.xml">
+      <Link>Resources/layout/maina.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/layout/left_drawer2.xml">
+      <Link>Resources/layout/left_drawer2.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/layout/right_drawer.xml">
+      <Link>Resources/layout/right_drawer.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/layout/thinkinfopage.xml">
+      <Link>Resources/layout/thinkinfopage.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/layout/notationlistviewitem.xml">
+      <Link>Resources/layout/notationlistviewitem.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/layout/editboard.xml">
+      <Link>Resources/layout/editboard.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/layout/jointboard.xml">
+      <Link>Resources/layout/jointboard.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/layout-land/maina.xml">
+      <Link>Resources/layout-land/maina.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/layout-land/editboard.xml">
+      <Link>Resources/layout-land/editboard.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/layout-land/jointboard.xml">
+      <Link>Resources/layout-land/jointboard.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/drawable/analyze_btn_bg_active.xml">
+      <Link>Resources/drawable/analyze_btn_bg_active.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/drawable/analyze_btn_bg_idle.xml">
+      <Link>Resources/drawable/analyze_btn_bg_idle.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/drawable/notation_box_bg.xml">
+      <Link>Resources/drawable/notation_box_bg.xml</Link>
+    </AndroidResource>
+    <AndroidResource Include="ClassicResources/drawable/first_move_border.xml">
+      <Link>Resources/drawable/first_move_border.xml</Link>
+    </AndroidResource>
   </ItemGroup>
 </Project>

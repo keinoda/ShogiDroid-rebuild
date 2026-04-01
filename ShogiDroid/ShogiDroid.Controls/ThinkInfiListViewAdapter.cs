@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using Android.App;
+using Android.Util;
 using Android.Views;
 using Android.Widget;
 using Java.Lang;
@@ -155,7 +156,21 @@ public class ThinkInfiListViewAdapter : BaseAdapter
 			{
 				int.TryParse(Settings.AppSettings.WinRateCoefficient, out int coeffInt);
 				double coeff = coeffInt > 0 ? coeffInt : WinRateUtil.DefaultCoefficient;
-				evalStr = WinRateUtil.FormatWinRate(pvInfo.Score, pvInfo.HasMate, pvInfo.Mate, coeff);
+				if (pvInfo.HasMate)
+				{
+					if (pvInfo.HasMatePly)
+					{
+						evalStr = WinRateUtil.FormatWinRate(pvInfo.Eval, true, pvInfo.MatePly, coeff);
+					}
+					else
+					{
+						evalStr = pvInfo.Eval < 0 ? "0%(詰)" : "100%(詰)";
+					}
+				}
+				else
+				{
+					evalStr = WinRateUtil.FormatWinRate(pvInfo.Score, false, 0, coeff);
+				}
 			}
 			else
 			{
@@ -169,7 +184,7 @@ public class ThinkInfiListViewAdapter : BaseAdapter
 			}
 			else
 			{
-				SetText(view, Resource.Id.value, evalStr);
+				SetScaledText(view.FindViewById<TextView>(Resource.Id.value), evalStr);
 				// 候補手と残りの読み筋を分離表示
 				var firstMoveView = view.FindViewById<TextView>(Resource.Id.first_move);
 				var restMovesView = view.FindViewById<TextView>(Resource.Id.rest_moves);
@@ -194,6 +209,56 @@ public class ThinkInfiListViewAdapter : BaseAdapter
 		{
 			textView.Text = msg;
 		}
+	}
+
+	private void SetScaledText(TextView textView, string msg)
+	{
+		if (textView == null)
+		{
+			return;
+		}
+
+		textView.Text = msg ?? string.Empty;
+		textView.SetTextSize(ComplexUnitType.Sp, GetEvalTextSizeSp(msg));
+		textView.TextScaleX = 1f;
+
+		var lp = textView.LayoutParameters;
+		if (lp == null || lp.Width <= 0 || string.IsNullOrEmpty(msg))
+		{
+			return;
+		}
+
+		float availableWidth = lp.Width - textView.PaddingLeft - textView.PaddingRight;
+		if (availableWidth <= 0f)
+		{
+			return;
+		}
+
+		float textWidth = textView.Paint.MeasureText(msg);
+		if (textWidth > availableWidth)
+		{
+			textView.TextScaleX = Math.Max(0.1f, availableWidth / textWidth);
+		}
+	}
+
+	private static float GetEvalTextSizeSp(string msg)
+	{
+		if (string.IsNullOrEmpty(msg))
+		{
+			return 13f;
+		}
+
+		if (!msg.Contains("("))
+		{
+			return 15f;
+		}
+
+		if (msg.Length <= 6)
+		{
+			return 14f;
+		}
+
+		return 13f;
 	}
 
 	public void SetPvInfo(PvInfos infos)

@@ -1,3 +1,5 @@
+using System;
+using System.IO;
 using System.Xml.Serialization;
 using Android.App;
 using Android.Preferences;
@@ -16,6 +18,8 @@ public sealed class Settings
 	public AnalyzeSettings Analyze = new AnalyzeSettings();
 
 	private static Settings settings = new Settings();
+
+	public const string BackupFileName = "shogidroid-settings.xml";
 
 	public static AppSettings AppSettings => settings.App;
 
@@ -50,9 +54,21 @@ public sealed class Settings
 
 	public static void Save()
 	{
+		Save(clearExisting: false);
+	}
+
+	private static void Save(bool clearExisting)
+	{
 		try
 		{
-			new PrefSerializer().Serialize(PreferenceManager.GetDefaultSharedPreferences(Application.Context), settings);
+			var pref = PreferenceManager.GetDefaultSharedPreferences(Application.Context);
+			if (clearExisting)
+			{
+				var editor = pref.Edit();
+				editor.Clear();
+				editor.Commit();
+			}
+			new PrefSerializer().Serialize(pref, settings);
 		}
 		catch
 		{
@@ -62,5 +78,58 @@ public sealed class Settings
 	public static void Reset()
 	{
 		settings = new Settings();
+	}
+
+	public static string GetBackupFilePath()
+	{
+		return Path.Combine(LocalFile.SettingsPath, BackupFileName);
+	}
+
+	public static bool ExportToFile(string path, out string errorMessage)
+	{
+		errorMessage = string.Empty;
+		try
+		{
+			Load();
+			string directory = Path.GetDirectoryName(path);
+			if (!string.IsNullOrEmpty(directory))
+			{
+				Directory.CreateDirectory(directory);
+			}
+			var serializer = new XmlSerializer(typeof(Settings));
+			using var stream = File.Create(path);
+			serializer.Serialize(stream, settings);
+			LocalFile.ScanFile(path);
+			return true;
+		}
+		catch (Exception ex)
+		{
+			errorMessage = ex.Message;
+			return false;
+		}
+	}
+
+	public static bool ImportFromFile(string path, out string errorMessage)
+	{
+		errorMessage = string.Empty;
+		try
+		{
+			var serializer = new XmlSerializer(typeof(Settings));
+			using var stream = File.OpenRead(path);
+			if (serializer.Deserialize(stream) is not Settings imported)
+			{
+				errorMessage = "設定ファイルを読み込めませんでした";
+				return false;
+			}
+			settings = imported;
+			Save(clearExisting: true);
+			MigrateOnStartCmd();
+			return true;
+		}
+		catch (Exception ex)
+		{
+			errorMessage = ex.Message;
+			return false;
+		}
 	}
 }

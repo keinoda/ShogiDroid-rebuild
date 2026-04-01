@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    android:id="@id/left_drawer"
+    android:layout_width="280.0dip"
+    android:layout_height="fill_parent"
+    android:layout_gravity="left"
+    android:orientation="vertical"
+    android:tag="drawer"
+    xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView
+        android:id="@id/app_name"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:background="@color/title_background"
+        android:paddingLeft="8dp"
+        android:paddingTop="4dp"
+        android:paddingRight="8dp"
+        android:paddingBottom="4dp"
+        android:text="@string/app_text"
+        android:textColor="@color/title_text"
+        android:textStyle="bold" />
+    <Space
+        android:layout_width="16.0dip"
+        android:layout_height="0.0dip" />
+    <ExpandableListView
+        android:id="@id/main_manu_lsist_view"
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:background="@color/theme_background"
+        android:divider="@null"
+        android:groupIndicator="@null" />
+</LinearLayout>

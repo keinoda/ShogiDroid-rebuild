@@ -70,7 +70,7 @@ public class ParallelAnalyzer
 
 		Report($"並列解析開始: {workers}並列, {threadsPerWorker}スレッド/ワーカー, Hash={hashPerWorker}MB, {nodesPerMove}ノード/手");
 
-		return await Task.Run(() =>
+		return await Task.Run(async () =>
 		{
 			using var keyFile = new PrivateKeyFile(keyPath);
 			using var client = new SshClient(host, sshPort, "root", keyFile);
@@ -110,27 +110,27 @@ public class ParallelAnalyzer
 
 			var cmd = client.CreateCommand(remoteCmd);
 			cmd.CommandTimeout = TimeSpan.FromMinutes(30);
-			var asyncResult = cmd.BeginExecute();
-
-			// stderrから進捗を読み取り
 			var stderrReader = new StreamReader(cmd.ExtendedOutputStream);
-			var outputBuilder = new StringBuilder();
-
-			// stdoutとstderrを並列で読む
 			var stderrTask = Task.Run(() =>
 			{
 				string line;
 				while ((line = stderrReader.ReadLine()) != null)
 				{
-					if (ct.IsCancellationRequested) break;
 					if (line.StartsWith("PROGRESS "))
 						Report($"解析中... {line.Substring(9)}");
 				}
-			});
+			}, CancellationToken.None);
 
-			cmd.EndExecute(asyncResult);
-			string output = cmd.Result ?? "";
-			stderrTask.Wait(5000);
+			string output;
+			try
+			{
+				await cmd.ExecuteAsync(ct);
+				output = cmd.Result ?? "";
+			}
+			finally
+			{
+				await Task.WhenAny(stderrTask, Task.Delay(5000, CancellationToken.None));
+			}
 
 			client.Disconnect();
 
@@ -163,7 +163,7 @@ public class ParallelAnalyzer
 	}
 
 	/// <summary>
-	/// エンジンコマンド ("cd /workspace/X && exec ./Y") からパスと作業ディレクトリを抽出
+	/// エンジンコマンド (<c>cd /workspace/X &amp;&amp; exec ./Y</c>) からパスと作業ディレクトリを抽出
 	/// </summary>
 	private void ParseEngineCommand(string cmd, out string enginePath, out string engineCwd)
 	{

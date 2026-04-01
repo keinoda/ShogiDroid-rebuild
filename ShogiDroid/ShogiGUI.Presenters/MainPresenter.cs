@@ -53,6 +53,10 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public HintInfo HintInfo => Domain.Game.HintInfo;
 
+	public PvInfos PvInfos => Domain.Game.PvInfos;
+
+	public ThreatmateInfo ThreatmateInfo => Domain.Game.ThreatmateInfo;
+
 	public bool BothComputer => Domain.Game.BothComputer;
 
 	public int BlackTime => Domain.Game.BlackTime.TotalElapsedTime;
@@ -86,11 +90,24 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public override void Pause()
 	{
-		Domain.Game.Stop(pause: true);
-		if (Domain.Game.Notation.Count != 0)
+		bool keepRemoteAnalysisRunning = Domain.Game.ShouldKeepRemoteAnalysisRunningOnPause();
+		if (keepRemoteAnalysisRunning)
+		{
+			VastAiWatchdog.Instance.RecordActivity();
+		}
+		else
+		{
+			Domain.Game.Stop(pause: true);
+		}
+
+		if (!keepRemoteAnalysisRunning && Domain.Game.Notation.Count != 0)
 		{
 			Settings.AppSettings.FileName = Domain.Game.NotationModel.FileName;
 			Domain.Game.NotationModel.SaveTemp();
+		}
+		else
+		{
+			Settings.AppSettings.FileName = Domain.Game.NotationModel.FileName;
 		}
 		AutoPlayStop();
 		Settings.Save();
@@ -108,6 +125,7 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public void UpdateSettings()
 	{
+		Domain.Game.UpdateThreatmateAnalysis();
 	}
 
 	public void MakeMove(MoveData moveData)
@@ -316,11 +334,8 @@ public class MainPresenter : PresenterBase<IMainView>
 
 		if (best.HasScore)
 		{
-			current.Score = best.Score;
-			if (!current.HasEval)
-			{
-				current.Eval = best.Eval;
-			}
+			current.Score = best.Eval;
+			current.Eval = best.Eval;
 		}
 	}
 
@@ -605,6 +620,20 @@ public class MainPresenter : PresenterBase<IMainView>
 		return sNotation;
 	}
 
+	public SNotation LoadThreatmate()
+	{
+		ThreatmateInfo threatmateInfo = Domain.Game.ThreatmateInfo;
+		if (threatmateInfo == null || threatmateInfo.State != ThreatmateState.Threatmate || !threatmateInfo.HasMoves)
+		{
+			return null;
+		}
+		SPosition sPosition = (SPosition)Domain.Game.Notation.Position.Clone();
+		sPosition.Turn = sPosition.Turn.Opp();
+		SNotation sNotation = new SNotation();
+		NotationModel.SetMoves(sNotation, sPosition, null, threatmateInfo.Moves);
+		return sNotation;
+	}
+
 	private void ShowGameOver(MoveType moveType)
 	{
 		if (moveType == MoveType.Stop)
@@ -682,6 +711,11 @@ public class MainPresenter : PresenterBase<IMainView>
 		{
 			Domain.Game.NotationModel.AddBranch(null, pvInfo.PvMoves);
 		}
+	}
+
+	public void AddBranch(SNotation branchNotation)
+	{
+		Domain.Game.NotationModel.AddBranch(branchNotation);
 	}
 
 	public void AddComment(int pvnum, PVDispMode dispmode)
@@ -838,6 +872,9 @@ public class MainPresenter : PresenterBase<IMainView>
 			break;
 		case GameEventId.InitializeError:
 			view.Message(MainViewMessageId.InitializeError);
+			break;
+		case GameEventId.VastAiBootRequired:
+			view.OnVastAiBootRequired();
 			break;
 		case GameEventId.GameStart:
 			if (gameStartPopup)

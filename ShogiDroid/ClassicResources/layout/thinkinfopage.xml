@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical" android:layout_width="fill_parent" android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <LinearLayout android:orientation="horizontal" android:layout_width="fill_parent" android:layout_height="wrap_content" android:paddingTop="2.0dip" android:paddingBottom="2.0dip">
+        <TextView android:ellipsize="end" android:id="@id/time" android:layout_width="0.0dip" android:layout_height="wrap_content" android:singleLine="true" android:layout_weight="1.0" />
+        <TextView android:ellipsize="end" android:id="@id/depth" android:layout_width="0.0dip" android:layout_height="wrap_content" android:singleLine="true" android:layout_weight="1.0" />
+        <TextView android:ellipsize="end" android:id="@id/nodes" android:layout_width="0.0dip" android:layout_height="wrap_content" android:singleLine="true" android:layout_weight="1.2" />
+        <TextView android:ellipsize="end" android:id="@id/nps" android:layout_width="0.0dip" android:layout_height="wrap_content" android:singleLine="true" android:layout_weight="1.2" />
+    </LinearLayout>
+    <TextView android:id="@id/remote_stats" android:layout_width="fill_parent" android:layout_height="wrap_content" android:singleLine="true" android:visibility="gone" android:textSize="11sp" android:paddingBottom="2.0dip" />
+    <ListView android:id="@id/thinklistview" android:background="@color/theme_background" android:layout_width="fill_parent" android:layout_height="0.0dip" android:dividerHeight="0.5dip" android:layout_weight="1.0" />
+</LinearLayout>

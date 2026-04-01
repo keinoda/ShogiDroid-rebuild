@@ -1,0 +1,245 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.drawerlayout.widget.DrawerLayout
+    android:id="@id/drawer_layout"
+    android:layout_width="fill_parent"
+    android:layout_height="fill_parent"
+    android:fitsSystemWindows="true"
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto">
+    <LinearLayout
+        android:layout_width="fill_parent"
+        android:layout_height="fill_parent"
+        android:orientation="horizontal">
+        <RelativeLayout
+            android:layout_width="0.0dip"
+            android:layout_height="fill_parent"
+            android:layout_weight="1.0">
+            <shogidroid.controls.shogiboard.ShogiBoard
+                android:id="@id/shogiboard"
+                android:layout_width="fill_parent"
+                android:layout_height="fill_parent"
+                android:layout_marginLeft="0.0dip"
+                android:layout_marginRight="0.0dip"
+                android:background="@color/theme_background"
+                app:DesignMode="true" />
+            <TextView
+                android:id="@id/top_name"
+                android:layout_width="70.0dip"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:text="Top対局者名ABCDEF"
+                android:textSize="12.0sp" />
+            <TextView
+                android:id="@id/top_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:text="時間"
+                android:textSize="12.0sp" />
+            <TextView
+                android:id="@id/bottom_time"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:singleLine="true"
+                android:text="時間"
+                android:textSize="12.0sp" />
+            <TextView
+                android:id="@id/bottom_name"
+                android:layout_width="70.0dip"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:singleLine="true"
+                android:text="Bottom対局者名"
+                android:textSize="12.0sp" />
+        </RelativeLayout>
+        <LinearLayout
+            android:layout_width="0.0dip"
+            android:layout_height="fill_parent"
+            android:layout_weight="1.0"
+            android:orientation="vertical">
+            <FrameLayout
+                android:layout_width="fill_parent"
+                android:layout_height="44.0dip">
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="match_parent"
+                    android:layout_gravity="start|center_vertical"
+                    android:gravity="center_vertical"
+                    android:orientation="horizontal">
+                    <ImageButton
+                        android:id="@id/menu_button"
+                        android:layout_width="44.0dip"
+                        android:layout_height="44.0dip"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:padding="8.0dip"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_menu_hamburger" />
+                    <ImageButton
+                        android:id="@id/board_edit_button"
+                        android:layout_width="44.0dip"
+                        android:layout_height="44.0dip"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:padding="8.0dip"
+                        android:scaleType="centerInside"
+                        android:src="@android:drawable/ic_menu_edit" />
+                    <ImageButton
+                        android:id="@id/camera_read"
+                        android:layout_width="44.0dip"
+                        android:layout_height="44.0dip"
+                        android:background="?attr/selectableItemBackgroundBorderless"
+                        android:padding="8.0dip"
+                        android:scaleType="centerInside"
+                        android:src="@drawable/ic_camera" />
+                </LinearLayout>
+                <Button
+                    android:id="@id/book_browse_close"
+                    android:layout_width="wrap_content"
+                    android:layout_height="32.0dip"
+                    android:layout_gravity="end|center_vertical"
+                    android:layout_marginEnd="4.0dip"
+                    android:padding="4.0dip"
+                    android:text="@string/BookBrowseClose_Text"
+                    android:textSize="12.0sp"
+                    android:visibility="gone" />
+            </FrameLayout>
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
+                <ImageButton
+                    android:id="@id/reverse_button"
+                    android:layout_width="44.0dip"
+                    android:layout_height="44.0dip"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:padding="8.0dip"
+                    android:scaleType="centerInside"
+                    android:src="@android:drawable/ic_menu_rotate" />
+                <View
+                    android:layout_width="0.0dip"
+                    android:layout_height="0.0dip"
+                    android:layout_weight="1.0" />
+                <TextView
+                    android:id="@id/notaton_text"
+                    android:layout_width="wrap_content"
+                    android:layout_height="36.0dip"
+                    android:background="@drawable/notation_box_bg"
+                    android:ellipsize="end"
+                    android:gravity="center"
+                    android:paddingLeft="20.0dip"
+                    android:paddingRight="20.0dip"
+                    android:singleLine="true"
+                    android:text="棋譜"
+                    android:textColor="@color/notation_box_text"
+                    android:textSize="14.0sp" />
+                <TextView
+                    android:id="@id/state_text"
+                    android:layout_width="0.0dip"
+                    android:layout_height="0.0dip"
+                    android:visibility="gone" />
+                <View
+                    android:layout_width="0.0dip"
+                    android:layout_height="0.0dip"
+                    android:layout_weight="1.0" />
+                <ImageButton
+                    android:id="@id/pass_button"
+                    android:layout_width="44.0dip"
+                    android:layout_height="44.0dip"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:padding="8.0dip"
+                    android:scaleType="centerInside"
+                    android:src="@android:drawable/ic_menu_send" />
+                <ImageButton
+                    android:id="@id/input_cancel_button"
+                    android:layout_width="44.0dip"
+                    android:layout_height="44.0dip"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:padding="8.0dip"
+                    android:scaleType="centerInside"
+                    android:src="@android:drawable/ic_menu_revert" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="0.0dip"
+                android:layout_weight="1.0"
+                android:orientation="vertical">
+                <androidx.viewpager.widget.ViewPager
+                    android:id="@id/viewpager"
+                    android:layout_width="fill_parent"
+                    android:layout_height="0.0dip"
+                    android:layout_weight="1.0" />
+                <shogidroid.controls.EvalGraph
+                    android:id="@id/eval_graph"
+                    android:layout_width="fill_parent"
+                    android:layout_height="90.0dip" />
+            </LinearLayout>
+            <LinearLayout
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:gravity="center_vertical"
+                android:orientation="horizontal"
+                android:paddingLeft="2.0dip"
+                android:paddingTop="4.0dip"
+                android:paddingRight="2.0dip"
+                android:paddingBottom="4.0dip">
+                <ImageButton
+                    android:id="@id/first_button"
+                    android:layout_width="0.0dip"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.7"
+                    android:src="@android:drawable/ic_media_rew" />
+                <ImageButton
+                    android:id="@id/prev_button"
+                    android:layout_width="0.0dip"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1.0"
+                    android:scaleX="-1.0"
+                    android:src="@android:drawable/ic_media_play" />
+                <ImageButton
+                    android:id="@id/next_button"
+                    android:layout_width="0.0dip"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1.0"
+                    android:src="@android:drawable/ic_media_play" />
+                <ImageButton
+                    android:id="@id/last_button"
+                    android:layout_width="0.0dip"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="0.7"
+                    android:src="@android:drawable/ic_media_ff" />
+                <View
+                    android:layout_width="0.0dip"
+                    android:layout_height="0.0dip"
+                    android:layout_weight="1.0" />
+                <LinearLayout
+                    android:id="@id/analyze_button"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:background="@drawable/analyze_btn_bg_idle"
+                    android:gravity="center"
+                    android:orientation="horizontal"
+                    android:paddingLeft="12.0dip"
+                    android:paddingTop="8.0dip"
+                    android:paddingRight="12.0dip"
+                    android:paddingBottom="8.0dip">
+                    <ImageView
+                        android:layout_width="24.0dip"
+                        android:layout_height="24.0dip"
+                        android:layout_marginRight="4.0dip"
+                        android:src="@drawable/ic_bar_chart" />
+                    <TextView
+                        android:id="@id/analyze_text"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="解析開始"
+                        android:textColor="#ffffffff"
+                        android:textSize="13.0sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+    <include layout="@layout/left_drawer2" />
+    <include layout="@layout/right_drawer" />
+</androidx.drawerlayout.widget.DrawerLayout>

@@ -4,20 +4,41 @@ using ShogiLib;
 
 namespace ShogiGUI.Engine;
 
+public enum CheckMateResultKind
+{
+	Mate,
+	NoMate,
+	Timeout,
+	None,
+	NotImplemented
+}
+
 public class CheckMateEventArgs : EventArgs
 {
 	public List<MoveDataEx> Moves { get; set; }
 
 	public bool IsMate { get; set; }
 
-	public CheckMateEventArgs()
+	public PlayerColor Color { get; set; }
+
+	public int TransactionNo { get; set; }
+
+	public CheckMateResultKind Kind { get; set; }
+
+	public CheckMateEventArgs(PlayerColor color, int transactionNo, CheckMateResultKind kind)
 	{
-		IsMate = false;
+		Color = color;
+		TransactionNo = transactionNo;
+		Kind = kind;
+		IsMate = kind == CheckMateResultKind.Mate;
 	}
 
-	public CheckMateEventArgs(List<MoveDataEx> moves)
+	public CheckMateEventArgs(PlayerColor color, int transactionNo, List<MoveDataEx> moves)
 	{
+		Color = color;
+		TransactionNo = transactionNo;
 		Moves = moves;
+		Kind = CheckMateResultKind.Mate;
 		IsMate = true;
 	}
 }

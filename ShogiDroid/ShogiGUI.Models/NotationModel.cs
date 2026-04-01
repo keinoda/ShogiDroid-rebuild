@@ -243,16 +243,30 @@ public class NotationModel
 		foreach (MoveNode moveNode in notation.MoveNodes)
 		{
 			if (moveNode.HasScore) continue;
+			PvInfo bestPvInfo = null;
 			foreach (string comment in moveNode.CommentList)
 			{
 				if (string.IsNullOrEmpty(comment) || comment[0] != '*') continue;
 				var pvInfo = AnalyzeInfoList.Parse(comment);
-				if (pvInfo.Kind == AnalyzeCommentKind.Analysis && pvInfo.HasEval)
+				if (pvInfo.Kind != AnalyzeCommentKind.Analysis || !pvInfo.HasEval)
 				{
-					// 最初に見つかった解析コメントが候補1（最善手）
-					moveNode.Score = pvInfo.Eval;
-					break;
+					continue;
 				}
+				if (bestPvInfo == null)
+				{
+					bestPvInfo = pvInfo;
+					continue;
+				}
+				int currentRank = pvInfo.HasRank ? pvInfo.Rank : 1;
+				int bestRank = bestPvInfo.HasRank ? bestPvInfo.Rank : 1;
+				if (currentRank < bestRank)
+				{
+					bestPvInfo = pvInfo;
+				}
+			}
+			if (bestPvInfo != null)
+			{
+				moveNode.Score = bestPvInfo.Eval;
 			}
 		}
 	}
@@ -468,6 +482,16 @@ public class NotationModel
 			notation.AddBranches(ponder, moveDataList, move_node, MoveAddMode.ADD);
 			OnNotationChanged(new NotationEventArgs(NotationEventId.OTHER));
 		}
+	}
+
+	public void AddBranch(SNotation branchNotation)
+	{
+		if (branchNotation == null)
+		{
+			return;
+		}
+		notation.AddBranch(branchNotation);
+		OnNotationChanged(new NotationEventArgs(NotationEventId.OTHER));
 	}
 
 	public void AddComment(string comment)
