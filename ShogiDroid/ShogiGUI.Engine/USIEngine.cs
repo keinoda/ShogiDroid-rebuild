@@ -415,6 +415,7 @@ public class USIEngine : IDisposable
 			{
 				if (process_ == null || process_.HasExited)
 				{
+					AppDebug.Log.Error($"USIEngine.WriteLine: process dead (null={process_ == null}, exitCode={process_?.ExitCode})");
 					return false;
 				}
 				process_.StandardInput.WriteLine(str);

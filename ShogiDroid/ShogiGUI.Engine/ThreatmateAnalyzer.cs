@@ -77,17 +77,7 @@ public class ThreatmateAnalyzer : IDisposable
 		{
 			pendingNotation = null;
 			currentTransactionNo = -1;
-			if (enginePlayer != null)
-			{
-				enginePlayer.Initialized -= EnginePlayer_Initialized;
-				enginePlayer.ReadyOk -= EnginePlayer_ReadyOk;
-				enginePlayer.InfoRecieved -= EnginePlayer_InfoRecieved;
-				enginePlayer.CheckMateRecieved -= EnginePlayer_CheckMateRecieved;
-				enginePlayer.ReportError -= EnginePlayer_ReportError;
-				enginePlayer.Stop();
-				enginePlayer.Terminate();
-				enginePlayer = null;
-			}
+			DisposeEngine();
 		}
 	}
 
@@ -229,11 +219,28 @@ public class ThreatmateAnalyzer : IDisposable
 	{
 		lock (lockObj)
 		{
+			// 壊れたエンジンを破棄し、次回 Analyze() 時に再作成させる
+			DisposeEngine();
 			SetCurrentInfo(new ThreatmateInfo
 			{
 				State = ThreatmateState.Unknown,
 				Attacker = pendingAttacker
 			});
+		}
+	}
+
+	private void DisposeEngine()
+	{
+		if (enginePlayer != null)
+		{
+			enginePlayer.Initialized -= EnginePlayer_Initialized;
+			enginePlayer.ReadyOk -= EnginePlayer_ReadyOk;
+			enginePlayer.InfoRecieved -= EnginePlayer_InfoRecieved;
+			enginePlayer.CheckMateRecieved -= EnginePlayer_CheckMateRecieved;
+			enginePlayer.ReportError -= EnginePlayer_ReportError;
+			try { enginePlayer.Stop(); } catch { }
+			try { enginePlayer.Terminate(); } catch { }
+			enginePlayer = null;
 		}
 	}
 

@@ -207,9 +207,9 @@ public class MainPresenter : PresenterBase<IMainView>
 		{
 			return Settings.AppSettings.PlayerName;
 		}
-		if (Settings.EngineSettings.EngineNo == 1)
+		if (InternalEngineCatalog.IsInternalEngineNo(Settings.EngineSettings.EngineNo))
 		{
-			return InternalEnginePlayer.EngineBaseName;
+			return InternalEngineCatalog.GetEngineName(Settings.EngineSettings.EngineNo);
 		}
 		return Settings.EngineSettings.EngineName;
 	}
@@ -554,7 +554,7 @@ public class MainPresenter : PresenterBase<IMainView>
 			return false;
 		}
 		string fileName = string.Empty;
-		if (string.IsNullOrEmpty(subject))
+		if (!string.IsNullOrEmpty(subject))
 		{
 			fileName = subject.ReplaceInvalidFileNameChars();
 		}
@@ -648,10 +648,11 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public void SelectEngine(int engineNo, string engineName)
 	{
-		if (engineNo != Settings.EngineSettings.EngineNo || (engineNo != 1 && engineName != Settings.EngineSettings.EngineName))
+		string normalizedName = InternalEngineCatalog.IsInternalEngineNo(engineNo) ? InternalEngineCatalog.GetEngineName(engineNo) : engineName;
+		if (engineNo != Settings.EngineSettings.EngineNo || normalizedName != Settings.EngineSettings.EngineName)
 		{
 			Settings.EngineSettings.EngineNo = engineNo;
-			Settings.EngineSettings.EngineName = engineName;
+			Settings.EngineSettings.EngineName = normalizedName;
 			Domain.Game.EngineTerminate();
 		}
 	}

@@ -3,6 +3,7 @@ using System.IO;
 using Android.App;
 using Android.Media;
 using Android.OS;
+using ShogiGUI.Engine;
 
 namespace ShogiGUI;
 
@@ -29,6 +30,7 @@ public class LocalFile
 			Directory.CreateDirectory(EnginePath);
 			Directory.CreateDirectory(Path.Combine(storageFolderPath, "book"));
 			Directory.CreateDirectory(SettingsPath);
+			BundledExternalEngineInstaller.InstallAll();
 			MediaScannerConnection.ScanFile(Application.Context, new string[1] { storageFolderPath }, null, new MediaScannerClient());
 		}
 		catch

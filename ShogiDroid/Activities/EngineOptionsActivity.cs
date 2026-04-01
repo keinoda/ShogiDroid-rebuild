@@ -54,9 +54,9 @@ public class EngineOptionsActivity : Activity, IEngineOptions
 		engineId = FindViewById<TextView>(Resource.Id.engine_id);
 		engineAuthor = FindViewById<TextView>(Resource.Id.engine_author);
 		optionList = FindViewById<ListView>(Resource.Id.engine_option_list);
-		if (Settings.EngineSettings.EngineNo == 1)
+		if (InternalEngineCatalog.IsInternalEngineNo(Settings.EngineSettings.EngineNo))
 		{
-			engineName.Text = InternalEnginePlayer.EngineBaseName;
+			engineName.Text = InternalEngineCatalog.GetEngineName(Settings.EngineSettings.EngineNo);
 		}
 		else
 		{

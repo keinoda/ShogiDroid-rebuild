@@ -158,8 +158,15 @@ public class VastAiManager : IDisposable
 
 			if (actual == "running" && !string.IsNullOrEmpty(instance.PublicIpAddr))
 			{
-				AppDebug.Log.Info($"VastAi: instance ready! IP={instance.PublicIpAddr}");
-				return instance;
+				// SSH ポートへの接続確認（コンテナ起動完了の確認）
+				var (sshHost, sshPort) = instance.GetSshEndpoint();
+				if (sshPort > 0 && await IsSshReachableAsync(sshHost, sshPort, ct))
+				{
+					AppDebug.Log.Info($"VastAi: instance ready! IP={instance.PublicIpAddr}, SSH={sshHost}:{sshPort}");
+					return instance;
+				}
+				progress?.Report($"SSH待機中... ({sshHost}:{sshPort}, {attempt * 5}秒経過)");
+				AppDebug.Log.Info($"VastAi: instance running but SSH not ready ({sshHost}:{sshPort})");
 			}
 
 			if (instance != null && instance.HasStartupFailure)
@@ -404,6 +411,24 @@ public class VastAiManager : IDisposable
 			env[$"-p {port}:{port}"] = "1";
 		}
 		return env;
+	}
+
+	/// <summary>
+	/// SSH ポートへの TCP 接続確認（コンテナの SSH デーモンが起動済みか）
+	/// </summary>
+	private static async Task<bool> IsSshReachableAsync(string host, int port, CancellationToken ct)
+	{
+		try
+		{
+			using var tcp = new System.Net.Sockets.TcpClient();
+			var connectTask = tcp.ConnectAsync(host, port);
+			var completed = await Task.WhenAny(connectTask, Task.Delay(3000, ct));
+			return completed == connectTask && tcp.Connected;
+		}
+		catch
+		{
+			return false;
+		}
 	}
 }
 

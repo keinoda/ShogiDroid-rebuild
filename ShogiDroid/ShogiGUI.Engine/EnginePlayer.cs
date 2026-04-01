@@ -840,6 +840,7 @@ public class EnginePlayer : IPlayer
 
 	private bool send_cmd(string cmd, bool reportFailure = true)
 	{
+		AppDebug.Log.Info($"USI>> {cmd}");
 		bool result = engine_ != null && engine_.WriteLine(cmd);
 		if (!result && reportFailure)
 		{
@@ -853,17 +854,22 @@ public class EnginePlayer : IPlayer
 		while (!cancel_)
 		{
 			string str;
-			switch (engine_.ReadLine(out str, -1))
+			var err = engine_.ReadLine(out str, -1);
+			switch (err)
 			{
 			case StringQueue.Error.OK:
 				if (!cancel_)
 				{
+					// info string は大量に来るため除外
+					if (str != null && !str.StartsWith("info "))
+						AppDebug.Log.Info($"USI<< {str}");
 					receive_command(str);
 				}
 				break;
 			case StringQueue.Error.TIMEOUT:
 				break;
 			default:
+				AppDebug.Log.Error($"USI: receive_thread error={err}, cancel={cancel_}");
 				if (!cancel_)
 				{
 					ReportTransportError(PlayerErrorId.EngineDisconnected);
