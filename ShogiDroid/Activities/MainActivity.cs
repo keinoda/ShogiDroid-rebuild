@@ -36,7 +36,7 @@ using ShogiLib;
 
 namespace ShogiDroid;
 
-[Activity(Label = "ShogiDroid", MainLauncher = true, Icon = "@drawable/shogidroid_icon", WindowSoftInputMode = SoftInput.AdjustNothing, ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
+[Activity(Label = "ShogiDroid", MainLauncher = true, LaunchMode = Android.Content.PM.LaunchMode.SingleTask, Icon = "@drawable/shogidroid_icon", WindowSoftInputMode = SoftInput.AdjustNothing, ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT", "android.intent.category.BROWSABLE" }, DataScheme = "http", DataHost = "live.shogi.or.jp", DataPathPattern = "/.*/kifu/.*")]
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT", "android.intent.category.BROWSABLE" }, DataScheme = "http", DataHost = "*", DataPathPattern = "/.*.kif")]
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT", "android.intent.category.BROWSABLE" }, DataScheme = "http", DataHost = "*", DataPathPattern = "/.*.ki2")]
@@ -893,7 +893,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 	protected override void OnNewIntent(Intent intent)
 	{
 		base.OnNewIntent(intent);
-		_ = Intent;
+		Intent = intent;
 		if (intent != null && presenter.LoadNotationFromWeb(intent.DataString))
 		{
 			PopupNotationInfo();
@@ -2549,8 +2549,17 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		vastAiBootDialog_ = new AlertDialog.Builder(this)
 			.SetTitle("インスタンス起動中")
 			.SetView(layout)
-			.SetCancelable(false)
+			.SetNegativeButton("キャンセル", (s, e) =>
+			{
+				CancelAutoBootVastAi();
+				DismissVastAiBootDialog();
+			})
+			.SetCancelable(true)
 			.Create();
+		vastAiBootDialog_.CancelEvent += (s, e) =>
+		{
+			CancelAutoBootVastAi();
+		};
 		vastAiBootDialog_.Show();
 	}
 
@@ -2637,9 +2646,21 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 
 			ct.ThrowIfCancellationRequested();
 
-			if (target == null || !target.IsRunning)
+			if (target == null)
 			{
-				throw new VastAiException("インスタンスの起動に失敗しました");
+				throw new VastAiException("インスタンスが見つかりません");
+			}
+
+			// まだ起動途中（Loading）の場合はリトライのために再取得
+			if (!target.IsRunning || string.IsNullOrEmpty(target.PublicIpAddr))
+			{
+				RunOnUiThreadIfVisible(ct, () => SetStatusText("起動完了を待機中..."));
+				target = await manager.WaitForReadyAsync(lastInstanceId, CreateVastAiBootProgress(ct), ct);
+			}
+
+			if (target == null || !target.IsRunning || string.IsNullOrEmpty(target.PublicIpAddr))
+			{
+				throw new VastAiException("インスタンスの起動がタイムアウトしました。クラウド画面から状態を確認してください。");
 			}
 
 			// エンジン接続設定を更新
