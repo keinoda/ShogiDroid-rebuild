@@ -1015,7 +1015,8 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			infoPageAdepter.CommentLongClick += InfoPageAdepter_CommentLongClick;
 		}
 		infoPageAdepter.DispEvalGraph = evalGraphView == null;
-		infoPager.OffscreenPageLimit = 3;
+		infoPageAdepter.DispPolicyPage = Settings.AppSettings.AutoPolicyAnalysis;
+		infoPager.OffscreenPageLimit = 4;
 		infoPager.Adapter = infoPageAdepter;
 		if (num != 0)
 		{
@@ -1820,6 +1821,14 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 	private void StopBackgroundAnalysisService()
 	{
 		StopService(new Intent(this, typeof(BackgroundAnalysisService)));
+	}
+
+	public void UpdatePolicyInfo(PolicyInfo policyInfo)
+	{
+		RunOnUiThread(() =>
+		{
+			infoPageAdepter?.SetPolicyInfo(policyInfo);
+		});
 	}
 
 	public void UpdateInfo(PvInfos pvinfos)

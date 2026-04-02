@@ -49,6 +49,17 @@ public class EngineSettings
 
 	public int VastAiInstanceId = 0;
 
+	/// <summary>
+	/// 現在接続中のマシンID（vast.ai の machine_id）
+	/// </summary>
+	public int VastAiMachineId = 0;
+
+	/// <summary>
+	/// エンジンオプションが最後に保存された時のマシンID。
+	/// VastAiMachineId と一致しない場合、保存オプションは使わない。
+	/// </summary>
+	public int VastAiOptionsMachineId = 0;
+
 	// AWS スポットインスタンス設定
 	public string AwsAccessKey = string.Empty;
 	public string AwsSecretKey = string.Empty;

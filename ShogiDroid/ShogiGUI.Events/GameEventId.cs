@@ -18,6 +18,7 @@ public enum GameEventId
 	InitializeEnd,
 	InitializeError,
 	ThreatmateUpdated,
+	PolicyUpdated,
 	UpdateTime,
 	/// <summary>
 	/// リモートエンジン接続失敗時、vast.aiインスタンスの起動が必要。

@@ -57,6 +57,8 @@ public class Game
 
 	private ThreatmateAnalyzer threatmateAnalyzer = new ThreatmateAnalyzer();
 
+	private PolicyAnalyzer policyAnalyzer = new PolicyAnalyzer();
+
 	private int analyzeStopNumber_ = -1;
 
 	private EngineMode engineMode;
@@ -145,6 +147,8 @@ public class Game
 
 	public ThreatmateInfo ThreatmateInfo => threatmateAnalyzer.CurrentInfo;
 
+	public PolicyInfo PolicyInfo => policyAnalyzer.CurrentInfo;
+
 	public event EventHandler<GameEventArgs> GameEventHandler;
 
 	public Game()
@@ -157,6 +161,7 @@ public class Game
 		gameTimer.UpdateTime += GameTimer_UpdateTime;
 		notationModel.NotationChanged += NotationModel_NotationChanged;
 		threatmateAnalyzer.Updated += ThreatmateAnalyzer_Updated;
+		policyAnalyzer.Updated += PolicyAnalyzer_Updated;
 	}
 
 	protected virtual void OnGameEvent(GameEventArgs e)
@@ -176,6 +181,7 @@ public class Game
 	public void Destory()
 	{
 		threatmateAnalyzer.Dispose();
+		policyAnalyzer.Dispose();
 		EngineTerminate();
 	}
 
@@ -702,7 +708,17 @@ public class Game
 
 				remoteEnginePlayer.CopyFiles();
 				remoteEnginePlayer.LoadSettings();
+
+				// マシンIDが一致しない場合、前回の保存オプションは使わない
+				if (Settings.EngineSettings.VastAiMachineId > 0
+					&& Settings.EngineSettings.VastAiOptionsMachineId != Settings.EngineSettings.VastAiMachineId)
+				{
+					AppDebug.Log.Info($"initEnginePlayer: マシンID不一致 (saved={Settings.EngineSettings.VastAiOptionsMachineId}, current={Settings.EngineSettings.VastAiMachineId}) → 保存オプションをクリア");
+					remoteEnginePlayer.ClearEngineOptions();
+				}
+
 				enginePlayer = remoteEnginePlayer;
+				enginePlayer.OptionsApplying += Player_OptionsApplying;
 				enginePlayer.Initialized += Player_Initialized;
 				enginePlayer.ReadyOk += Player_ReadyOk;
 				enginePlayer.BestMoveRecieved += Player_BestMoveRecieved;
@@ -1239,13 +1255,22 @@ public class Game
 		}
 	}
 
+	/// <summary>
+	/// usiok受信後、オプション送信前に呼ばれる。
+	/// クラウドインスタンスのスペックに基づく自動オプションを tempOptions_ にセットする。
+	/// </summary>
+	private void Player_OptionsApplying(object sender, InitializedEventArgs e)
+	{
+		if (!cancel)
+		{
+			ApplyVastAiAutoOptions();
+		}
+	}
+
 	private void Player_Initialized(object sender, InitializedEventArgs e)
 	{
 		if (!cancel)
 		{
-			// vast.aiインスタンスのスペックに基づいてThreads/Hashを自動設定
-			ApplyVastAiAutoOptions();
-
 			if (engineMode == EngineMode.None)
 			{
 				busy = false;
@@ -1258,6 +1283,11 @@ public class Game
 		}
 	}
 
+	/// <summary>
+	/// クラウドインスタンスのスペックに基づいてThreads/Hash等を自動設定する。
+	/// OptionsApplying イベントから呼ばれ、SetTempOptionDeferred で tempOptions_ にセットする。
+	/// update_options() でユーザー保存オプションの後に適用されるため、確実に上書きされる。
+	/// </summary>
 	private void ApplyVastAiAutoOptions()
 	{
 		if (Settings.EngineSettings.EngineNo != RemoteEnginePlayer.RemoteEngineNo) return;
@@ -1279,13 +1309,13 @@ public class Game
 
 			if (cores > 0)
 			{
-				enginePlayer.SetOption("Threads", cores, temp: true);
+				enginePlayer.SetTempOptionDeferred("Threads", cores);
 				AppDebug.Log.Info($"VastAi auto-option: Threads={cores}");
 			}
 
 			// Hash: DEEPでは1024MBで十分
-			enginePlayer.SetOption("USI_Hash", 1024, temp: true);
-			enginePlayer.SetOption("Hash", 1024, temp: true);
+			enginePlayer.SetTempOptionDeferred("USI_Hash", 1024);
+			enginePlayer.SetTempOptionDeferred("Hash", 1024);
 			AppDebug.Log.Info("VastAi auto-option: Hash=1024MB (DEEP)");
 
 			// UCT_NodeLimit: MCTSツリーのノード上限
@@ -1295,7 +1325,7 @@ public class Game
 				if (availableBytes < 0) availableBytes = (long)ramMb * 512L * 1024L;
 				long nodeLimit = availableBytes / 200;
 				int nodeLimitInt = (int)System.Math.Min(nodeLimit, 50000000L);
-				enginePlayer.SetOption("UCT_NodeLimit", nodeLimitInt, temp: true);
+				enginePlayer.SetTempOptionDeferred("UCT_NodeLimit", nodeLimitInt);
 				AppDebug.Log.Info($"VastAi auto-option: UCT_NodeLimit={nodeLimitInt}");
 			}
 		}
@@ -1305,7 +1335,7 @@ public class Game
 
 			if (cores > 0)
 			{
-				enginePlayer.SetOption("Threads", cores, temp: true);
+				enginePlayer.SetTempOptionDeferred("Threads", cores);
 				AppDebug.Log.Info($"VastAi auto-option: Threads={cores}");
 			}
 
@@ -1313,8 +1343,8 @@ public class Game
 			{
 				// RAMの70%、上限32768MB
 				int hashMb = System.Math.Min((int)(ramMb * 0.7), 32768);
-				enginePlayer.SetOption("USI_Hash", hashMb, temp: true);
-				enginePlayer.SetOption("Hash", hashMb, temp: true);
+				enginePlayer.SetTempOptionDeferred("USI_Hash", hashMb);
+				enginePlayer.SetTempOptionDeferred("Hash", hashMb);
 				AppDebug.Log.Info($"VastAi auto-option: Hash={hashMb}MB");
 			}
 		}
@@ -1435,6 +1465,11 @@ public class Game
 		OnGameEvent(new GameEventArgs(GameEventId.ThreatmateUpdated));
 	}
 
+	private void PolicyAnalyzer_Updated(object sender, EventArgs e)
+	{
+		OnGameEvent(new GameEventArgs(GameEventId.PolicyUpdated));
+	}
+
 	private void RefreshThreatmateAnalysis()
 	{
 		if (!Settings.AppSettings.AutoThreatmateAnalysis || Notation == null || Notation.MoveCurrent.MoveType.IsResult())
@@ -1450,6 +1485,16 @@ public class Game
 		RefreshThreatmateAnalysis();
 	}
 
+	private void RefreshPolicyAnalysis()
+	{
+		if (!Settings.AppSettings.AutoPolicyAnalysis || Notation == null || Notation.MoveCurrent.MoveType.IsResult())
+		{
+			policyAnalyzer.Clear();
+			return;
+		}
+		policyAnalyzer.Analyze(Notation);
+	}
+
 	private void NotationModel_NotationChanged(object sender, NotationEventArgs e)
 	{
 		if (e.EventId != NotationEventId.COMMENT)
@@ -1463,6 +1508,7 @@ public class Game
 				AnalyzeStop();
 			}
 			RefreshThreatmateAnalysis();
+			RefreshPolicyAnalysis();
 		}
 	}
 }

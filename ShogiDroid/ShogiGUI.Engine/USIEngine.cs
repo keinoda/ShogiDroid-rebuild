@@ -132,6 +132,11 @@ public class USIEngine : IDisposable
 			process_.StartInfo.RedirectStandardInput = true;
 			process_.StartInfo.RedirectStandardOutput = true;
 			process_.StartInfo.WorkingDirectory = workingdirectory;
+			// 共有ライブラリ (.so) をワーキングディレクトリから検索可能にする
+			if (!string.IsNullOrEmpty(workingdirectory))
+			{
+				process_.StartInfo.EnvironmentVariables["LD_LIBRARY_PATH"] = workingdirectory;
+			}
 			process_.OutputDataReceived += process_DataRecieved;
 			process_.EnableRaisingEvents = true;
 			process_.Exited += process_Exited;

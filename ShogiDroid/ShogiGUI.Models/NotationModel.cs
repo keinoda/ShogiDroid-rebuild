@@ -397,7 +397,12 @@ public class NotationModel
 
 	public void InputCancel()
 	{
-		notation.Back();
+		// 一手戻ってその手を削除する（入力の取り消し）
+		if (notation.MoveCurrent.Number > 0)
+		{
+			notation.Prev(1);
+			notation.Remove(notation.MoveCurrent.ChildCurrent);
+		}
 		changeState = ChangeState.Modified;
 		OnNotationChanged(new NotationEventArgs(NotationEventId.OTHER));
 	}

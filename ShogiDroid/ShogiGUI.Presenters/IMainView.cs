@@ -11,6 +11,8 @@ public interface IMainView
 
 	void UpdateInfo(PvInfos pvinfos);
 
+	void UpdatePolicyInfo(PolicyInfo policyInfo);
+
 	void SetPlayer(bool black, bool white);
 
 	void MessageError(string error);

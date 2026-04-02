@@ -527,6 +527,9 @@ public class VastAiOffer
 	[JsonPropertyName("search_price")]
 	public double SearchPrice { get; set; }
 
+	[JsonPropertyName("machine_id")]
+	public int MachineId { get; set; }
+
 	public double GpuRamGb => GpuRam / 1024.0;
 	public double CpuRamGb => CpuRam / 1024.0;
 }
@@ -598,6 +601,9 @@ public class VastAiInstance
 
 	[JsonPropertyName("cur_state")]
 	public string CurState { get; set; }
+
+	[JsonPropertyName("machine_id")]
+	public int MachineId { get; set; }
 
 	public double GpuRamGb => GpuRam / 1024.0;
 	public double CpuRamGb => CpuRam / 1024.0;

@@ -390,6 +390,8 @@
     <item type="id" name="thinkinfo_add_branch" />
     <item type="id" name="thinkinfo_add_comment" />
     <item type="id" name="thinklistview" />
+    <item type="id" name="policy_header" />
+    <item type="id" name="policy_listview" />
     <item type="id" name="time" />
     <item type="id" name="time_text" />
     <item type="id" name="title" />

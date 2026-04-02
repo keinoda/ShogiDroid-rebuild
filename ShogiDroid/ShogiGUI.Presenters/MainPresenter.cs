@@ -57,6 +57,8 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public ThreatmateInfo ThreatmateInfo => Domain.Game.ThreatmateInfo;
 
+	public PolicyInfo PolicyInfo => Domain.Game.PolicyInfo;
+
 	public bool BothComputer => Domain.Game.BothComputer;
 
 	public int BlackTime => Domain.Game.BlackTime.TotalElapsedTime;
@@ -266,23 +268,12 @@ public class MainPresenter : PresenterBase<IMainView>
 	{
 		if (!Domain.Game.Busy)
 		{
-			if (Domain.Game.GameMode == GameMode.Play)
-			{
-				Domain.Game.Matta();
-			}
-			else
-			{
-				Domain.Game.NotationModel.InputCancel();
-			}
+			Domain.Game.NotationModel.InputCancel();
 		}
 	}
 
 	public bool CanInputCancel()
 	{
-		if (GameMode == GameMode.Analyzer)
-		{
-			return false;
-		}
 		return true;
 	}
 
@@ -907,6 +898,10 @@ public class MainPresenter : PresenterBase<IMainView>
 				view.ShowInterstitial();
 			}
 			break;
+		}
+		if (e.EventId == GameEventId.PolicyUpdated)
+		{
+			view.UpdatePolicyInfo(Domain.Game.PolicyInfo);
 		}
 		if (e.EventId != GameEventId.Info && e.EventId != GameEventId.UpdateTime)
 		{

@@ -98,6 +98,13 @@ public class EnginePlayer : IPlayer
 
 	public event EventHandler<InitializedEventArgs> Initialized;
 
+	/// <summary>
+	/// usiok受信後、オプション送信前に発火する。
+	/// ハンドラ内で SetTempOptionDeferred() を呼ぶことで、
+	/// ユーザー保存オプションを自動設定値で上書きできる。
+	/// </summary>
+	public event EventHandler<InitializedEventArgs> OptionsApplying;
+
 	public event EventHandler<ReadyOkEventArgs> ReadyOk;
 
 	public event EventHandler<BestMoveEventArgs> BestMoveRecieved;
@@ -709,6 +716,31 @@ public class EnginePlayer : IPlayer
 		}
 	}
 
+	/// <summary>
+	/// tempOptions_ にオプションを追加する（即時送信しない）。
+	/// OptionsApplying イベントハンドラ内で使用し、
+	/// update_options() でユーザー保存オプションの後に適用される。
+	/// </summary>
+	public void SetTempOptionDeferred(string key, int value)
+	{
+		lock (lockObj)
+		{
+			tempOptions_[key] = value.ToString();
+		}
+	}
+
+	/// <summary>
+	/// 保存済みエンジンオプションをクリアする。
+	/// マシンが変わった場合に、前回のオプションが不適切な値を送信するのを防ぐ。
+	/// </summary>
+	public void ClearEngineOptions()
+	{
+		lock (lockObj)
+		{
+			engineOptions_ = new EngineOptions();
+		}
+	}
+
 	public void SetOptions(Dictionary<string, string> opt_name_value, bool temp = false)
 	{
 		lock (lockObj)
@@ -890,6 +922,8 @@ public class EnginePlayer : IPlayer
 				{
 					state_ = EnginePlayerState.INISIALIZED;
 					timer_.Stop();
+					// 自動オプション（Threads/Hash等）をtempOptions_にセットする機会を与える
+					OptionsApplying?.Invoke(this, new InitializedEventArgs(color_));
 					update_options();
 					OnInitialized(new InitializedEventArgs(color_));
 					handleInitialized();

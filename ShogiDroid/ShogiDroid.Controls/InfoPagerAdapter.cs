@@ -48,15 +48,31 @@ public class InfoPagerAdapter : PagerAdapter
 
 	private bool graphLiner = true;
 
+	// 推定選択率
+	private bool dispPolicyPage;
+	private PolicyListViewAdapter policyListViewAdapter;
+	private PolicyInfo currentPolicyInfo;
+
+	public bool DispPolicyPage
+	{
+		get => dispPolicyPage;
+		set => dispPolicyPage = value;
+	}
+
+	public void SetPolicyInfo(PolicyInfo info)
+	{
+		currentPolicyInfo = info;
+		policyListViewAdapter?.SetPolicyInfo(info);
+	}
+
 	public override int Count
 	{
 		get
 		{
-			if (DispEvalGraph)
-			{
-				return 3;
-			}
-			return 2;
+			int count = 2; // コメント + 解析
+			if (dispPolicyPage) count++;
+			if (DispEvalGraph) count++;
+			return count;
 		}
 	}
 
@@ -158,11 +174,26 @@ public class InfoPagerAdapter : PagerAdapter
 		thinkInfoListViewAdapter = new ThinkInfiListViewAdapter(activity);
 	}
 
+	/// <summary>
+	/// position からロジカルページ種別を返す
+	/// </summary>
+	private int GetPageType(int position)
+	{
+		// 0: Comment, 1: ThinkInfo は固定
+		if (position <= 1) return position;
+		int next = 2;
+		if (dispPolicyPage && position == next) return 10; // Policy
+		if (dispPolicyPage) next++;
+		if (DispEvalGraph && position == next) return 2; // Graph
+		return position;
+	}
+
 	public override Java.Lang.Object InstantiateItem(ViewGroup container, int position)
 	{
-		switch (position)
+		int pageType = GetPageType(position);
+		switch (pageType)
 		{
-		case 0:
+		case 0: // コメント
 		{
 			ScrollView scrollView = new ScrollView(activity);
 			scrollView.FillViewport = true;
@@ -172,7 +203,6 @@ public class InfoPagerAdapter : PagerAdapter
 			commentTextView.SetTextSize(Android.Util.ComplexUnitType.Sp, 15f);
 			commentTextView.SetPadding(Dp(18), Dp(18), Dp(18), Dp(24));
 			commentTextView.SetLineSpacing(0f, 1.15f);
-			// テーマの標準テキスト色を使用（ダークモード対応）
 			var typedValue = new Android.Util.TypedValue();
 			activity.Theme.ResolveAttribute(Android.Resource.Attribute.TextColorPrimary, typedValue, true);
 			commentTextView.SetTextColor(activity.Resources.GetColorStateList(typedValue.ResourceId, activity.Theme));
@@ -182,7 +212,7 @@ public class InfoPagerAdapter : PagerAdapter
 			container.AddView(scrollView);
 			return scrollView;
 		}
-		case 1:
+		case 1: // 解析（思考情報）
 		{
 			View view = (thinkInfoPage = activity.LayoutInflater.Inflate(Resource.Layout.thinkinfopage, container, attachToRoot: false));
 			thinkListView = view.FindViewById<ListView>(Resource.Id.thinklistview);
@@ -193,7 +223,20 @@ public class InfoPagerAdapter : PagerAdapter
 			container.AddView(view);
 			return view;
 		}
-		case 2:
+		case 10: // 推定選択率
+		{
+			View view = activity.LayoutInflater.Inflate(Resource.Layout.policypage, container, attachToRoot: false);
+			var listView = view.FindViewById<ListView>(Resource.Id.policy_listview);
+			policyListViewAdapter = new PolicyListViewAdapter(activity);
+			listView.Adapter = policyListViewAdapter;
+			if (currentPolicyInfo != null)
+			{
+				policyListViewAdapter.SetPolicyInfo(currentPolicyInfo);
+			}
+			container.AddView(view);
+			return view;
+		}
+		case 2: // 評価グラフ
 			graphView = new EvalGraph(activity);
 			graphView.ScaleFactor = scaleFactor;
 			graphView.GraphLiner = graphLiner;

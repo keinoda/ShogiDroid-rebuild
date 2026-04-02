@@ -719,9 +719,6 @@ public class CloudActivity : ThemedActivity
 
 	// ===== AWS: エンジン検出・接続 =====
 
-	/// <summary>
-	/// AWS: zen3 エンジンを自動検出して直接接続（選択ダイアログなし）
-	/// </summary>
 	private async void ScanAndSelectEngineAwsAsync(AwsInstance inst)
 	{
 		string sshKeyPath = Settings.EngineSettings.VastAiSshKeyPath;
@@ -751,15 +748,12 @@ public class CloudActivity : ThemedActivity
 			return;
 		}
 
-		RunOnUiThread(() => SetBusy(true, "エンジンに接続中..."));
+		RunOnUiThread(() => SetBusy(true, "エンジンを検出中..."));
 
-		// zen3 エンジンを自動検出
-		EngineInfo zen3Engine = null;
+		(List<EngineInfo> engines, int actualRamMb) result;
 		try
 		{
-			var engines = await Task.Run(() => ScanEnginesVastAi(inst.PublicIp, 22, sshKeyPath));
-			zen3Engine = engines.FirstOrDefault(e => e.Path.Contains("zen3"))
-				?? engines.FirstOrDefault(); // zen3 がなければ最初のエンジン
+			result = await Task.Run(() => ScanEnginesVastAi(inst.PublicIp, 22, sshKeyPath));
 		}
 		catch (Exception ex)
 		{
@@ -774,16 +768,16 @@ public class CloudActivity : ThemedActivity
 		RunOnUiThread(() =>
 		{
 			SetBusy(false, "");
-			if (zen3Engine == null)
+			if (result.engines.Count == 0)
 			{
 				Toast.MakeText(this, "エンジンが見つかりません", ToastLength.Long).Show();
 				return;
 			}
-			ConnectToAwsInstance(inst, zen3Engine.Command, zen3Engine.DisplayName);
+			ShowEngineSelectDialog(result.engines, (selected) => ConnectToAwsInstance(inst, selected.Command, selected.DisplayName, result.actualRamMb));
 		});
 	}
 
-	private void ConnectToAwsInstance(AwsInstance inst, string engineCommand, string engineType)
+	private void ConnectToAwsInstance(AwsInstance inst, string engineCommand, string engineType, int actualRamMb = 0)
 	{
 		string sshKeyPath = Settings.EngineSettings.VastAiSshKeyPath;
 		if (string.IsNullOrEmpty(sshKeyPath))
@@ -792,15 +786,25 @@ public class CloudActivity : ThemedActivity
 			return;
 		}
 
+		// AWS metal インスタンスはインスタンスタイプでマシンスペックを識別
+		int awsMachineHash = Settings.EngineSettings.AwsInstanceType.GetHashCode();
+		int prevMachineId = Settings.EngineSettings.VastAiMachineId;
+		if (awsMachineHash != prevMachineId)
+		{
+			Settings.EngineSettings.VastAiOptionsMachineId = 0;
+		}
+
 		Settings.EngineSettings.RemoteHost = inst.PublicIp;
 		Settings.EngineSettings.VastAiSshPort = 22;
 		Settings.EngineSettings.VastAiSshEngineCommand = engineCommand;
 		Settings.EngineSettings.EngineNo = RemoteEnginePlayer.RemoteEngineNo;
 		Settings.EngineSettings.EngineName = $"{engineType} (AWS {inst.AvailabilityZone})";
 		Settings.EngineSettings.AwsInstanceId = inst.InstanceId;
+		Settings.EngineSettings.VastAiMachineId = awsMachineHash;
 		Settings.EngineSettings.CloudProvider = "aws";
+		// SSH経由で取得した実際のRAMを優先
 		Settings.EngineSettings.VastAiCpuCores = 192; // c7a.metal-48xl
-		Settings.EngineSettings.VastAiRamMb = 384 * 1024;
+		Settings.EngineSettings.VastAiRamMb = actualRamMb > 0 ? actualRamMb : 384 * 1024;
 		Settings.EngineSettings.VastAiGpuRamMb = 0;
 		Settings.Save();
 
@@ -1032,10 +1036,10 @@ public class CloudActivity : ThemedActivity
 		var (sshHost, sshPort) = inst.GetSshEndpoint();
 		SetBusy(true, "エンジンを検出中...");
 
-		List<EngineInfo> engines;
+		(List<EngineInfo> engines, int actualRamMb) result;
 		try
 		{
-			engines = await Task.Run(() => ScanEnginesVastAi(sshHost, sshPort, sshKeyPath));
+			result = await Task.Run(() => ScanEnginesVastAi(sshHost, sshPort, sshKeyPath));
 		}
 		catch (Exception ex)
 		{
@@ -1050,19 +1054,19 @@ public class CloudActivity : ThemedActivity
 		RunOnUiThread(() =>
 		{
 			SetBusy(false, "");
-			if (engines.Count == 0)
+			if (result.engines.Count == 0)
 			{
 				Toast.MakeText(this, "/workspace にエンジンが見つかりません", ToastLength.Long).Show();
 				return;
 			}
-			ShowEngineSelectDialog(engines, (selected) => ConnectToVastAiInstance(inst, selected.Command, selected.DisplayName));
+			ShowEngineSelectDialog(result.engines, (selected) => ConnectToVastAiInstance(inst, selected.Command, selected.DisplayName, result.actualRamMb));
 		});
 	}
 
 	/// <summary>
 	/// vast.ai: コンテナ内に直接SSHしてエンジンを検出
 	/// </summary>
-	private List<EngineInfo> ScanEnginesVastAi(string host, int sshPort, string keyPath)
+	private (List<EngineInfo> engines, int actualRamMb) ScanEnginesVastAi(string host, int sshPort, string keyPath)
 	{
 		var results = new List<EngineInfo>();
 		using var keyFile = new PrivateKeyFile(keyPath);
@@ -1091,11 +1095,52 @@ public class CloudActivity : ThemedActivity
 			});
 		}
 
+		// 実際に利用可能なRAMを取得
+		int actualRamMb = QueryActualRamMb(client);
+
 		client.Disconnect();
-		return results;
+		return (results, actualRamMb);
 	}
 
-	private void ConnectToVastAiInstance(VastAiInstance inst, string engineCommand, string engineType)
+	/// <summary>
+	/// SSH接続経由で実際に利用可能なRAMをMB単位で取得する。
+	/// cgroupメモリ制限と物理メモリの小さい方を返す。
+	/// </summary>
+	private int QueryActualRamMb(SshClient client)
+	{
+		int ramMb = 0;
+		try
+		{
+			var freeCmd = client.RunCommand("free -m | awk '/^Mem:/{print $2}'");
+			int physicalRamMb = 0;
+			int.TryParse(freeCmd.Result?.Trim(), out physicalRamMb);
+
+			var cgroupCmd = client.RunCommand(
+				"cat /sys/fs/cgroup/memory.max 2>/dev/null || " +
+				"cat /sys/fs/cgroup/memory/memory.limit_in_bytes 2>/dev/null");
+			string cgroupStr = cgroupCmd.Result?.Trim() ?? "";
+			long cgroupBytes = 0;
+			int cgroupRamMb = int.MaxValue;
+			if (cgroupStr != "max" && long.TryParse(cgroupStr, out cgroupBytes) && cgroupBytes > 0)
+			{
+				cgroupRamMb = (int)(cgroupBytes / (1024L * 1024L));
+			}
+
+			if (physicalRamMb > 0)
+			{
+				ramMb = System.Math.Min(physicalRamMb, cgroupRamMb);
+			}
+
+			AppDebug.Log.Info($"Cloud RAM検出: physical={physicalRamMb}MB, cgroup={cgroupRamMb}MB, actual={ramMb}MB");
+		}
+		catch (Exception ex)
+		{
+			AppDebug.Log.Info($"Cloud RAM検出失敗: {ex.Message}");
+		}
+		return ramMb;
+	}
+
+	private void ConnectToVastAiInstance(VastAiInstance inst, string engineCommand, string engineType, int actualRamMb = 0)
 	{
 		string sshKeyPath = Settings.EngineSettings.VastAiSshKeyPath;
 		if (string.IsNullOrEmpty(sshKeyPath))
@@ -1111,15 +1156,23 @@ public class CloudActivity : ThemedActivity
 
 		var (sshHost, sshPort) = inst.GetSshEndpoint();
 
+		// マシンが変わった場合、保存済みオプションのマシンIDをリセット
+		int prevMachineId = Settings.EngineSettings.VastAiMachineId;
+		if (inst.MachineId > 0 && inst.MachineId != prevMachineId)
+		{
+			Settings.EngineSettings.VastAiOptionsMachineId = 0;
+		}
+
 		Settings.EngineSettings.RemoteHost = sshHost;
 		Settings.EngineSettings.VastAiSshPort = sshPort;
 		Settings.EngineSettings.VastAiSshEngineCommand = engineCommand;
 		Settings.EngineSettings.EngineNo = RemoteEnginePlayer.RemoteEngineNo;
 		Settings.EngineSettings.EngineName = $"{engineType} (vast.ai #{inst.Id})";
 		Settings.EngineSettings.VastAiInstanceId = inst.Id;
+		Settings.EngineSettings.VastAiMachineId = inst.MachineId;
 		Settings.EngineSettings.CloudProvider = "vastai";
 		Settings.EngineSettings.VastAiCpuCores = (int)inst.CpuCoresEffective;
-		Settings.EngineSettings.VastAiRamMb = (int)(inst.CpuRamGb * 1024);
+		Settings.EngineSettings.VastAiRamMb = actualRamMb > 0 ? actualRamMb : (int)(inst.CpuRamGb * 1024);
 		Settings.EngineSettings.VastAiGpuRamMb = (int)(inst.GpuRamGb * 1024);
 		Settings.Save();
 
