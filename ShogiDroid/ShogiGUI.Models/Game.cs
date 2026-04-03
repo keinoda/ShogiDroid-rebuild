@@ -709,12 +709,13 @@ public class Game
 				remoteEnginePlayer.CopyFiles();
 				remoteEnginePlayer.LoadSettings();
 
-				// マシンIDが一致しない場合、前回の保存オプションは使わない
+				// マシンIDが一致しない場合でもユーザー設定（MultiPV, FV_SCALE等）は保持する。
+				// Threads/Hash等のリソース設定は OptionsApplying → ApplyVastAiAutoOptions で
+				// tempOptions_ 経由で確実に上書きされるため、全クリアは不要。
 				if (Settings.EngineSettings.VastAiMachineId > 0
 					&& Settings.EngineSettings.VastAiOptionsMachineId != Settings.EngineSettings.VastAiMachineId)
 				{
-					AppDebug.Log.Info($"initEnginePlayer: マシンID不一致 (saved={Settings.EngineSettings.VastAiOptionsMachineId}, current={Settings.EngineSettings.VastAiMachineId}) → 保存オプションをクリア");
-					remoteEnginePlayer.ClearEngineOptions();
+					AppDebug.Log.Info($"initEnginePlayer: マシンID不一致 (saved={Settings.EngineSettings.VastAiOptionsMachineId}, current={Settings.EngineSettings.VastAiMachineId}) → リソース設定は自動補正で上書き");
 				}
 
 				enginePlayer = remoteEnginePlayer;

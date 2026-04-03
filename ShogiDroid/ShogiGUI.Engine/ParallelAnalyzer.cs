@@ -77,16 +77,12 @@ public class ParallelAnalyzer
 			client.ConnectionInfo.Timeout = TimeSpan.FromSeconds(30);
 			client.Connect();
 
-			// スクリプトをアップロード
+			// スクリプトをアップロード（SFTPが無い環境向けにSSHコマンドで転送）
 			string scriptContent = LoadAnalyzeScript();
-			using (var sftp = new SftpClient(host, sshPort, "root", keyFile))
-			{
-				sftp.ConnectionInfo.Timeout = TimeSpan.FromSeconds(30);
-				sftp.Connect();
-				using var stream = new MemoryStream(Encoding.UTF8.GetBytes(scriptContent));
-				sftp.UploadFile(stream, "/tmp/shogi_parallel_analyze.py", true);
-				sftp.Disconnect();
-			}
+			string scriptBase64 = Convert.ToBase64String(Encoding.UTF8.GetBytes(scriptContent));
+			var uploadCmd = client.RunCommand($"echo '{scriptBase64}' | base64 -d > /tmp/shogi_parallel_analyze.py");
+			if (uploadCmd.ExitStatus != 0)
+				throw new InvalidOperationException($"スクリプトのアップロードに失敗: {uploadCmd.Error}");
 			Report("解析スクリプトをアップロード完了");
 
 			// 実行コマンド構築
