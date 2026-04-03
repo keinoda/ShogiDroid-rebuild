@@ -3297,6 +3297,13 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		infoPageAdepter.EvalGraphScaleFactor = Settings.AppSettings.EvalGraphScaleFactor;
 		infoPageAdepter.EvalGraphLiner = Settings.AppSettings.GraphLiner;
 		infoPageAdepter.PVDispaly = (PVDispMode)Settings.AppSettings.PVDisplay;
+		// Policy ページの表示切替を設定変更時に反映
+		bool newPolicyDisp = Settings.AppSettings.AutoPolicyAnalysis;
+		if (infoPageAdepter.DispPolicyPage != newPolicyDisp)
+		{
+			infoPageAdepter.DispPolicyPage = newPolicyDisp;
+			infoPageAdepter.NotifyDataSetChanged();
+		}
 		if (evalGraphView != null)
 		{
 			evalGraphView.ScaleFactor = Settings.AppSettings.EvalGraphScaleFactor;

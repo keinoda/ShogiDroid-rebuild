@@ -286,6 +286,11 @@ public class CloudActivity : ThemedActivity
 		priceLabel.LayoutParameters = priceLabelLp;
 		awsSectionContent_.AddView(priceLabel);
 
+		var priceRefreshBtn = new Button(this) { Text = "価格を更新" };
+		priceRefreshBtn.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+		priceRefreshBtn.Click += (s, e) => { lastFetchedAwsType_ = ""; FetchAwsSpotPriceForSelectedType(); };
+		awsSectionContent_.AddView(priceRefreshBtn);
+
 		awsSpotPriceContainer_ = new LinearLayout(this) { Orientation = Orientation.Vertical };
 		awsSectionContent_.AddView(awsSpotPriceContainer_);
 	}
@@ -714,6 +719,8 @@ public class CloudActivity : ThemedActivity
 		return vastAi_;
 	}
 
+	private string awsManagerKey_ = "";
+
 	private AwsSpotManager GetAwsManager()
 	{
 		SaveSettings();
@@ -725,13 +732,17 @@ public class CloudActivity : ThemedActivity
 			Toast.MakeText(this, "AWSアクセスキーとシークレットキーを入力してください", ToastLength.Short).Show();
 			return null;
 		}
-		if (awsManager_ != null)
-		{
-			awsManager_.Dispose();
-		}
+		// 認証情報が変わっていなければ既存インスタンスを再利用
+		string key = $"{accessKey}:{secretKey}:{region}";
+		if (awsManager_ != null && awsManagerKey_ == key)
+			return awsManager_;
+		awsManager_?.Dispose();
 		awsManager_ = new AwsSpotManager(accessKey, secretKey, region);
+		awsManagerKey_ = key;
 		return awsManager_;
 	}
+
+	private string gcpManagerKey_ = "";
 
 	private GcpSpotManager GetGcpManager()
 	{
@@ -742,13 +753,14 @@ public class CloudActivity : ThemedActivity
 			Toast.MakeText(this, "GCPサービスアカウントキーのパスを入力してください", ToastLength.Short).Show();
 			return null;
 		}
+		// キーパスが変わっていなければ既存インスタンスを再利用
+		if (gcpManager_ != null && gcpManagerKey_ == keyPath)
+			return gcpManager_;
 		try
 		{
-			if (gcpManager_ != null)
-			{
-				gcpManager_.Dispose();
-			}
+			gcpManager_?.Dispose();
 			gcpManager_ = new GcpSpotManager(keyPath);
+			gcpManagerKey_ = keyPath;
 			return gcpManager_;
 		}
 		catch (Exception ex)
