@@ -252,6 +252,26 @@ public class InfoPagerAdapter : PagerAdapter
 		}
 	}
 
+	/// <summary>
+	/// ページ構成が変わった場合に全ページを再生成させる。
+	/// NotifyDataSetChanged() と組み合わせて ViewPager のページ追加・削除を反映する。
+	/// </summary>
+	private int lastNotifiedCount_ = -1;
+
+	public override int GetItemPosition(Java.Lang.Object objectValue)
+	{
+		// Count が変わっていたら全ページ再構築
+		if (lastNotifiedCount_ >= 0 && lastNotifiedCount_ != Count)
+			return PositionNone;
+		return base.GetItemPosition(objectValue);
+	}
+
+	public override void NotifyDataSetChanged()
+	{
+		lastNotifiedCount_ = Count;
+		base.NotifyDataSetChanged();
+	}
+
 	public override void DestroyItem(ViewGroup container, int position, Java.Lang.Object objectValue)
 	{
 		container.RemoveView((View)objectValue);
