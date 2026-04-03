@@ -427,34 +427,11 @@ Match User root
 SSHCONF")}
 systemctl restart sshd
 
-# データボリュームを検出・マウント
-DATA_DEV=""""
-for i in $(seq 1 60); do
-    for dev in /dev/nvme1n1 /dev/xvdf; do
-        [ -e ""$dev"" ] && DATA_DEV=""$dev"" && break 2
-    done
-    sleep 1
-done
-if [ -n ""$DATA_DEV"" ]; then
-    if ! blkid ""$DATA_DEV"" >/dev/null 2>&1; then
-        mkfs.xfs ""$DATA_DEV""
-    fi
-    mkdir -p /data
-    mount ""$DATA_DEV"" /data
-fi
-
 # Docker 起動
 systemctl enable --now docker
 
-# データボリュームにイメージがあればロード、なければ pull して保存
-if [ -f /data/docker-image.tar ]; then
-    docker load < /data/docker-image.tar
-else
-    docker pull {dockerImage}
-    if [ -d /data ]; then
-        docker save {dockerImage} > /data/docker-image.tar
-    fi
-fi
+# コンテナイメージ取得
+docker pull {dockerImage}
 
 # コンテナ起動
 docker run -d --name shogidroid --restart=always {dockerImage} tail -f /dev/null

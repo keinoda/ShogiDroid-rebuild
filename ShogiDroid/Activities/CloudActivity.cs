@@ -25,6 +25,7 @@ public class CloudActivity : ThemedActivity
 
 	private VastAiManager vastAi_;
 	private AwsSpotManager awsManager_;
+	private GcpSpotManager gcpManager_;
 	private CancellationTokenSource cts_;
 
 	// ── 共通 UI ──
@@ -59,7 +60,39 @@ public class CloudActivity : ThemedActivity
 	private EditText awsAccessKeyEdit_;
 	private EditText awsSecretKeyEdit_;
 	private EditText awsDockerImageEdit_;
+	private Spinner awsInstanceTypeSpinner_;
 	private LinearLayout awsSpotPriceContainer_;
+
+	// ── GCP UI ──
+	private LinearLayout gcpSectionContent_;
+	private EditText gcpServiceAccountKeyPathEdit_;
+	private EditText gcpDockerImageEdit_;
+	private EditText gcpZoneEdit_;
+	private Spinner gcpMachineTypeSpinner_;
+
+	// ── インスタンスタイプ定義 ──
+	private static readonly (string type, int vCpus, int ramGb)[] AwsInstanceTypes = {
+		("c7a.4xlarge", 16, 32),
+		("c7a.8xlarge", 32, 64),
+		("c7a.12xlarge", 48, 96),
+		("c7a.16xlarge", 64, 128),
+		("c7a.24xlarge", 96, 192),
+		("c7a.48xlarge", 192, 384),
+		("c7a.metal-48xl", 192, 384),
+	};
+
+	// C4D は hyperdisk-balanced 強制（最小IOPS課金 ~$0.25/h）のためコスパが悪く除外
+	private static readonly (string type, int vCpus, int ramGb, double estSpot)[] GcpMachineTypes = {
+		("c3d-highcpu-16", 16, 32, 0.10),
+		("c3d-highcpu-30", 30, 59, 0.18),
+		("c3d-highcpu-60", 60, 118, 0.36),
+		("c3d-highcpu-90", 90, 177, 0.53),
+		("c3d-highcpu-180", 180, 354, 1.07),
+		("c3d-highcpu-360", 360, 708, 2.03),
+	};
+
+	// AWS Spot 価格キャッシュ（インスタンスタイプ → 最安AZ価格）
+	private Dictionary<string, decimal> awsSpotPriceCache_ = new Dictionary<string, decimal>();
 
 	// ===== Lifecycle =====
 
@@ -79,6 +112,7 @@ public class CloudActivity : ThemedActivity
 		cts_?.Dispose();
 		vastAi_?.Dispose();
 		awsManager_?.Dispose();
+		gcpManager_?.Dispose();
 	}
 
 	// ===== UI 構築 =====
@@ -189,6 +223,9 @@ public class CloudActivity : ThemedActivity
 		// ── AWS スポットインスタンス（折りたたみ） ──
 		BuildAwsSection();
 
+		// ── GCP Spot VM（折りたたみ） ──
+		BuildGcpSection();
+
 		// ── vast.ai（折りたたみ） ──
 		BuildVastAiSection();
 
@@ -221,8 +258,24 @@ public class CloudActivity : ThemedActivity
 
 		awsDockerImageEdit_ = AddEditField(awsSectionContent_, "Dockerイメージ", "keinoda/shogi:v9.21nnue");
 
-		// スポット価格一覧
-		var priceLabel = new TextView(this) { Text = "スポット価格 (リージョン: eu-north-1)" };
+		// インスタンスタイプ選択
+		var typeLabel = new TextView(this) { Text = "インスタンスタイプ" };
+		typeLabel.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
+		typeLabel.SetTypeface(null, TypefaceStyle.Bold);
+		var typeLabelLp = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+		typeLabelLp.TopMargin = DpToPx(8);
+		typeLabel.LayoutParameters = typeLabelLp;
+		awsSectionContent_.AddView(typeLabel);
+
+		awsInstanceTypeSpinner_ = new Spinner(this);
+		var awsItems = AwsInstanceTypes.Select(t => $"{t.type} ({t.vCpus}vCPU {t.ramGb}GB)").ToArray();
+		awsInstanceTypeSpinner_.Adapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleSpinnerDropDownItem, awsItems);
+		awsInstanceTypeSpinner_.ItemSelected += (s, e) => FetchAwsSpotPriceForSelectedType();
+		awsSectionContent_.AddView(awsInstanceTypeSpinner_);
+
+		// スポット価格一覧（AZ別、起動ボタン付き）
+		var priceLabel = new TextView(this) { Text = "Spot 価格（AZ別）" };
 		priceLabel.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
 		priceLabel.SetTypeface(null, TypefaceStyle.Bold);
 		var priceLabelLp = new LinearLayout.LayoutParams(
@@ -231,13 +284,196 @@ public class CloudActivity : ThemedActivity
 		priceLabel.LayoutParameters = priceLabelLp;
 		awsSectionContent_.AddView(priceLabel);
 
-		var priceRefreshBtn = new Button(this) { Text = "価格を取得" };
-		priceRefreshBtn.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
-		priceRefreshBtn.Click += (s, e) => LoadSpotPricesAsync();
-		awsSectionContent_.AddView(priceRefreshBtn);
-
 		awsSpotPriceContainer_ = new LinearLayout(this) { Orientation = Orientation.Vertical };
 		awsSectionContent_.AddView(awsSpotPriceContainer_);
+	}
+
+	/// <summary>
+	/// AWS Spinner 選択変更時に Spot 価格を取得して表示
+	/// </summary>
+	private async void FetchAwsSpotPriceForSelectedType()
+	{
+		int pos = awsInstanceTypeSpinner_.SelectedItemPosition;
+		if (pos < 0 || pos >= AwsInstanceTypes.Length) return;
+		string instanceType = AwsInstanceTypes[pos].type;
+
+		Settings.EngineSettings.AwsInstanceType = instanceType;
+
+		var manager = GetAwsManager();
+		if (manager == null)
+		{
+			awsSpotPriceContainer_.RemoveAllViews();
+			return;
+		}
+
+		awsSpotPriceContainer_.RemoveAllViews();
+		var loadingText = new TextView(this) { Text = "価格を取得中..." };
+		loadingText.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+		awsSpotPriceContainer_.AddView(loadingText);
+
+		try
+		{
+			var prices = await manager.GetSpotPricesAsync(instanceType, cts_.Token);
+
+			RunOnUiThread(() =>
+			{
+				awsSpotPriceContainer_.RemoveAllViews();
+				if (prices.Count == 0)
+				{
+					var msg = new TextView(this) { Text = "価格情報が取得できませんでした" };
+					msg.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+					awsSpotPriceContainer_.AddView(msg);
+					return;
+				}
+
+				// Spinner のラベルも価格付きに更新
+				decimal cheapest = prices.Min(p => p.Price);
+				var updatedItems = AwsInstanceTypes.Select(t =>
+				{
+					string label = $"{t.type} ({t.vCpus}vCPU {t.ramGb}GB)";
+					if (t.type == instanceType)
+						label += $" ~${cheapest:F4}/h";
+					else if (awsSpotPriceCache_.TryGetValue(t.type, out decimal cached))
+						label += $" ~${cached:F4}/h";
+					return label;
+				}).ToArray();
+				awsSpotPriceCache_[instanceType] = cheapest;
+				awsInstanceTypeSpinner_.Adapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleSpinnerDropDownItem, updatedItems);
+				// 選択位置を復元（Adapter更新でリセットされる）
+				awsInstanceTypeSpinner_.SetSelection(pos);
+
+				foreach (var price in prices)
+				{
+					var row = new LinearLayout(this) { Orientation = Orientation.Horizontal };
+					row.SetGravity(GravityFlags.CenterVertical);
+					row.SetPadding(0, DpToPx(4), 0, DpToPx(4));
+
+					var priceText = new TextView(this)
+					{
+						Text = $"{price.AvailabilityZone}: ${price.Price:F4}/h"
+					};
+					priceText.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
+					priceText.LayoutParameters = new LinearLayout.LayoutParams(
+						0, LinearLayout.LayoutParams.WrapContent, 1f);
+					row.AddView(priceText);
+
+					var launchBtn = new Button(this) { Text = "起動" };
+					launchBtn.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+					string az = price.AvailabilityZone;
+					launchBtn.Click += (s2, e2) => LaunchAwsSpotAsync(az);
+					row.AddView(launchBtn);
+
+					awsSpotPriceContainer_.AddView(row);
+				}
+			});
+		}
+		catch (Exception ex)
+		{
+			RunOnUiThread(() =>
+			{
+				awsSpotPriceContainer_.RemoveAllViews();
+				var msg = new TextView(this) { Text = $"価格取得エラー: {ex.Message}" };
+				msg.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+				awsSpotPriceContainer_.AddView(msg);
+			});
+		}
+	}
+
+	/// <summary>
+	/// GCP セクション UI を構築（折りたたみ式）
+	/// </summary>
+	private void BuildGcpSection()
+	{
+		var header = MakeFoldableHeader("▶ GCP Spot VM");
+		gcpSectionContent_ = new LinearLayout(this) { Orientation = Orientation.Vertical };
+		gcpSectionContent_.Visibility = ViewStates.Gone;
+		gcpSectionContent_.SetPadding(DpToPx(4), 0, 0, DpToPx(8));
+
+		header.Click += (s, e) =>
+		{
+			ToggleFoldable(header, gcpSectionContent_, "GCP Spot VM");
+			// セクション展開時に価格取得
+			if (gcpSectionContent_.Visibility == ViewStates.Visible)
+				FetchGcpSpotPrices();
+		};
+
+		rootLayout_.AddView(header);
+		rootLayout_.AddView(gcpSectionContent_);
+
+		gcpServiceAccountKeyPathEdit_ = AddEditField(gcpSectionContent_, "サービスアカウントキー (JSON)", "/sdcard/.gcp/sa-key.json");
+		gcpDockerImageEdit_ = AddEditField(gcpSectionContent_, "Dockerイメージ", "keinoda/shogi:v9.21nnue");
+		gcpZoneEdit_ = AddEditField(gcpSectionContent_, "ゾーン", "us-central1-a");
+
+		// マシンタイプ選択（Spinner）
+		var typeLabel = new TextView(this) { Text = "マシンタイプ" };
+		typeLabel.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
+		typeLabel.SetTypeface(null, TypefaceStyle.Bold);
+		var typeLabelLp = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+		typeLabelLp.TopMargin = DpToPx(8);
+		typeLabel.LayoutParameters = typeLabelLp;
+		gcpSectionContent_.AddView(typeLabel);
+
+		gcpMachineTypeSpinner_ = new Spinner(this);
+		UpdateGcpSpinnerItems(null);
+		gcpSectionContent_.AddView(gcpMachineTypeSpinner_);
+
+		var launchBtn = new Button(this) { Text = "Spot VM を起動" };
+		launchBtn.Click += (s, e) => ConfirmAndLaunchGcpSpotAsync();
+		var launchLp = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+		launchLp.TopMargin = DpToPx(8);
+		launchBtn.LayoutParameters = launchLp;
+		gcpSectionContent_.AddView(launchBtn);
+	}
+
+	/// <summary>
+	/// GCP Spinner のアイテムを更新（価格情報付き）
+	/// </summary>
+	private void UpdateGcpSpinnerItems(Dictionary<string, double> prices)
+	{
+		int prevPos = gcpMachineTypeSpinner_?.SelectedItemPosition ?? 0;
+		var items = GcpMachineTypes.Select(t =>
+		{
+			string label = $"{t.type} ({t.vCpus}vCPU {t.ramGb}GB)";
+			if (prices != null && prices.TryGetValue(t.type, out double price))
+				label += $" ${price:F3}/h";
+			else if (t.estSpot > 0)
+				label += $" ~${t.estSpot:F2}/h";
+			return label;
+		}).ToArray();
+		gcpMachineTypeSpinner_.Adapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleSpinnerDropDownItem, items);
+		if (prevPos >= 0 && prevPos < items.Length)
+			gcpMachineTypeSpinner_.SetSelection(prevPos);
+	}
+
+	/// <summary>
+	/// GCP Billing Catalog API から Spot 価格を取得して Spinner を更新
+	/// </summary>
+	private async void FetchGcpSpotPrices()
+	{
+		string keyPath = Settings.EngineSettings.GcpServiceAccountKeyPath;
+		if (string.IsNullOrEmpty(keyPath) || !System.IO.File.Exists(keyPath)) return;
+
+		try
+		{
+			string zone = gcpZoneEdit_.Text?.Trim() ?? "us-central1-a";
+			string region = zone.Length > 2 ? zone.Substring(0, zone.LastIndexOf('-')) : zone;
+
+			using var mgr = new GcpSpotManager(keyPath);
+			string[] types = GcpMachineTypes.Select(t => t.type).ToArray();
+			var prices = await mgr.GetSpotPricingAsync(region, types, cts_.Token);
+
+			RunOnUiThread(() =>
+			{
+				if (prices.Count > 0)
+					UpdateGcpSpinnerItems(prices);
+			});
+		}
+		catch (Exception ex)
+		{
+			AppDebug.Log.Info($"GCP価格取得エラー: {ex.Message}");
+		}
 	}
 
 	/// <summary>
@@ -382,6 +618,32 @@ public class CloudActivity : ThemedActivity
 		awsAccessKeyEdit_.Text = Settings.EngineSettings.AwsAccessKey;
 		awsSecretKeyEdit_.Text = Settings.EngineSettings.AwsSecretKey;
 		awsDockerImageEdit_.Text = Settings.EngineSettings.AwsDockerImage;
+
+		// AWS: Spinner の選択位置を復元
+		string savedAwsType = Settings.EngineSettings.AwsInstanceType;
+		for (int i = 0; i < AwsInstanceTypes.Length; i++)
+		{
+			if (AwsInstanceTypes[i].type == savedAwsType)
+			{
+				awsInstanceTypeSpinner_.SetSelection(i);
+				break;
+			}
+		}
+
+		// GCP
+		gcpServiceAccountKeyPathEdit_.Text = Settings.EngineSettings.GcpServiceAccountKeyPath;
+		gcpDockerImageEdit_.Text = Settings.EngineSettings.GcpDockerImage;
+		gcpZoneEdit_.Text = Settings.EngineSettings.GcpZone;
+		// Spinner の選択位置を復元
+		string savedGcpType = Settings.EngineSettings.GcpMachineType;
+		for (int i = 0; i < GcpMachineTypes.Length; i++)
+		{
+			if (GcpMachineTypes[i].type == savedGcpType)
+			{
+				gcpMachineTypeSpinner_.SetSelection(i);
+				break;
+			}
+		}
 	}
 
 	private void SaveSettings()
@@ -410,6 +672,14 @@ public class CloudActivity : ThemedActivity
 		Settings.EngineSettings.AwsAccessKey = awsAccessKeyEdit_.Text?.Trim() ?? "";
 		Settings.EngineSettings.AwsSecretKey = awsSecretKeyEdit_.Text?.Trim() ?? "";
 		Settings.EngineSettings.AwsDockerImage = awsDockerImageEdit_.Text?.Trim() ?? "";
+
+		// GCP
+		Settings.EngineSettings.GcpServiceAccountKeyPath = gcpServiceAccountKeyPathEdit_.Text?.Trim() ?? "";
+		Settings.EngineSettings.GcpDockerImage = gcpDockerImageEdit_.Text?.Trim() ?? "";
+		Settings.EngineSettings.GcpZone = gcpZoneEdit_.Text?.Trim() ?? "";
+		int gcpPos = gcpMachineTypeSpinner_.SelectedItemPosition;
+		if (gcpPos >= 0 && gcpPos < GcpMachineTypes.Length)
+			Settings.EngineSettings.GcpMachineType = GcpMachineTypes[gcpPos].type;
 
 		Settings.Save();
 	}
@@ -451,6 +721,31 @@ public class CloudActivity : ThemedActivity
 		return awsManager_;
 	}
 
+	private GcpSpotManager GetGcpManager()
+	{
+		SaveSettings();
+		string keyPath = Settings.EngineSettings.GcpServiceAccountKeyPath;
+		if (string.IsNullOrEmpty(keyPath))
+		{
+			Toast.MakeText(this, "GCPサービスアカウントキーのパスを入力してください", ToastLength.Short).Show();
+			return null;
+		}
+		try
+		{
+			if (gcpManager_ != null)
+			{
+				gcpManager_.Dispose();
+			}
+			gcpManager_ = new GcpSpotManager(keyPath);
+			return gcpManager_;
+		}
+		catch (Exception ex)
+		{
+			Toast.MakeText(this, $"GCPキー読み込みエラー: {ex.Message}", ToastLength.Long).Show();
+			return null;
+		}
+	}
+
 	// ===== 統合インスタンス一覧 =====
 
 	private async void LoadAllInstancesAsync()
@@ -461,6 +756,7 @@ public class CloudActivity : ThemedActivity
 		bool hasVastAi = !string.IsNullOrEmpty(Settings.EngineSettings.VastAiApiKey);
 		bool hasAws = !string.IsNullOrEmpty(Settings.EngineSettings.AwsAccessKey)
 			&& !string.IsNullOrEmpty(Settings.EngineSettings.AwsSecretKey);
+		bool hasGcp = !string.IsNullOrEmpty(Settings.EngineSettings.GcpServiceAccountKeyPath);
 
 		// vast.ai インスタンス
 		List<VastAiInstance> vastAiInstances = null;
@@ -500,6 +796,21 @@ public class CloudActivity : ThemedActivity
 			}
 		}
 
+		// GCP インスタンス
+		List<GcpInstance> gcpInstances = null;
+		if (hasGcp && System.IO.File.Exists(Settings.EngineSettings.GcpServiceAccountKeyPath))
+		{
+			try
+			{
+				using var gcpTemp = new GcpSpotManager(Settings.EngineSettings.GcpServiceAccountKeyPath);
+				gcpInstances = await gcpTemp.ListInstancesAsync(cts_.Token);
+			}
+			catch (Exception ex)
+			{
+				AppDebug.Log.Error($"CloudActivity: GCP一覧取得エラー: {ex.Message}");
+			}
+		}
+
 		RunOnUiThread(() =>
 		{
 			existingInstancesContainer_.RemoveAllViews();
@@ -515,6 +826,16 @@ public class CloudActivity : ThemedActivity
 				foreach (var inst in awsInstances.OrderByDescending(i => i.State == "running"))
 				{
 					AddAwsInstanceCard(inst);
+					hasAny = true;
+				}
+			}
+
+			// GCP インスタンス
+			if (gcpInstances != null && gcpInstances.Count > 0)
+			{
+				foreach (var inst in gcpInstances.OrderByDescending(i => i.IsRunning))
+				{
+					AddGcpInstanceCard(inst);
 					hasAny = true;
 				}
 			}
@@ -595,13 +916,20 @@ public class CloudActivity : ThemedActivity
 		titleText.SetTypeface(null, TypefaceStyle.Bold);
 		card.AddView(titleText);
 
+		// インスタンスタイプからスペック・料金を推定
+		string awsSpecs = GetAwsInstanceSpecs(inst.InstanceType);
 		var specsText = new TextView(this)
 		{
-			Text = $"{inst.AvailabilityZone} | {inst.InstanceId}"
+			Text = $"{awsSpecs} | {inst.AvailabilityZone}"
 		};
 		specsText.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
 		specsText.SetTextColor(ColorUtils.Get(this, Resource.Color.vast_card_sub_text));
 		card.AddView(specsText);
+
+		var idText = new TextView(this) { Text = inst.InstanceId };
+		idText.SetTextSize(Android.Util.ComplexUnitType.Sp, 11);
+		idText.SetTextColor(ColorUtils.Get(this, Resource.Color.vast_card_sub_text));
+		card.AddView(idText);
 
 		if (inst.State == "running" && !string.IsNullOrEmpty(inst.PublicIp))
 		{
@@ -635,6 +963,26 @@ public class CloudActivity : ThemedActivity
 
 		card.AddView(btnRow);
 		existingInstancesContainer_.AddView(card);
+	}
+
+	/// <summary>
+	/// AWSインスタンスタイプからスペック・推定Spot料金を返す
+	/// </summary>
+	private static string GetAwsInstanceSpecs(string instanceType)
+	{
+		// 主要なインスタンスタイプのスペックと推定Spot料金
+		return instanceType switch
+		{
+			"c7a.metal-48xl" => "192vCPU 384GB RAM | Spot ~$2.3/h",
+			"c7a.24xlarge"   => "96vCPU 192GB RAM | Spot ~$1.1/h",
+			"c7a.16xlarge"   => "64vCPU 128GB RAM | Spot ~$0.8/h",
+			"c7a.12xlarge"   => "48vCPU 96GB RAM | Spot ~$0.6/h",
+			"c7a.8xlarge"    => "32vCPU 64GB RAM | Spot ~$0.4/h",
+			"c7a.4xlarge"    => "16vCPU 32GB RAM | Spot ~$0.2/h",
+			"c7i.metal-48xl" => "192vCPU 384GB RAM | Spot ~$2.5/h",
+			"c7i.24xlarge"   => "96vCPU 192GB RAM | Spot ~$1.3/h",
+			_ => instanceType
+		};
 	}
 
 	// ===== vast.ai インスタンスカード =====
@@ -909,18 +1257,6 @@ public class CloudActivity : ThemedActivity
 			string sgId = await manager.EnsureSecurityGroupAsync(cts_.Token);
 			Settings.EngineSettings.AwsSecurityGroupId = sgId;
 
-			// Dockerデータボリュームの確認
-			RunOnUiThread(() => statusText_.Text = "Dockerボリュームを確認中...");
-			string volumeId = await manager.FindDockerVolumeAsync(availabilityZone, cts_.Token);
-			bool isNewVolume = false;
-			if (string.IsNullOrEmpty(volumeId))
-			{
-				RunOnUiThread(() => statusText_.Text = "Dockerボリュームを作成中...");
-				volumeId = await manager.CreateDockerVolumeAsync(availabilityZone, ct: cts_.Token);
-				isNewVolume = true;
-			}
-			Settings.EngineSettings.AwsVolumeId = volumeId;
-
 			// AMI取得（カスタムAMIがあればDocker プリインストール済み）
 			RunOnUiThread(() => statusText_.Text = "AMIを取得中...");
 			var (amiId, isCustomAmi) = await manager.GetBestAmiAsync(cts_.Token);
@@ -944,21 +1280,11 @@ public class CloudActivity : ThemedActivity
 			Settings.EngineSettings.AwsAvailabilityZone = availabilityZone;
 			Settings.Save();
 
-			// running 状態を待機（ボリュームアタッチのため先に待つ）
-			RunOnUiThread(() => statusText_.Text = "インスタンスの起動を待機中...");
-			await manager.WaitForRunningAsync(instanceId, ct: cts_.Token);
-
-			// running になったらすぐボリュームをアタッチ（user data がボリュームを待っている）
-			RunOnUiThread(() => statusText_.Text = "Dockerボリュームをアタッチ中...");
-			await manager.AttachVolumeAsync(volumeId, instanceId, ct: cts_.Token);
-
-			// SSH到達を待機（一時的なネットワークエラーはリトライ）
+			// SSH到達を待機
 			RunOnUiThread(() => statusText_.Text = "セットアップ完了を待機中...");
 			await manager.WaitForSshReadyAsync(instanceId, ct: cts_.Token);
 
-			string statusMsg = isNewVolume
-				? "起動完了。初回のためDockerイメージのpullに数分かかります。"
-				: "起動完了";
+			string statusMsg = "起動完了";
 			RunOnUiThread(() =>
 			{
 				SetBusy(false, statusMsg);
@@ -1014,6 +1340,418 @@ public class CloudActivity : ThemedActivity
 					RunOnUiThread(() =>
 					{
 						SetBusy(false, $"終了エラー: {ex.Message}");
+						Toast.MakeText(this, ex.Message, ToastLength.Long).Show();
+					});
+				}
+			})
+			.SetNegativeButton("キャンセル", (s, e) => { })
+			.Show();
+	}
+
+	/// <summary>
+	/// GCPマシンタイプからスペック・推定Spot料金を返す
+	/// </summary>
+	private static string GetGcpInstanceSpecs(string machineType)
+	{
+		// マシンタイプからvCPU数を抽出
+		int vCpus = 0;
+		var parts = machineType.Split('-');
+		if (parts.Length >= 3) int.TryParse(parts[parts.Length - 1], out vCpus);
+
+		string family = parts.Length >= 1 ? parts[0] : "";
+		string tier = parts.Length >= 2 ? parts[1] : "";
+
+		// メモリ推定 (highcpu=2GB, standard=4GB, highmem=8GB per vCPU)
+		int ramGb = tier switch
+		{
+			"highcpu" => vCpus * 2,
+			"highmem" => vCpus * 8,
+			_ => vCpus * 4
+		};
+
+		// Spot推定料金 ($/vCPU/h, リージョンにより変動)
+		double pricePerVcpu = (family, tier) switch
+		{
+			("c3d", "highcpu") => 0.006,
+			("c3d", _)         => 0.008,
+			("c3", "highcpu")  => 0.007,
+			("c3", _)          => 0.009,
+			("c2d", "highcpu") => 0.009,
+			("c2d", _)         => 0.011,
+			("c2", _)          => 0.010,
+			_                  => 0.010
+		};
+		double price = vCpus * pricePerVcpu;
+
+		if (vCpus > 0)
+			return $"{vCpus}vCPU {ramGb}GB RAM | Spot ~${price:F2}/h";
+		return machineType;
+	}
+
+	// ===== GCP: インスタンスカード =====
+
+	private void AddGcpInstanceCard(GcpInstance inst)
+	{
+		bool dark = ColorUtils.IsDarkMode(this);
+		string bgColor = inst.IsRunning
+			? (dark ? "#1B3A1B" : "#E8F5E9")
+			: (inst.IsStopped
+				? (dark ? "#3A2A00" : "#FFF3E0")
+				: (dark ? "#0D1B3A" : "#E3F2FD"));
+
+		var card = new LinearLayout(this) { Orientation = Orientation.Vertical };
+		card.SetBackgroundColor(Color.ParseColor(bgColor));
+		card.SetPadding(DpToPx(12), DpToPx(8), DpToPx(12), DpToPx(8));
+		var cardLp = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+		cardLp.BottomMargin = DpToPx(6);
+		card.LayoutParameters = cardLp;
+
+		string machineShort = inst.MachineType?.Split('/')?.LastOrDefault() ?? "";
+		var titleText = new TextView(this)
+		{
+			Text = $"[GCP] [{inst.StatusDisplay}] {machineShort}"
+		};
+		titleText.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
+		titleText.SetTypeface(null, TypefaceStyle.Bold);
+		card.AddView(titleText);
+
+		// マシンタイプからスペック・料金を推定
+		string gcpSpecs = GetGcpInstanceSpecs(machineShort);
+		var specsText = new TextView(this)
+		{
+			Text = $"{gcpSpecs} | {inst.Zone}"
+		};
+		specsText.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+		specsText.SetTextColor(ColorUtils.Get(this, Resource.Color.vast_card_sub_text));
+		card.AddView(specsText);
+
+		var nameText = new TextView(this) { Text = inst.Name };
+		nameText.SetTextSize(Android.Util.ComplexUnitType.Sp, 11);
+		nameText.SetTextColor(ColorUtils.Get(this, Resource.Color.vast_card_sub_text));
+		card.AddView(nameText);
+
+		if (inst.IsRunning && !string.IsNullOrEmpty(inst.ExternalIp))
+		{
+			var ipText = new TextView(this) { Text = $"SSH: {inst.ExternalIp}:22" };
+			ipText.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+			ipText.SetTextColor(ColorUtils.Get(this, Resource.Color.vast_card_sub_text));
+			card.AddView(ipText);
+		}
+
+		var btnRow = new LinearLayout(this) { Orientation = Orientation.Horizontal };
+		btnRow.SetGravity(GravityFlags.CenterVertical);
+		var btnRowLp = new LinearLayout.LayoutParams(
+			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
+		btnRowLp.TopMargin = DpToPx(4);
+		btnRow.LayoutParameters = btnRowLp;
+
+		if (inst.IsRunning && !string.IsNullOrEmpty(inst.ExternalIp))
+		{
+			var connectBtn = MakeButton("接続", Resource.Color.vast_btn_green);
+			connectBtn.Click += (s, e) => ScanAndSelectEngineGcpAsync(inst);
+			btnRow.AddView(connectBtn);
+		}
+
+		if (inst.IsRunning)
+		{
+			var stopBtn = MakeButton("停止", Resource.Color.vast_btn_orange);
+			stopBtn.Click += async (s, e) =>
+			{
+				var manager = GetGcpManager();
+				if (manager == null) return;
+				SetBusy(true, "停止中...");
+				try
+				{
+					await manager.StopInstanceAsync(inst.Zone, inst.Name, cts_.Token);
+					RunOnUiThread(() => { SetBusy(false, "停止しました"); LoadAllInstancesAsync(); });
+				}
+				catch (Exception ex)
+				{
+					RunOnUiThread(() => { SetBusy(false, $"停止エラー: {ex.Message}"); });
+				}
+			};
+			btnRow.AddView(stopBtn);
+		}
+		else if (inst.IsStopped)
+		{
+			var startBtn = MakeButton("再開", Resource.Color.vast_btn_green);
+			startBtn.Click += async (s, e) =>
+			{
+				var manager = GetGcpManager();
+				if (manager == null) return;
+				SetBusy(true, "再開中...");
+				try
+				{
+					await manager.StartInstanceAsync(inst.Zone, inst.Name, cts_.Token);
+					RunOnUiThread(() => { SetBusy(false, "再開しました"); LoadAllInstancesAsync(); });
+				}
+				catch (Exception ex)
+				{
+					RunOnUiThread(() => { SetBusy(false, $"再開エラー: {ex.Message}"); });
+				}
+			};
+			btnRow.AddView(startBtn);
+		}
+
+		var deleteBtn = MakeButton("削除", Resource.Color.vast_btn_red);
+		deleteBtn.Click += (s, e) => ConfirmDeleteGcpAsync(inst.Zone, inst.Name);
+		btnRow.AddView(deleteBtn);
+
+		card.AddView(btnRow);
+		existingInstancesContainer_.AddView(card);
+	}
+
+	// ===== GCP: エンジン検出・接続 =====
+
+	private async void ScanAndSelectEngineGcpAsync(GcpInstance inst)
+	{
+		string sshKeyPath = Settings.EngineSettings.VastAiSshKeyPath;
+		if (string.IsNullOrEmpty(sshKeyPath))
+		{
+			Toast.MakeText(this, "SSH秘密鍵パスを設定してください", ToastLength.Short).Show();
+			return;
+		}
+
+		SetBusy(true, "Docker 準備状況を確認中...");
+
+		bool ready = false;
+		try
+		{
+			ready = await Task.Run(() => GcpSpotManager.CheckReadyMarkerAsync(inst.ExternalIp, sshKeyPath, cts_.Token));
+		}
+		catch { }
+
+		if (!ready)
+		{
+			RunOnUiThread(() =>
+			{
+				SetBusy(false, "");
+				Toast.MakeText(this, "Dockerイメージの準備がまだ完了していません。しばらくお待ちください。", ToastLength.Long).Show();
+			});
+			return;
+		}
+
+		RunOnUiThread(() => SetBusy(true, "エンジンを検出中..."));
+
+		(List<EngineInfo> engines, int actualRamMb) result;
+		try
+		{
+			result = await Task.Run(() => ScanEnginesVastAi(inst.ExternalIp, 22, sshKeyPath));
+		}
+		catch (Exception ex)
+		{
+			RunOnUiThread(() =>
+			{
+				SetBusy(false, $"エンジン検出エラー: {ex.Message}");
+				Toast.MakeText(this, ex.Message, ToastLength.Long).Show();
+			});
+			return;
+		}
+
+		RunOnUiThread(() =>
+		{
+			SetBusy(false, "");
+			if (result.engines.Count == 0)
+			{
+				Toast.MakeText(this, "エンジンが見つかりません", ToastLength.Long).Show();
+				return;
+			}
+			ShowEngineSelectDialog(result.engines, (selected) => ConnectToGcpInstance(inst, selected.Command, selected.DisplayName, result.actualRamMb));
+		});
+	}
+
+	private void ConnectToGcpInstance(GcpInstance inst, string engineCommand, string engineType, int actualRamMb = 0)
+	{
+		string sshKeyPath = Settings.EngineSettings.VastAiSshKeyPath;
+		if (string.IsNullOrEmpty(sshKeyPath))
+		{
+			Toast.MakeText(this, "SSH秘密鍵パスを設定してください", ToastLength.Short).Show();
+			return;
+		}
+
+		// マシンタイプでスペックを識別
+		string machineShort = inst.MachineType?.Split('/')?.LastOrDefault() ?? "";
+		int gcpMachineHash = machineShort.GetHashCode();
+		int prevMachineId = Settings.EngineSettings.VastAiMachineId;
+		if (gcpMachineHash != prevMachineId)
+		{
+			Settings.EngineSettings.VastAiOptionsMachineId = 0;
+		}
+
+		// マシンタイプからvCPU数を推定（例: c3d-highcpu-180 → 180）
+		int vCpus = 0;
+		var parts = machineShort.Split('-');
+		if (parts.Length > 0) int.TryParse(parts[parts.Length - 1], out vCpus);
+
+		Settings.EngineSettings.RemoteHost = inst.ExternalIp;
+		Settings.EngineSettings.VastAiSshPort = 22;
+		Settings.EngineSettings.VastAiSshEngineCommand = engineCommand;
+		Settings.EngineSettings.EngineNo = RemoteEnginePlayer.RemoteEngineNo;
+		Settings.EngineSettings.EngineName = $"{engineType} (GCP {inst.Zone})";
+		Settings.EngineSettings.GcpInstanceName = inst.Name;
+		Settings.EngineSettings.VastAiMachineId = gcpMachineHash;
+		Settings.EngineSettings.CloudProvider = "gcp";
+		Settings.EngineSettings.VastAiCpuCores = vCpus > 0 ? vCpus : 180;
+		Settings.EngineSettings.VastAiRamMb = actualRamMb > 0 ? actualRamMb : vCpus * 2 * 1024; // highcpu: 2GB/vCPU
+		Settings.EngineSettings.VastAiGpuRamMb = 0;
+		Settings.Save();
+
+		var resultIntent = new Intent();
+		resultIntent.PutExtra(ExtraHost, inst.ExternalIp);
+		SetResult(Result.Ok, resultIntent);
+		Finish();
+	}
+
+	// ===== GCP: Spot VM 起動 =====
+
+	/// <summary>
+	/// マシンスペックと料金を表示して確認後に起動
+	/// </summary>
+	private void ConfirmAndLaunchGcpSpotAsync()
+	{
+		int pos = gcpMachineTypeSpinner_.SelectedItemPosition;
+		if (pos < 0 || pos >= GcpMachineTypes.Length) return;
+		var selected = GcpMachineTypes[pos];
+		string zone = gcpZoneEdit_.Text?.Trim() ?? "";
+
+		// Spinner の表示テキストから価格を取得（動的取得済みなら含まれている）
+		string spinnerText = gcpMachineTypeSpinner_.SelectedItem?.ToString() ?? "";
+		string priceStr = spinnerText.Contains("$") ? spinnerText.Substring(spinnerText.LastIndexOf('$')) : $"~${selected.estSpot:F2}/h";
+
+		string cpuArch = selected.type.StartsWith("c3d") ? "AMD EPYC Genoa (Zen 4)"
+			: selected.type.StartsWith("c4d") ? "AMD EPYC Turin (Zen 5)"
+			: selected.type.StartsWith("c3-") ? "Intel Sapphire Rapids"
+			: "";
+
+		string message =
+			$"マシンタイプ: {selected.type}\n" +
+			$"CPU: {cpuArch}\n" +
+			$"vCPU: {selected.vCpus}コア\n" +
+			$"メモリ: {selected.ramGb} GB\n" +
+			$"ディスク: 10 GB\n" +
+			$"ゾーン: {zone}\n" +
+			$"\n" +
+			$"Spot 料金: {priceStr}\n" +
+			$"\n" +
+			$"60分後に自動シャットダウンします。";
+
+		new AlertDialog.Builder(this)
+			.SetTitle("GCP Spot VM を起動しますか？")
+			.SetMessage(message)
+			.SetPositiveButton("起動", (s, e) => LaunchGcpSpotAsync())
+			.SetNegativeButton("キャンセル", (s, e) => { })
+			.Show();
+	}
+
+	private async void LaunchGcpSpotAsync()
+	{
+		var manager = GetGcpManager();
+		if (manager == null) return;
+
+		string sshKeyPath = Settings.EngineSettings.VastAiSshKeyPath;
+		if (string.IsNullOrEmpty(sshKeyPath))
+		{
+			Toast.MakeText(this, "SSH秘密鍵パスを設定してください", ToastLength.Short).Show();
+			return;
+		}
+
+		SetBusy(true, "リソースを準備中...");
+
+		try
+		{
+			// SSH公開鍵を読み込み
+			string pubKeyPath = sshKeyPath + ".pub";
+			if (!System.IO.File.Exists(pubKeyPath))
+				throw new System.IO.FileNotFoundException($"SSH公開鍵が見つかりません: {pubKeyPath}");
+			string pubKeyContent = System.IO.File.ReadAllText(pubKeyPath).Trim();
+
+			// ファイアウォールルールを確保
+			RunOnUiThread(() => statusText_.Text = "ファイアウォールルールを確認中...");
+			await manager.EnsureFirewallRuleAsync(cts_.Token);
+
+			// Spot VM を起動
+			string zone = Settings.EngineSettings.GcpZone;
+			string machineType = Settings.EngineSettings.GcpMachineType;
+			RunOnUiThread(() => statusText_.Text = $"Spot VM を起動中 ({machineType}, {zone})...");
+
+			var config = new GcpLaunchConfig
+			{
+				Zone = zone,
+				MachineType = machineType,
+				DockerImage = Settings.EngineSettings.GcpDockerImage,
+				SshPublicKeyContent = pubKeyContent,
+				AutoShutdownMinutes = 60
+			};
+
+			string instanceName = await manager.CreateSpotInstanceAsync(config, cts_.Token);
+			Settings.EngineSettings.GcpInstanceName = instanceName;
+			Settings.EngineSettings.GcpZone = zone;
+			Settings.Save();
+
+			// running 待ち
+			RunOnUiThread(() => statusText_.Text = "インスタンスの起動を待機中...");
+			await manager.WaitForRunningAsync(zone, instanceName, ct: cts_.Token);
+
+			// SSH到達を待機
+			RunOnUiThread(() => statusText_.Text = "セットアップ完了を待機中...");
+			await manager.WaitForSshReadyAsync(zone, instanceName, sshKeyPath, ct: cts_.Token);
+
+			RunOnUiThread(() =>
+			{
+				SetBusy(false, "起動完了");
+				LoadAllInstancesAsync();
+			});
+		}
+		catch (System.OperationCanceledException)
+		{
+			RunOnUiThread(() => SetBusy(false, "キャンセルされました"));
+		}
+		catch (Exception ex)
+		{
+			AppDebug.Log.ErrorException(ex, "CloudActivity: GCP Spot起動エラー");
+			RunOnUiThread(() =>
+			{
+				SetBusy(false, $"起動エラー: {ex.Message}");
+				Toast.MakeText(this, ex.Message, ToastLength.Long).Show();
+			});
+		}
+	}
+
+	// ===== GCP: インスタンス削除 =====
+
+	private void ConfirmDeleteGcpAsync(string zone, string instanceName)
+	{
+		new AlertDialog.Builder(this)
+			.SetTitle("GCP インスタンス削除")
+			.SetMessage($"インスタンス {instanceName} を削除しますか？\n課金が停止します。")
+			.SetPositiveButton("削除", async (s, e) =>
+			{
+				var manager = GetGcpManager();
+				if (manager == null) return;
+
+				SetBusy(true, "削除中...");
+				try
+				{
+					await manager.DeleteInstanceAsync(zone, instanceName, cts_.Token);
+
+					if (Settings.EngineSettings.GcpInstanceName == instanceName)
+					{
+						Settings.EngineSettings.GcpInstanceName = string.Empty;
+						Settings.Save();
+					}
+
+					RunOnUiThread(() =>
+					{
+						SetBusy(false, "削除しました");
+						LoadAllInstancesAsync();
+					});
+				}
+				catch (Exception ex)
+				{
+					RunOnUiThread(() =>
+					{
+						SetBusy(false, $"削除エラー: {ex.Message}");
 						Toast.MakeText(this, ex.Message, ToastLength.Long).Show();
 					});
 				}
@@ -1679,7 +2417,14 @@ public class CloudActivity : ThemedActivity
 				var uri = data.Data;
 				string destDir = System.IO.Path.Combine(FilesDir.AbsolutePath, "ssh");
 				System.IO.Directory.CreateDirectory(destDir);
-				string destPath = System.IO.Path.Combine(destDir, "id_rsa");
+
+				// 元のファイル名を取得（例: id_ed25519）
+				string originalName = GetFileNameFromUri(uri) ?? "id_rsa";
+				// .pub が選ばれた場合は秘密鍵名に戻す
+				if (originalName.EndsWith(".pub"))
+					originalName = originalName.Substring(0, originalName.Length - 4);
+
+				string destPath = System.IO.Path.Combine(destDir, originalName);
 
 				using (var input = ContentResolver.OpenInputStream(uri))
 				using (var output = new System.IO.FileStream(destPath, System.IO.FileMode.Create))
@@ -1687,19 +2432,76 @@ public class CloudActivity : ThemedActivity
 					input.CopyTo(output);
 				}
 
-				Java.IO.File file = new Java.IO.File(destPath);
+				var file = new Java.IO.File(destPath);
 				file.SetReadable(false, false);
 				file.SetReadable(true, true);
 				file.SetWritable(false, false);
 
+				// 同じディレクトリにある .pub ファイルも探してコピー
+				string pubDestPath = destPath + ".pub";
+				bool pubCopied = false;
+				try
+				{
+					// 元のURIのパスから .pub を推定して探す
+					string uriPath = uri.Path;
+					if (!string.IsNullOrEmpty(uriPath))
+					{
+						// SAF経由のパスから実際のファイルパスを推定
+						// /document/primary:xxx/id_ed25519 → /sdcard/xxx/id_ed25519.pub
+						string[] searchPaths = {
+							uriPath + ".pub",
+							"/sdcard/.ssh/" + originalName + ".pub",
+							"/storage/emulated/0/.ssh/" + originalName + ".pub",
+						};
+						foreach (var pubPath in searchPaths)
+						{
+							if (System.IO.File.Exists(pubPath))
+							{
+								System.IO.File.Copy(pubPath, pubDestPath, true);
+								pubCopied = true;
+								AppDebug.Log.Info($"SSH公開鍵をコピー: {pubPath} → {pubDestPath}");
+								break;
+							}
+						}
+					}
+				}
+				catch (Exception pubEx)
+				{
+					AppDebug.Log.Info($"SSH公開鍵のコピーに失敗: {pubEx.Message}");
+				}
+
 				sshKeyPathEdit_.Text = destPath;
-				Toast.MakeText(this, "SSH秘密鍵をインポートしました", ToastLength.Short).Show();
+				// パスを即座に永続化（LoadSettings で上書きされるのを防ぐ）
+				Settings.EngineSettings.VastAiSshKeyPath = destPath;
+				Settings.Save();
+
+				string msg = pubCopied
+					? "SSH秘密鍵と公開鍵をインポートしました"
+					: "SSH秘密鍵をインポートしました（公開鍵は手動で配置してください: " + pubDestPath + "）";
+				Toast.MakeText(this, msg, pubCopied ? ToastLength.Short : ToastLength.Long).Show();
 			}
 			catch (Exception ex)
 			{
 				Toast.MakeText(this, $"秘密鍵の読み込みに失敗: {ex.Message}", ToastLength.Long).Show();
 			}
 		}
+	}
+
+	private string GetFileNameFromUri(Android.Net.Uri uri)
+	{
+		string name = null;
+		if (uri.Scheme == "content")
+		{
+			using var cursor = ContentResolver.Query(uri, null, null, null, null);
+			if (cursor != null && cursor.MoveToFirst())
+			{
+				int idx = cursor.GetColumnIndex(Android.Provider.OpenableColumns.DisplayName);
+				if (idx >= 0) name = cursor.GetString(idx);
+			}
+		}
+		if (string.IsNullOrEmpty(name))
+			name = System.IO.Path.GetFileName(uri.Path);
+		return name;
 	}
 
 	private void UpdateWindowSettings()

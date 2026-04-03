@@ -148,6 +148,10 @@ dotnet build ShogiDroid/ShogiDroid.csproj -c Release -p:ClassicUi=true
 - GitHub には 100MB 制限がある。`ShogiDroid/Assets/AobaNNUE/eval/nn.bin` のような大きいファイルは Git LFS を使う
 - APK は GitHub Release asset として配布し、通常の git 管理対象にはしない
 
+## バグ修正の方針
+- すべてのバグに対して、可能な限り即物的な対応・対処療法的な対応に終始するのではなく、**論理的におかしいものがないか根本原因を検討すること**
+- 表面的な症状を抑えるだけでなく、設計やデータフローに構造的な問題がないかを考慮した上で修正を行う
+
 ## 禁止事項
 - **クリーンインストール（adb uninstall → install）を勝手に実行しないこと**。設定・エンジンオプション等が全て消失する。必ず `adb install -r`（上書きインストール）を使う
 - **release/distribute ブランチで `dotnet build` を実行しないこと**。release ブランチは ApplicationId が異なり（`com.ngs436.ShogiDroidR`）、ビルドすると署名キーの状態が汚染され、develop 側（`com.ngs43.shogidroid`）の上書きインストールが署名不一致で失敗し、端末からアプリが消失する恐れがある。Release ビルドは必ず専用 worktree (`/Users/keinoda/ShogiDroid-rebuild-release`) で行う

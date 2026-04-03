@@ -74,9 +74,16 @@ public class EngineSettings
 	public string AwsCustomAmiId = string.Empty;
 
 	/// <summary>
-	/// 現在どのクラウドプロバイダーで接続中か ("vastai" or "aws")
+	/// 現在どのクラウドプロバイダーで接続中か ("vastai", "aws", "gcp")
 	/// </summary>
 	public string CloudProvider = string.Empty;
+
+	// GCP Spot VM 設定
+	public string GcpServiceAccountKeyPath = string.Empty;
+	public string GcpZone = "us-central1-a";
+	public string GcpMachineType = "c3d-highcpu-180";
+	public string GcpDockerImage = "keinoda/shogi:v9.21nnue";
+	public string GcpInstanceName = string.Empty;
 
 	// vast.ai search criteria
 	public string VastAiGpuNames = "RTX 4090, RTX 5090";
