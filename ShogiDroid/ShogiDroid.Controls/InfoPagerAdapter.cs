@@ -52,11 +52,20 @@ public class InfoPagerAdapter : PagerAdapter
 	private bool dispPolicyPage;
 	private PolicyListViewAdapter policyListViewAdapter;
 	private PolicyInfo currentPolicyInfo;
+	private bool dispEvalGraph;
+	private bool structureChanged_;
 
 	public bool DispPolicyPage
 	{
 		get => dispPolicyPage;
-		set => dispPolicyPage = value;
+		set
+		{
+			if (dispPolicyPage != value)
+			{
+				dispPolicyPage = value;
+				structureChanged_ = true;
+			}
+		}
 	}
 
 	public void SetPolicyInfo(PolicyInfo info)
@@ -102,7 +111,18 @@ public class InfoPagerAdapter : PagerAdapter
 
 	public PVDispMode DispMode => thinkInfoListViewAdapter.DispMode;
 
-	public bool DispEvalGraph { get; set; }
+	public bool DispEvalGraph
+	{
+		get => dispEvalGraph;
+		set
+		{
+			if (dispEvalGraph != value)
+			{
+				dispEvalGraph = value;
+				structureChanged_ = true;
+			}
+		}
+	}
 
 	public string Comment
 	{
@@ -252,24 +272,23 @@ public class InfoPagerAdapter : PagerAdapter
 		}
 	}
 
-	/// <summary>
-	/// ページ構成が変わった場合に全ページを再生成させる。
-	/// NotifyDataSetChanged() と組み合わせて ViewPager のページ追加・削除を反映する。
-	/// </summary>
-	private int lastNotifiedCount_ = -1;
-
 	public override int GetItemPosition(Java.Lang.Object objectValue)
 	{
-		// Count が変わっていたら全ページ再構築
-		if (lastNotifiedCount_ >= 0 && lastNotifiedCount_ != Count)
+		if (structureChanged_)
 			return PositionNone;
 		return base.GetItemPosition(objectValue);
 	}
 
 	public override void NotifyDataSetChanged()
 	{
-		lastNotifiedCount_ = Count;
-		base.NotifyDataSetChanged();
+		try
+		{
+			base.NotifyDataSetChanged();
+		}
+		finally
+		{
+			structureChanged_ = false;
+		}
 	}
 
 	public override void DestroyItem(ViewGroup container, int position, Java.Lang.Object objectValue)

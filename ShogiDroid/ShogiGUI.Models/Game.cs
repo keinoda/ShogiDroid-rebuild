@@ -1340,10 +1340,10 @@ public class Game
 				AppDebug.Log.Info($"VastAi auto-option: Threads={cores}");
 			}
 
-			if (ramMb > 0)
+			if (cores > 0)
 			{
-				// RAMの70%、上限32768MB
-				int hashMb = System.Math.Min((int)(ramMb * 0.7), 32768);
+				// 4コアにつき1024MB、上限65536MB（64GB）
+				int hashMb = System.Math.Min(cores / 4 * 1024, 65536);
 				enginePlayer.SetTempOptionDeferred("USI_Hash", hashMb);
 				enginePlayer.SetTempOptionDeferred("Hash", hashMb);
 				AppDebug.Log.Info($"VastAi auto-option: Hash={hashMb}MB");
