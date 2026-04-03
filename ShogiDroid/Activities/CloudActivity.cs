@@ -93,6 +93,8 @@ public class CloudActivity : ThemedActivity
 
 	// AWS Spot 価格キャッシュ（インスタンスタイプ → 最安AZ価格）
 	private Dictionary<string, decimal> awsSpotPriceCache_ = new Dictionary<string, decimal>();
+	// Spinner 更新中のイベント再入防止
+	private bool suppressSpinnerEvent_ = false;
 
 	// ===== Lifecycle =====
 
@@ -291,11 +293,18 @@ public class CloudActivity : ThemedActivity
 	/// <summary>
 	/// AWS Spinner 選択変更時に Spot 価格を取得して表示
 	/// </summary>
+	private string lastFetchedAwsType_ = "";
+
 	private async void FetchAwsSpotPriceForSelectedType()
 	{
+		if (suppressSpinnerEvent_) return;
 		int pos = awsInstanceTypeSpinner_.SelectedItemPosition;
 		if (pos < 0 || pos >= AwsInstanceTypes.Length) return;
 		string instanceType = AwsInstanceTypes[pos].type;
+
+		// 同じタイプの再取得を抑制
+		if (instanceType == lastFetchedAwsType_) return;
+		lastFetchedAwsType_ = instanceType;
 
 		Settings.EngineSettings.AwsInstanceType = instanceType;
 
@@ -338,9 +347,10 @@ public class CloudActivity : ThemedActivity
 					return label;
 				}).ToArray();
 				awsSpotPriceCache_[instanceType] = cheapest;
+				suppressSpinnerEvent_ = true;
 				awsInstanceTypeSpinner_.Adapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleSpinnerDropDownItem, updatedItems);
-				// 選択位置を復元（Adapter更新でリセットされる）
 				awsInstanceTypeSpinner_.SetSelection(pos);
+				suppressSpinnerEvent_ = false;
 
 				foreach (var price in prices)
 				{
@@ -442,9 +452,11 @@ public class CloudActivity : ThemedActivity
 				label += $" ~${t.estSpot:F2}/h";
 			return label;
 		}).ToArray();
+		suppressSpinnerEvent_ = true;
 		gcpMachineTypeSpinner_.Adapter = new ArrayAdapter<string>(this, Android.Resource.Layout.SimpleSpinnerDropDownItem, items);
 		if (prevPos >= 0 && prevPos < items.Length)
 			gcpMachineTypeSpinner_.SetSelection(prevPos);
+		suppressSpinnerEvent_ = false;
 	}
 
 	/// <summary>
@@ -1134,13 +1146,23 @@ public class CloudActivity : ThemedActivity
 			return;
 		}
 
-		// AWS metal インスタンスはインスタンスタイプでマシンスペックを識別
-		int awsMachineHash = Settings.EngineSettings.AwsInstanceType.GetHashCode();
+		// 実インスタンスタイプからスペックを算出
+		string actualType = inst.InstanceType;
+		int awsMachineHash = actualType.GetHashCode();
 		int prevMachineId = Settings.EngineSettings.VastAiMachineId;
 		if (awsMachineHash != prevMachineId)
 		{
 			Settings.EngineSettings.VastAiOptionsMachineId = 0;
 		}
+
+		// インスタンスタイプからvCPU/RAMを推定
+		int vCpus = 0;
+		int defaultRamMb = 0;
+		foreach (var t in AwsInstanceTypes)
+		{
+			if (t.type == actualType) { vCpus = t.vCpus; defaultRamMb = t.ramGb * 1024; break; }
+		}
+		if (vCpus == 0 && inst.VCpuCount > 0) vCpus = inst.VCpuCount;
 
 		Settings.EngineSettings.RemoteHost = inst.PublicIp;
 		Settings.EngineSettings.VastAiSshPort = 22;
@@ -1148,11 +1170,11 @@ public class CloudActivity : ThemedActivity
 		Settings.EngineSettings.EngineNo = RemoteEnginePlayer.RemoteEngineNo;
 		Settings.EngineSettings.EngineName = $"{engineType} (AWS {inst.AvailabilityZone})";
 		Settings.EngineSettings.AwsInstanceId = inst.InstanceId;
+		Settings.EngineSettings.AwsInstanceType = actualType;
 		Settings.EngineSettings.VastAiMachineId = awsMachineHash;
 		Settings.EngineSettings.CloudProvider = "aws";
-		// SSH経由で取得した実際のRAMを優先
-		Settings.EngineSettings.VastAiCpuCores = 192; // c7a.metal-48xl
-		Settings.EngineSettings.VastAiRamMb = actualRamMb > 0 ? actualRamMb : 384 * 1024;
+		Settings.EngineSettings.VastAiCpuCores = vCpus;
+		Settings.EngineSettings.VastAiRamMb = actualRamMb > 0 ? actualRamMb : defaultRamMb;
 		Settings.EngineSettings.VastAiGpuRamMb = 0;
 		Settings.Save();
 
@@ -1281,8 +1303,20 @@ public class CloudActivity : ThemedActivity
 			Settings.Save();
 
 			// SSH到達を待機
-			RunOnUiThread(() => statusText_.Text = "セットアップ完了を待機中...");
-			await manager.WaitForSshReadyAsync(instanceId, ct: cts_.Token);
+			RunOnUiThread(() => statusText_.Text = "SSH到達を待機中...");
+			var runningInst = await manager.WaitForSshReadyAsync(instanceId, ct: cts_.Token);
+
+			// Docker準備完了を待機（user-data の docker pull + コンテナ起動）
+			RunOnUiThread(() => statusText_.Text = "Docker準備完了を待機中...");
+			for (int i = 0; i < 120; i++)
+			{
+				cts_.Token.ThrowIfCancellationRequested();
+				if (await AwsSpotManager.CheckReadyMarkerAsync(runningInst.PublicIp, sshKeyPath, cts_.Token))
+					break;
+				if (i == 119)
+					throw new TimeoutException("Docker準備完了がタイムアウトしました");
+				await Task.Delay(5000, cts_.Token);
+			}
 
 			string statusMsg = "起動完了";
 			RunOnUiThread(() =>

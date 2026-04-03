@@ -53,44 +53,43 @@ public class AwsSpotManager : IDisposable
 	{
 		string keyName = KeyPairPrefix + "key";
 
-		// shogidroid-key を探す
+		if (!File.Exists(publicKeyPath))
+			throw new FileNotFoundException($"SSH公開鍵が見つかりません: {publicKeyPath}\n秘密鍵と同じ場所に .pub ファイルを配置してください");
+		string pubKeyContent = File.ReadAllText(publicKeyPath).Trim();
+
+		// shogidroid-key が既にあるか確認
 		try
 		{
 			var desc = await client_.DescribeKeyPairsAsync(new DescribeKeyPairsRequest
 			{
-				KeyNames = new List<string> { keyName }
+				KeyNames = new List<string> { keyName },
+				IncludePublicKey = true
 			}, ct);
 			if (desc.KeyPairs.Count > 0)
 			{
-				AppDebug.Log.Info($"AwsSpot: キーペア '{keyName}' は既に存在");
-				return keyName;
+				var existing = desc.KeyPairs[0];
+				// 公開鍵の内容が一致するか確認
+				string existingPub = existing.PublicKey?.Trim() ?? "";
+				// AWS は公開鍵を OpenSSH 形式で返すが、コメント部分が異なる場合があるため鍵本体で比較
+				string localKeyBody = ExtractKeyBody(pubKeyContent);
+				string remoteKeyBody = ExtractKeyBody(existingPub);
+				if (localKeyBody == remoteKeyBody)
+				{
+					AppDebug.Log.Info($"AwsSpot: キーペア '{keyName}' は既に存在（公開鍵一致）");
+					return keyName;
+				}
+
+				// 不一致: 古いキーペアを削除して再インポート
+				AppDebug.Log.Info($"AwsSpot: キーペア '{keyName}' の公開鍵が不一致、再インポート");
+				await client_.DeleteKeyPairAsync(new DeleteKeyPairRequest { KeyName = keyName }, ct);
 			}
 		}
 		catch (AmazonEC2Exception ex) when (ex.ErrorCode == "InvalidKeyPair.NotFound")
 		{
-			// 存在しない → 他のキーペアも探す
+			// 存在しない → 新規インポート
 		}
 
-		// shogidroid- 接頭辞以外のキーペアも探す（CLI で登録済みの場合）
-		try
-		{
-			var allKeys = await client_.DescribeKeyPairsAsync(new DescribeKeyPairsRequest(), ct);
-			if (allKeys.KeyPairs.Count > 0)
-			{
-				// ed25519 を優先、なければ最初のキーペアを使用
-				var existing = allKeys.KeyPairs.FirstOrDefault(k => k.KeyType?.Value == "ed25519")
-					?? allKeys.KeyPairs[0];
-				AppDebug.Log.Info($"AwsSpot: 既存キーペア '{existing.KeyName}' を使用");
-				return existing.KeyName;
-			}
-		}
-		catch { }
-
-		// 公開鍵を読み込んでインポート
-		if (!File.Exists(publicKeyPath))
-			throw new FileNotFoundException($"SSH公開鍵が見つかりません: {publicKeyPath}\n秘密鍵と同じ場所に .pub ファイルを配置してください");
-
-		string pubKeyContent = File.ReadAllText(publicKeyPath).Trim();
+		// 公開鍵をインポート
 		var importReq = new ImportKeyPairRequest
 		{
 			KeyName = keyName,
@@ -99,6 +98,17 @@ public class AwsSpotManager : IDisposable
 		var result = await client_.ImportKeyPairAsync(importReq, ct);
 		AppDebug.Log.Info($"AwsSpot: キーペア '{keyName}' をインポート: {result.KeyFingerprint}");
 		return keyName;
+	}
+
+	/// <summary>
+	/// OpenSSH 公開鍵文字列から鍵本体（Base64部分）を抽出
+	/// </summary>
+	private static string ExtractKeyBody(string pubKey)
+	{
+		if (string.IsNullOrEmpty(pubKey)) return "";
+		var parts = pubKey.Split(' ');
+		// "ssh-ed25519 AAAA... comment" → "AAAA..." 部分
+		return parts.Length >= 2 ? parts[1] : pubKey;
 	}
 
 	/// <summary>

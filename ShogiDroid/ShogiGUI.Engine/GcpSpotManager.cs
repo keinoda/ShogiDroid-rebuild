@@ -591,21 +591,20 @@ shutdown -h +{autoShutdownMinutes} &
                         bool isRam = descLower.Contains("ram") || descLower.Contains("memory");
                         if (!isCpu && !isRam) continue;
 
-                        // リージョン判定
-                        string skuRegion = "";
-                        if (sku.TryGetProperty("serviceRegions", out var regions) && regions.GetArrayLength() > 0)
-                            skuRegion = regions[0].GetString() ?? "";
-                        if (string.IsNullOrEmpty(skuRegion) || !region.StartsWith(skuRegion.Split('-')[0]))
+                        // リージョン判定: serviceRegions に対象リージョンが含まれるか厳密に確認
+                        bool regionMatch = false;
+                        if (sku.TryGetProperty("serviceRegions", out var regions))
                         {
-                            // リージョンプレフィックスが一致しない場合はスキップ
-                            // ただし "global" や大陸レベル（us, europe, asia）のマッチも試行
-                            bool regionMatch = false;
-                            if (skuRegion == "global" || skuRegion == "us" || skuRegion == "europe" || skuRegion == "asia")
-                                regionMatch = true;
-                            else if (!string.IsNullOrEmpty(skuRegion) && region.StartsWith(skuRegion))
-                                regionMatch = true;
-                            if (!regionMatch) continue;
+                            for (int r = 0; r < regions.GetArrayLength(); r++)
+                            {
+                                string sr = regions[r].GetString() ?? "";
+                                // 完全一致（例: "us-central1" == "us-central1"）
+                                if (sr == region) { regionMatch = true; break; }
+                                // グローバルSKU
+                                if (sr == "global") { regionMatch = true; break; }
+                            }
                         }
+                        if (!regionMatch) continue;
 
                         // 単価を抽出
                         double unitPrice = ExtractUnitPrice(sku);
