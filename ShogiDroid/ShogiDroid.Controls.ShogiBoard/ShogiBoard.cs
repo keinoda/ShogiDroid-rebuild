@@ -110,13 +110,12 @@ public class ShogiBoard : View
 
 		public bool Cancel()
 		{
-			bool result = false;
 			if (moving)
 			{
 				CancelInner();
-				result = true;
+				return true;
 			}
-			return result;
+			return false;
 		}
 
 		public bool MoveEnd(int to_square)
@@ -2688,7 +2687,7 @@ public class ShogiBoard : View
 					{
 						opeMoveData.MoveType |= MoveType.MoveMask;
 					}
-					else if (MoveCheck.CanPromota(opeMoveData))
+					else if (MoveCheck.CanPromote(opeMoveData))
 					{
 						op.PromotionChoicStart();
 						menuPromotion.Window.SetFlags(WindowManagerFlags.NotFocusable, WindowManagerFlags.NotFocusable);

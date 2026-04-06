@@ -30,7 +30,7 @@ public class JointBoardPresenter : PresenterBase<IJointBoardView>
 	{
 	}
 
-	public override void Destory()
+	public override void Destroy()
 	{
 	}
 

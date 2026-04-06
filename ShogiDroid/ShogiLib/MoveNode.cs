@@ -97,16 +97,11 @@ public class MoveNode : MoveDataEx
 
 	public bool IsEqual(MoveNode node)
 	{
-		bool result = false;
 		if (node == null)
 		{
 			return false;
 		}
-		if (id == node.id && Equals(node) && key.Equals(node.Key))
-		{
-			result = true;
-		}
-		return result;
+		return id == node.id && Equals(node) && key.Equals(node.Key);
 	}
 
 	public MoveNode FindChild(MoveData moveData)
@@ -188,13 +183,12 @@ public class MoveNode : MoveDataEx
 
 	public bool ChangeChildCurrent(int index)
 	{
-		bool result = false;
 		if (index < Children.Count && ChildCurrent != Children[index])
 		{
 			ChildCurrent = Children[index];
-			result = true;
+			return true;
 		}
-		return result;
+		return false;
 	}
 
 	public void ChangeChildCurrent(MoveNode move_node)
@@ -287,20 +281,20 @@ public class MoveNode : MoveDataEx
 
 	public bool InitChildCurrent()
 	{
-		bool result = false;
+		bool changed = false;
 		if (Children.Count >= 1 && ChildCurrent != Children[0])
 		{
 			ChildCurrent = Children[0];
-			result = true;
+			changed = true;
 		}
 		foreach (MoveNode child in Children)
 		{
 			if (child.InitChildCurrent())
 			{
-				result = true;
+				changed = true;
 			}
 		}
-		return result;
+		return changed;
 	}
 
 	public void ClearChildren()

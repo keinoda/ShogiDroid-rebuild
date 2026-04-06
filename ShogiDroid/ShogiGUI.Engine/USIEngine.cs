@@ -88,7 +88,6 @@ public class USIEngine : IDisposable
 
 	public bool Initialize(string filename, string workingdirectory = null)
 	{
-		bool result = true;
 		if (workingdirectory == null)
 		{
 			workingdirectory = Path.GetDirectoryName(filename);
@@ -137,7 +136,7 @@ public class USIEngine : IDisposable
 			{
 				process_.StartInfo.EnvironmentVariables["LD_LIBRARY_PATH"] = workingdirectory;
 			}
-			process_.OutputDataReceived += process_DataRecieved;
+			process_.OutputDataReceived += process_DataReceived;
 			process_.EnableRaisingEvents = true;
 			process_.Exited += process_Exited;
 			try
@@ -149,6 +148,7 @@ public class USIEngine : IDisposable
 				try { process_.PriorityClass = ProcessPriorityClass.BelowNormal; } catch { }
 				process_.StandardInput.WriteLine(string.Empty);
 				initialized_ = true;
+				return true;
 			}
 			catch (Exception ex)
 			{
@@ -157,10 +157,9 @@ public class USIEngine : IDisposable
 				process_ = null;
 				string_queue_.Dispose();
 				string_queue_ = null;
-				result = false;
+				return false;
 			}
 		}
-		return result;
 	}
 
 	public bool InitializeRemote(string host, int port)
@@ -365,7 +364,7 @@ public class USIEngine : IDisposable
 			}
 			lock (lockObj)
 			{
-				process_.OutputDataReceived -= process_DataRecieved;
+				process_.OutputDataReceived -= process_DataReceived;
 				process_.Exited -= process_Exited;
 				process_.Close();
 				process_ = null;
@@ -376,7 +375,7 @@ public class USIEngine : IDisposable
 		}
 	}
 
-	private void process_DataRecieved(object sendingProcess, DataReceivedEventArgs outLine)
+	private void process_DataReceived(object sendingProcess, DataReceivedEventArgs outLine)
 	{
 		lock (lockObj)
 		{
@@ -451,32 +450,17 @@ public class USIEngine : IDisposable
 
 	public bool SetOption(string name, bool value)
 	{
-		bool result = false;
-		if (options_.ContainsKey(name))
-		{
-			result = options_[name].SetValue(value);
-		}
-		return result;
+		return options_.ContainsKey(name) && options_[name].SetValue(value);
 	}
 
 	public bool SetOption(string name, int value)
 	{
-		bool result = false;
-		if (options_.ContainsKey(name))
-		{
-			result = options_[name].SetValue(value);
-		}
-		return result;
+		return options_.ContainsKey(name) && options_[name].SetValue(value);
 	}
 
 	public bool SetOption(string name, string value)
 	{
-		bool result = false;
-		if (options_.ContainsKey(name))
-		{
-			result = options_[name].SetValue(value);
-		}
-		return result;
+		return options_.ContainsKey(name) && options_[name].SetValue(value);
 	}
 
 	public bool AddOption(string str)

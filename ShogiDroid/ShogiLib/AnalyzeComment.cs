@@ -6,21 +6,7 @@ public class AnalyzeComment
 {
 	private string orgString;
 
-	private int lineno;
-
 	private int? rank;
-
-	private AnalyzeCommentKind kind;
-
-	private string time;
-
-	private string depth;
-
-	private string nodes;
-
-	private string eval;
-
-	private string moves;
 
 	private int? value;
 
@@ -28,93 +14,21 @@ public class AnalyzeComment
 
 	private MoveMatche bestmove;
 
-	private int engineNo;
-
 	public bool Mark;
 
-	public int LineNo
-	{
-		get
-		{
-			return lineno;
-		}
-		set
-		{
-			lineno = value;
-		}
-	}
+	public int LineNo { get; set; }
 
-	public AnalyzeCommentKind Kind
-	{
-		get
-		{
-			return kind;
-		}
-		set
-		{
-			kind = value;
-		}
-	}
+	public AnalyzeCommentKind Kind { get; set; }
 
-	public string Time
-	{
-		get
-		{
-			return time;
-		}
-		set
-		{
-			time = value;
-		}
-	}
+	public string Time { get; set; }
 
-	public string Depth
-	{
-		get
-		{
-			return depth;
-		}
-		set
-		{
-			depth = value;
-		}
-	}
+	public string Depth { get; set; }
 
-	public string Nodes
-	{
-		get
-		{
-			return nodes;
-		}
-		set
-		{
-			nodes = value;
-		}
-	}
+	public string Nodes { get; set; }
 
-	public string Eval
-	{
-		get
-		{
-			return eval;
-		}
-		set
-		{
-			eval = value;
-		}
-	}
+	public string Eval { get; set; }
 
-	public string Moves
-	{
-		get
-		{
-			return moves;
-		}
-		set
-		{
-			moves = value;
-		}
-	}
+	public string Moves { get; set; }
 
 	public int? Rank => rank;
 
@@ -126,17 +40,7 @@ public class AnalyzeComment
 
 	public MoveMatche BestMove => bestmove;
 
-	public int EngineNo
-	{
-		get
-		{
-			return engineNo;
-		}
-		set
-		{
-			engineNo = value;
-		}
-	}
+	public int EngineNo { get; set; }
 
 	public string EngineName { get; set; }
 
@@ -148,18 +52,18 @@ public class AnalyzeComment
 	public void Clear()
 	{
 		Mark = false;
-		lineno = 0;
+		LineNo = 0;
 		rank = null;
 		value = null;
-		kind = AnalyzeCommentKind.None;
-		time = string.Empty;
-		depth = string.Empty;
-		nodes = string.Empty;
-		eval = string.Empty;
-		moves = string.Empty;
+		Kind = AnalyzeCommentKind.None;
+		Time = string.Empty;
+		Depth = string.Empty;
+		Nodes = string.Empty;
+		Eval = string.Empty;
+		Moves = string.Empty;
 		mate = null;
 		bestmove = MoveMatche.None;
-		engineNo = -1;
+		EngineNo = -1;
 	}
 
 	public void Parse(string line)
@@ -180,42 +84,42 @@ public class AnalyzeComment
 			case "解析":
 			case "*Analysis":
 			case "Analysis":
-				kind = AnalyzeCommentKind.Analysis;
+				Kind = AnalyzeCommentKind.Analysis;
 				continue;
 			case "*対局":
 			case "対局":
 			case "*Game":
 			case "Game":
-				kind = AnalyzeCommentKind.Game;
+				Kind = AnalyzeCommentKind.Game;
 				continue;
 			case "*検討":
 			case "検討":
 			case "*Consider":
 			case "Consider":
-				kind = AnalyzeCommentKind.Consider;
+				Kind = AnalyzeCommentKind.Consider;
 				continue;
 			case "*詰み探索":
 			case "詰み探索":
 			case "*Mate":
 			case "Mate":
-				kind = AnalyzeCommentKind.Mate;
-				eval = analyzeCommentTokenizer.Token();
-				value = (int)AnalyzeCommentTokenizer.ParseNum(eval);
+				Kind = AnalyzeCommentKind.Mate;
+				Eval = analyzeCommentTokenizer.Token();
+				value = (int)AnalyzeCommentTokenizer.ParseNum(Eval);
 				continue;
 			case "*候補手":
 			case "候補手":
 			case "*Candidate":
 			case "Candidate":
-				kind = AnalyzeCommentKind.Candidate;
+				Kind = AnalyzeCommentKind.Candidate;
 				continue;
 			case "*Engines":
 			case "Engines":
 			{
-				kind = AnalyzeCommentKind.EngineList;
+				Kind = AnalyzeCommentKind.EngineList;
 				text = analyzeCommentTokenizer.Token();
 				if (int.TryParse(text, out var result))
 				{
-					engineNo = result;
+					EngineNo = result;
 				}
 				EngineName = analyzeCommentTokenizer.Last();
 				return;
@@ -225,9 +129,9 @@ public class AnalyzeComment
 				text = analyzeCommentTokenizer.Token();
 				if (Kifu.ParseNum(text, out var _))
 				{
-					kind = AnalyzeCommentKind.Game;
-					eval = text;
-					moves = analyzeCommentTokenizer.Last();
+					Kind = AnalyzeCommentKind.Game;
+					Eval = text;
+					Moves = analyzeCommentTokenizer.Last();
 					return;
 				}
 				analyzeCommentTokenizer.Push(text);
@@ -250,36 +154,36 @@ public class AnalyzeComment
 			{
 			case "時間":
 			case "Time":
-				time = analyzeCommentTokenizer.Token();
+				Time = analyzeCommentTokenizer.Token();
 				break;
 			case "深さ":
 			case "Depth":
-				depth = analyzeCommentTokenizer.Token();
+				Depth = analyzeCommentTokenizer.Token();
 				break;
 			case "ノード数":
 			case "Nodes":
-				nodes = analyzeCommentTokenizer.Token();
+				Nodes = analyzeCommentTokenizer.Token();
 				break;
 			case "評価値":
 			case "Value":
-				eval = analyzeCommentTokenizer.Token();
-				if (eval == "+詰" || eval == "-詰" || eval == "+Mate" || eval == "-Mate")
+				Eval = analyzeCommentTokenizer.Token();
+				if (Eval == "+詰" || Eval == "-詰" || Eval == "+Mate" || Eval == "-Mate")
 				{
 					text = analyzeCommentTokenizer.Token();
 					if (int.TryParse(text, out var _))
 					{
-						eval = eval + " " + text;
+						Eval = Eval + " " + text;
 					}
 					else
 					{
 						analyzeCommentTokenizer.Push(text);
 						text = string.Empty;
 					}
-					parsemate(eval, text);
+					parsemate(Eval, text);
 				}
 				else
 				{
-					value = (int)AnalyzeCommentTokenizer.ParseNum(eval);
+					value = (int)AnalyzeCommentTokenizer.ParseNum(Eval);
 				}
 				break;
 			case "EngineNo":
@@ -287,7 +191,7 @@ public class AnalyzeComment
 				text = analyzeCommentTokenizer.Token();
 				if (int.TryParse(text, out var result6))
 				{
-					engineNo = result6;
+					EngineNo = result6;
 				}
 				break;
 			}
@@ -295,20 +199,20 @@ public class AnalyzeComment
 			case "文字列":
 			case "Moves":
 			case "String":
-				moves = analyzeCommentTokenizer.Last();
+				Moves = analyzeCommentTokenizer.Last();
 				return;
 			case "+詰":
 			case "-詰":
 			case "+Mate":
 			case "-Mate":
 			{
-				eval = text;
+				Eval = text;
 				text = analyzeCommentTokenizer.Token();
 				if (int.TryParse(text, out var _))
 				{
-					eval = eval + " " + text;
+					Eval = Eval + " " + text;
 				}
-				parsemate(eval, text);
+				parsemate(Eval, text);
 				break;
 			}
 			case "○":
@@ -321,7 +225,7 @@ public class AnalyzeComment
 			{
 				if (int.TryParse(text, out var result3))
 				{
-					engineNo = result3;
+					EngineNo = result3;
 				}
 				break;
 			}

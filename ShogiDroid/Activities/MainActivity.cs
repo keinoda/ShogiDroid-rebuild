@@ -392,7 +392,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		}
 	}
 
-	private bool MenuExceute(int id)
+	private bool MenuExecute(int id)
 	{
 		if (!commands.IsEnable(id))
 		{
@@ -401,7 +401,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		return commands.Execute(id);
 	}
 
-	private bool MenuExceute(CmdNo cmdno)
+	private bool MenuExecute(CmdNo cmdno)
 	{
 		if (!commands.IsEnable(cmdno))
 		{
@@ -693,7 +693,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 				if (target != ShogiLib.Piece.NoPiece && target.ColorOf() == turn) continue;
 
 				var baseMove = new ShogiLib.MoveData(ShogiLib.MoveType.MoveFlag, from, to, piece, target);
-				bool canProm = ShogiLib.MoveCheck.CanPromota(baseMove);
+				bool canProm = ShogiLib.MoveCheck.CanPromote(baseMove);
 				bool forceProm = canProm && ShogiLib.MoveCheck.ForcePromotion(piece, to);
 
 				if (canProm)
@@ -1086,7 +1086,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		StoreSettings();
 		presenter.Pause();
 		UpdateBackgroundAnalysisNotification();
-		PlaySE.Destory();
+		PlaySE.Destroy();
 	}
 
 	protected override void OnDestroy()
@@ -1097,8 +1097,8 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		base.OnDestroy();
 		CancelBackgroundAnalysisNotification();
 		StopRemoteMonitor();
-		presenter.Destory();
-		PlaySE.Destory();
+		presenter.Destroy();
+		PlaySE.Destroy();
 	}
 
 	public override void OnConfigurationChanged(Configuration newConfig)
@@ -1211,7 +1211,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			_ = -1;
 			break;
 		case 108:
-			RecieveWarsGameResult();
+			ReceiveWarsGameResult();
 			break;
 		case CAMERA_READ_CODE:
 			if (resultCode == Result.Ok && data != null)
@@ -1455,7 +1455,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		}
 		else
 		{
-			MenuExceute((CmdNo)Settings.AppSettings.ReverseButotn);
+			MenuExecute((CmdNo)Settings.AppSettings.ReverseButotn);
 		}
 	}
 
@@ -1548,7 +1548,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			presenter.AddComment(selpvnum, infoPageAdepter.DispMode);
 			break;
 		default:
-			flag = MenuExceute(itemId);
+			flag = MenuExecute(itemId);
 			if (flag)
 			{
 				drawerLayout.CloseDrawers();
@@ -1657,7 +1657,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		}
 	}
 
-	private void InfoPageAdepter_SelectPosition(object sender, GraphPositoinEventArgs e)
+	private void InfoPageAdepter_SelectPosition(object sender, GraphPositionEventArgs e)
 	{
 		presenter.Jump(e.Number);
 	}
@@ -2425,7 +2425,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		StartActivityForResult(new Intent("android.intent.action.VIEW", uri), 108);
 	}
 
-	private void RecieveWarsGameResult()
+	private void ReceiveWarsGameResult()
 	{
 		string data = ClipboardUtil.GetData(this);
 		if (!string.IsNullOrEmpty(data) && data != Settings.AppSettings.ImportUrl)
@@ -3243,7 +3243,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 	{
 		if (notation.MoveCurrent.Number == 0)
 		{
-			notationText.Text = MoveStringExtention.InitialPosition(Settings.AppSettings.MoveStyle);
+			notationText.Text = MoveStringExtension.InitialPosition(Settings.AppSettings.MoveStyle);
 			UpdateThreatmateBadge();
 			return;
 		}
@@ -3498,7 +3498,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			presenter.Last();
 			break;
 		case "reverse":
-			MenuExceute(CmdNo.Reverse);
+			MenuExecute(CmdNo.Reverse);
 			break;
 		case "menu":
 			MenuButton_Click(this, EventArgs.Empty);

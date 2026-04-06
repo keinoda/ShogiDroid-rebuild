@@ -4,9 +4,9 @@ namespace ShogiGUI.Events;
 
 public class GameEventArgs : EventArgs
 {
-	public GameEventId EventId;
+	public GameEventId EventId { get; set; }
 
-	public bool Engine;
+	public bool Engine { get; set; }
 
 	public GameEventArgs(GameEventId eventId)
 	{

@@ -20,7 +20,7 @@ public class InfoPagerAdapter : PagerAdapter
 
 	private ListView thinkListView;
 
-	private ThinkInfiListViewAdapter thinkInfoListViewAdapter;
+	private ThinkInfoListViewAdapter thinkInfoListViewAdapter;
 
 	private EvalGraph graphView;
 
@@ -180,7 +180,7 @@ public class InfoPagerAdapter : PagerAdapter
 		}
 	}
 
-	public event EventHandler<GraphPositoinEventArgs> SelectPosition;
+	public event EventHandler<GraphPositionEventArgs> SelectPosition;
 
 	public event EventHandler<AdapterView.ItemClickEventArgs> ThinkListViewItemClick;
 
@@ -191,7 +191,7 @@ public class InfoPagerAdapter : PagerAdapter
 	public InfoPagerAdapter(Activity activity)
 	{
 		this.activity = activity;
-		thinkInfoListViewAdapter = new ThinkInfiListViewAdapter(activity);
+		thinkInfoListViewAdapter = new ThinkInfoListViewAdapter(activity);
 	}
 
 	/// <summary>
@@ -301,7 +301,7 @@ public class InfoPagerAdapter : PagerAdapter
 		return view == objectValue;
 	}
 
-	private void GraphView_SelectPosition(object sender, GraphPositoinEventArgs e)
+	private void GraphView_SelectPosition(object sender, GraphPositionEventArgs e)
 	{
 		if (this.SelectPosition != null)
 		{

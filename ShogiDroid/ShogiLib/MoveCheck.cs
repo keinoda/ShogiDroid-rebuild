@@ -440,11 +440,7 @@ public static class MoveCheck
 		ClearEffectData(array);
 		MakeEfectBlackOne(pos, square, array);
 		int num = pos.SearchPiece(Piece.WOU);
-		if (num < 81 && array[num] != 0)
-		{
-			return true;
-		}
-		return false;
+		return num < 81 && array[num] != 0;
 	}
 
 	private static bool IsCheckWhite(SPosition pos, int square)
@@ -454,11 +450,7 @@ public static class MoveCheck
 		ClearEffectData(array);
 		MakeEfectWhiteOne(pos, square, array);
 		int num = pos.SearchPiece(Piece.BOU);
-		if (num < 81 && array[num] != 0)
-		{
-			return true;
-		}
-		return false;
+		return num < 81 && array[num] != 0;
 	}
 
 	private static bool responseWhite(SPosition pos, int to_sq, Piece skip_piece)
@@ -701,11 +693,7 @@ public static class MoveCheck
 			return false;
 		}
 		MakeEffectWhite(pos, array, Piece.NoPiece);
-		if (array[num] == 0)
-		{
-			return false;
-		}
-		return true;
+		return array[num] != 0;
 	}
 
 	private static bool IsMateLeftWhite(SPosition pos)
@@ -718,16 +706,11 @@ public static class MoveCheck
 			return false;
 		}
 		MakeEffectBlack(pos, array, Piece.NoPiece);
-		if (array[num] == 0)
-		{
-			return false;
-		}
-		return true;
+		return array[num] != 0;
 	}
 
-	public static bool CanPromota(MoveData move_data)
+	public static bool CanPromote(MoveData move_data)
 	{
-		bool result = false;
 		Piece piece = move_data.Piece;
 		if (!move_data.MoveType.HasFlag(MoveType.MoveFlag))
 		{
@@ -743,16 +726,15 @@ public static class MoveCheck
 		}
 		if (piece.ColorOf() == PlayerColor.Black)
 		{
-			if (move_data.ToSquare.RankOf() <= 2 || move_data.FromSquare.RankOf() <= 2)
-			{
-				result = true;
-			}
+			return move_data.ToSquare.RankOf() <= 2 || move_data.FromSquare.RankOf() <= 2;
 		}
-		else if (move_data.ToSquare.RankOf() >= 6 || move_data.FromSquare.RankOf() >= 6)
-		{
-			result = true;
-		}
-		return result;
+		return move_data.ToSquare.RankOf() >= 6 || move_data.FromSquare.RankOf() >= 6;
+	}
+
+	[System.Obsolete("CanPromota は typo です。CanPromote を使用してください。")]
+	public static bool CanPromota(MoveData move_data)
+	{
+		return CanPromote(move_data);
 	}
 
 	public static bool ForcePromotion(Piece piece, int square)
@@ -791,23 +773,15 @@ public static class MoveCheck
 
 	public static bool IsCheck(SPosition pos, MoveData moveData)
 	{
-		bool result = false;
 		if (moveData.MoveType == MoveType.Pass)
 		{
 			return false;
 		}
 		if (pos.Turn == PlayerColor.White)
 		{
-			if (IsCheckBlack(pos, moveData.ToSquare))
-			{
-				result = true;
-			}
+			return IsCheckBlack(pos, moveData.ToSquare);
 		}
-		else if (IsCheckWhite(pos, moveData.ToSquare))
-		{
-			result = true;
-		}
-		return result;
+		return IsCheckWhite(pos, moveData.ToSquare);
 	}
 
 	public static bool IsCheck(SPosition pos)

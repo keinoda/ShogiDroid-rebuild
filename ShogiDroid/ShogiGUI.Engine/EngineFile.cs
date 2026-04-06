@@ -58,7 +58,6 @@ public class EngineFile
 
 	private static bool MakeDir(string path)
 	{
-		bool result = false;
 		if (!Directory.Exists(path))
 		{
 			try
@@ -67,10 +66,10 @@ public class EngineFile
 			}
 			catch
 			{
-				result = true;
+				return true;
 			}
 		}
-		return result;
+		return false;
 	}
 
 	public static bool AssetExists(string path)
@@ -139,7 +138,6 @@ public class EngineFile
 
 	private static bool CopyFileFromResource(string dest, string src)
 	{
-		bool result = false;
 		string path = dest;
 		if (Directory.Exists(dest))
 		{
@@ -150,26 +148,25 @@ public class EngineFile
 			using Stream stream = EmbResource.Open(src);
 			using Stream destination = System.IO.File.Open(path, FileMode.Create);
 			stream.CopyTo(destination);
+			return false;
 		}
 		catch (Java.IO.IOException)
 		{
-			result = true;
+			return true;
 		}
-		return result;
 	}
 
 	public static bool CopyFile(string dest, string src)
 	{
-		bool result = false;
 		try
 		{
 			System.IO.File.Copy(src, dest, overwrite: true);
+			return false;
 		}
 		catch
 		{
-			result = true;
+			return true;
 		}
-		return result;
 	}
 
 	public static string FindEngine(string dir)

@@ -9,7 +9,7 @@ public class PieceMoveAnimation
 {
 	private PieceMoveData moveData;
 
-	private PieceMoveStae moveState;
+	private PieceMoveState moveState;
 
 	private int frame = 6;
 
@@ -35,7 +35,7 @@ public class PieceMoveAnimation
 
 	private PiecePositionFromMoveData toPos;
 
-	public PieceMoveStae MoveSate => moveState;
+	public PieceMoveState MoveSate => moveState;
 
 	public MoveData MoveData => moveData;
 
@@ -58,7 +58,7 @@ public class PieceMoveAnimation
 
 	public void Init()
 	{
-		moveState = PieceMoveStae.Stop;
+		moveState = PieceMoveState.Stop;
 		count = 0;
 		queue.Clear();
 	}
@@ -76,7 +76,7 @@ public class PieceMoveAnimation
 
 	public void MoveNext(PieceMoveData moveData)
 	{
-		moveState = PieceMoveStae.Play;
+		moveState = PieceMoveState.Play;
 		this.moveData = moveData;
 		if (moveData.Dir == MoveDataDir.Next)
 		{
@@ -112,12 +112,12 @@ public class PieceMoveAnimation
 
 	public bool IsAnimation()
 	{
-		return moveState != PieceMoveStae.Stop;
+		return moveState != PieceMoveState.Stop;
 	}
 
 	public bool IsMoving(int square, Piece piece)
 	{
-		if (moveState == PieceMoveStae.Stop)
+		if (moveState == PieceMoveState.Stop)
 		{
 			return false;
 		}
@@ -125,7 +125,7 @@ public class PieceMoveAnimation
 		{
 			return false;
 		}
-		if (moveState == PieceMoveStae.Play && square != moveData.FromSquare)
+		if (moveState == PieceMoveState.Play && square != moveData.FromSquare)
 		{
 			return false;
 		}
@@ -134,7 +134,7 @@ public class PieceMoveAnimation
 
 	public bool IsMoving(Piece piece)
 	{
-		if (moveState == PieceMoveStae.Stop)
+		if (moveState == PieceMoveState.Stop)
 		{
 			return false;
 		}
@@ -142,7 +142,7 @@ public class PieceMoveAnimation
 		{
 			return false;
 		}
-		if (moveState == PieceMoveStae.Play && moveData.Piece != piece)
+		if (moveState == PieceMoveState.Play && moveData.Piece != piece)
 		{
 			return false;
 		}
@@ -151,7 +151,7 @@ public class PieceMoveAnimation
 
 	public void Animation()
 	{
-		if (moveState == PieceMoveStae.Stop)
+		if (moveState == PieceMoveState.Stop)
 		{
 			return;
 		}
@@ -160,7 +160,7 @@ public class PieceMoveAnimation
 		{
 			if (queue.IsEmpty())
 			{
-				moveState = PieceMoveStae.Stop;
+				moveState = PieceMoveState.Stop;
 				OnMoveEnd(moveData);
 				OnPieceUpdate(now);
 				return;

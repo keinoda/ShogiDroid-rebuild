@@ -27,7 +27,7 @@ public class EditBoardPresenter : PresenterBase<IEditBoardView>
 	{
 	}
 
-	public override void Destory()
+	public override void Destroy()
 	{
 	}
 

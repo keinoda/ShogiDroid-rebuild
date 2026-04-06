@@ -137,7 +137,7 @@ public class EngineSettingsWrapperActivity : ThemedActivity, IEngineOptions
 	protected override void OnDestroy()
 	{
 		base.OnDestroy();
-		presenter.Destory();
+		presenter.Destroy();
 	}
 
 	public override void OnConfigurationChanged(Configuration newConfig)
@@ -514,11 +514,6 @@ public class EngineSettingsWrapperActivity : ThemedActivity, IEngineOptions
 		defaultText.SetTextSize(Android.Util.ComplexUnitType.Sp, 11);
 		defaultText.SetTextColor(Color.Gray);
 		card.AddView(defaultText);
-	}
-
-	private int DpToPx(int dp)
-	{
-		return (int)(dp * Resources.DisplayMetrics.Density + 0.5f);
 	}
 
 	private void UpdateWindowSettings()

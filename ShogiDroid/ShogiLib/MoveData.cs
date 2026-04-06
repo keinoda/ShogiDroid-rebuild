@@ -77,29 +77,18 @@ public class MoveData
 
 	public bool Equals(MoveData movedata)
 	{
-		bool result = false;
 		if (movedata == null)
 		{
 			return false;
 		}
 		if (MoveType.HasFlag(MoveType.DropFlag) && movedata.MoveType.HasFlag(MoveType.DropFlag))
 		{
-			if (ToSquare == movedata.ToSquare && Piece == movedata.Piece)
-			{
-				result = true;
-			}
+			return ToSquare == movedata.ToSquare && Piece == movedata.Piece;
 		}
-		else if (MoveType.HasFlag(MoveType.MoveFlag) && movedata.MoveType.HasFlag(MoveType.MoveFlag))
+		if (MoveType.HasFlag(MoveType.MoveFlag) && movedata.MoveType.HasFlag(MoveType.MoveFlag))
 		{
-			if (FromSquare == movedata.FromSquare && ToSquare == movedata.ToSquare && (MoveType & MoveType.MoveMask) == (movedata.MoveType & MoveType.MoveMask))
-			{
-				result = true;
-			}
+			return FromSquare == movedata.FromSquare && ToSquare == movedata.ToSquare && (MoveType & MoveType.MoveMask) == (movedata.MoveType & MoveType.MoveMask);
 		}
-		else if (MoveType == movedata.MoveType)
-		{
-			result = true;
-		}
-		return result;
+		return MoveType == movedata.MoveType;
 	}
 }

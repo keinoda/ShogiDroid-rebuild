@@ -3,7 +3,7 @@ using Android.App;
 
 namespace ShogiLib;
 
-public static class MoveEvalExtention
+public static class MoveEvalExtension
 {
 	private static string[] moveEvalStr = new string[9]
 	{

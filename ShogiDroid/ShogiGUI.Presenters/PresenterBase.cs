@@ -15,5 +15,5 @@ public abstract class PresenterBase<T>
 
 	public abstract void Pause();
 
-	public abstract void Destory();
+	public abstract void Destroy();
 }

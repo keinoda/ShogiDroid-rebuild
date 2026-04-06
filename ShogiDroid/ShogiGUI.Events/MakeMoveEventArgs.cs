@@ -5,7 +5,7 @@ namespace ShogiGUI.Events;
 
 public class MakeMoveEventArgs : EventArgs
 {
-	public MoveData MoveData;
+	public MoveData MoveData { get; set; }
 
 	public MakeMoveEventArgs(MoveData moveData)
 	{

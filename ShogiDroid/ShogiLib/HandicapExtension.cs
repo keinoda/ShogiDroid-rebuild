@@ -3,7 +3,7 @@ using System.Linq;
 
 namespace ShogiLib;
 
-public static class HandicapExtention
+public static class HandicapExtension
 {
 	public static readonly Dictionary<string, Handicap> HandicapHash = new Dictionary<string, Handicap>
 	{

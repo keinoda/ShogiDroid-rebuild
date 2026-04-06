@@ -1,6 +1,6 @@
 namespace ShogiLib;
 
-public static class PlayerColorExtentions
+public static class PlayerColorExtensions
 {
 	public static PlayerColor Opp(this PlayerColor color)
 	{

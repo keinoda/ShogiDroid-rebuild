@@ -15,7 +15,7 @@ public class EngineOptionAdapter : BaseAdapter
 {
 	private class OptionSpinnerAdapter : ArrayAdapter<string>
 	{
-		private string defautString;
+		private string defaultString;
 
 		private string selString;
 
@@ -34,7 +34,7 @@ public class EngineOptionAdapter : BaseAdapter
 		public OptionSpinnerAdapter(Context context, int resource, IList<string> strings, string val, string def)
 			: base(context, resource, strings)
 		{
-			defautString = def;
+			defaultString = def;
 			selString = val;
 		}
 
@@ -65,7 +65,7 @@ public class EngineOptionAdapter : BaseAdapter
 			}
 			TextView textView = (TextView)convertView;
 			textView.Text = GetItem(position);
-			if (textView.Text != defautString)
+			if (textView.Text != defaultString)
 			{
 				textView.SetTextColor(ColorUtils.Get(Context, Resource.Color.option_change_text_color));
 			}

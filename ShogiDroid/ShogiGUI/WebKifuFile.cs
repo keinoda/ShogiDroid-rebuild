@@ -438,7 +438,6 @@ public class WebKifuFile
 
 	public static bool IsUrl(string str)
 	{
-		bool result = false;
 		string text = string.Empty;
 		using (StringReader stringReader = new StringReader(str))
 		{
@@ -451,9 +450,9 @@ public class WebKifuFile
 		}
 		if (text[0] != '#' && text[0] != '*' && Regex.Match(text, "(http\\S+)", RegexOptions.IgnoreCase).Success)
 		{
-			result = true;
+			return true;
 		}
-		return result;
+		return false;
 	}
 
 	public static string DanToString(int dan)

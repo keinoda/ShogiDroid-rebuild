@@ -96,16 +96,16 @@ public class PolicyAnalyzer : IDisposable
 		player.LoadSettings();
 		player.Initialized += EnginePlayer_Initialized;
 		player.ReadyOk += EnginePlayer_ReadyOk;
-		player.InfoRecieved += EnginePlayer_InfoRecieved;
-		player.BestMoveRecieved += EnginePlayer_BestMoveRecieved;
+		player.InfoReceived += EnginePlayer_InfoReceived;
+		player.BestMoveReceived += EnginePlayer_BestMoveReceived;
 		player.ReportError += EnginePlayer_ReportError;
 
 		if (!player.Init(player.EnginePath))
 		{
 			player.Initialized -= EnginePlayer_Initialized;
 			player.ReadyOk -= EnginePlayer_ReadyOk;
-			player.InfoRecieved -= EnginePlayer_InfoRecieved;
-			player.BestMoveRecieved -= EnginePlayer_BestMoveRecieved;
+			player.InfoReceived -= EnginePlayer_InfoReceived;
+			player.BestMoveReceived -= EnginePlayer_BestMoveReceived;
 			player.ReportError -= EnginePlayer_ReportError;
 			player.Terminate();
 			return false;
@@ -146,7 +146,7 @@ public class PolicyAnalyzer : IDisposable
 		}
 	}
 
-	private void EnginePlayer_InfoRecieved(object sender, InfoEventArgs e)
+	private void EnginePlayer_InfoReceived(object sender, InfoEventArgs e)
 	{
 		lock (lockObj)
 		{
@@ -175,7 +175,7 @@ public class PolicyAnalyzer : IDisposable
 		}
 	}
 
-	private void EnginePlayer_BestMoveRecieved(object sender, BestMoveEventArgs e)
+	private void EnginePlayer_BestMoveReceived(object sender, BestMoveEventArgs e)
 	{
 		lock (lockObj)
 		{
@@ -212,8 +212,8 @@ public class PolicyAnalyzer : IDisposable
 		{
 			enginePlayer.Initialized -= EnginePlayer_Initialized;
 			enginePlayer.ReadyOk -= EnginePlayer_ReadyOk;
-			enginePlayer.InfoRecieved -= EnginePlayer_InfoRecieved;
-			enginePlayer.BestMoveRecieved -= EnginePlayer_BestMoveRecieved;
+			enginePlayer.InfoReceived -= EnginePlayer_InfoReceived;
+			enginePlayer.BestMoveReceived -= EnginePlayer_BestMoveReceived;
 			enginePlayer.ReportError -= EnginePlayer_ReportError;
 			try { enginePlayer.Stop(); } catch { }
 			try { enginePlayer.Terminate(); } catch { }

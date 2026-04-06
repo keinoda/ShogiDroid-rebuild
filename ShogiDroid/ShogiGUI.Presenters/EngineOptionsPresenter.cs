@@ -26,7 +26,7 @@ public class EngineOptionsPresenter : PresenterBase<IEngineOptions>
 	{
 	}
 
-	public override void Destory()
+	public override void Destroy()
 	{
 		Domain.Game.GameEventHandler -= Game_GameEventHandler;
 	}

@@ -47,29 +47,27 @@ public static class Sfen
 
 	public static bool IsSfen(string str)
 	{
-		bool result = false;
 		if (string.IsNullOrEmpty(str))
 		{
 			return false;
 		}
 		if (str.StartsWith("position") || str.StartsWith("sfen") || str.StartsWith("startpos") || str.StartsWith("moves"))
 		{
-			result = true;
+			return true;
 		}
-		else if (str.Length < 100)
+		if (str.Length < 100)
 		{
-			result = true;
 			string text = "KRBGSNLPkrgbsnlp0123456789wb/-+ ";
 			foreach (char value in str)
 			{
 				if (text.IndexOf(value) < 0)
 				{
-					result = false;
-					break;
+					return false;
 				}
 			}
+			return true;
 		}
-		return result;
+		return false;
 	}
 
 	public static void Load(SNotation notation, string filename)

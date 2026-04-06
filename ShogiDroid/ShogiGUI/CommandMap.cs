@@ -24,12 +24,11 @@ public class CommandMap
 
 		public bool IsEnable()
 		{
-			bool result = true;
 			if (is_enable != null)
 			{
-				result = is_enable();
+				return is_enable();
 			}
-			return result;
+			return true;
 		}
 
 		public void Execute()
@@ -58,44 +57,40 @@ public class CommandMap
 
 	public bool IsEnable(int id)
 	{
-		bool result = true;
 		if (idTable.ContainsKey(id))
 		{
-			result = idTable[id].IsEnable();
+			return idTable[id].IsEnable();
 		}
-		return result;
+		return true;
 	}
 
 	public bool IsEnable(CmdNo cmdno)
 	{
-		bool result = true;
 		if (cmdTable.ContainsKey(cmdno))
 		{
-			result = cmdTable[cmdno].IsEnable();
+			return cmdTable[cmdno].IsEnable();
 		}
-		return result;
+		return true;
 	}
 
 	public bool Execute(int id)
 	{
-		bool result = false;
 		if (idTable.ContainsKey(id))
 		{
 			idTable[id].Execute();
-			result = true;
+			return true;
 		}
-		return result;
+		return false;
 	}
 
 	public bool Execute(CmdNo cmdno)
 	{
-		bool result = false;
 		if (cmdTable.ContainsKey(cmdno))
 		{
 			cmdTable[cmdno].Execute();
-			result = true;
+			return true;
 		}
-		return result;
+		return false;
 	}
 
 	public int GetId(CmdNo cmdno)

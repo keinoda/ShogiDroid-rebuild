@@ -2491,11 +2491,6 @@ public class CloudActivity : ThemedActivity
 		return char.ConvertFromUtf32(first) + char.ConvertFromUtf32(second);
 	}
 
-	private int DpToPx(int dp)
-	{
-		return (int)(dp * Resources.DisplayMetrics.Density + 0.5f);
-	}
-
 	protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)
 	{
 		base.OnActivityResult(requestCode, resultCode, data);

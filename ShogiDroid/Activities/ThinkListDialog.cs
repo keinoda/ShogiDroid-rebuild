@@ -20,7 +20,7 @@ public class ThinkListDialog : DialogFragment
 
 	private IList<PvInfo> pvinfos;
 
-	private ThinkInfiListViewAdapter listviewAdapter;
+	private ThinkInfoListViewAdapter listviewAdapter;
 
 	private MoveStyle moveStyle;
 
@@ -28,7 +28,7 @@ public class ThinkListDialog : DialogFragment
 	{
 		ThinkListDialog thinkListDialog = new ThinkListDialog();
 		thinkListDialog.LoadComments(commentList);
-		thinkListDialog.listviewAdapter = new CommentInfiListViewAdapter(activity);
+		thinkListDialog.listviewAdapter = new CommentInfoListViewAdapter(activity);
 		thinkListDialog.listviewAdapter.MoveStyle = moveStyle;
 		thinkListDialog.listviewAdapter.SetPvInfo(thinkListDialog.pvinfos);
 		thinkListDialog.moveStyle = moveStyle;

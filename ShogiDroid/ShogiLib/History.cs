@@ -74,7 +74,6 @@ public class History
 
 	public bool IsRepetitionCheck()
 	{
-		bool result = false;
 		if (moveList.Count == 0)
 		{
 			return false;
@@ -82,23 +81,21 @@ public class History
 		HashKey key = moveList.Last();
 		if (hashTable[key].Count >= 4 && hashTable[key].IsCheck)
 		{
-			result = true;
 			for (int i = hashTable[key].No; i < moveList.Count; i += 2)
 			{
 				key = moveList[i];
 				if (!hashTable[key].IsCheck)
 				{
-					result = false;
-					break;
+					return false;
 				}
 			}
+			return true;
 		}
-		return result;
+		return false;
 	}
 
 	public bool IsRepetitionCheckOpp()
 	{
-		bool result = false;
 		if (moveList.Count == 0)
 		{
 			return false;
@@ -106,17 +103,16 @@ public class History
 		HashKey key = moveList.Last();
 		if (hashTable[key].Count >= 4 && !hashTable[key].IsCheck)
 		{
-			result = true;
 			for (int i = hashTable[key].No + 1; i < moveList.Count; i += 2)
 			{
 				key = moveList[i];
 				if (!hashTable[key].IsCheck)
 				{
-					result = false;
-					break;
+					return false;
 				}
 			}
+			return true;
 		}
-		return result;
+		return false;
 	}
 }

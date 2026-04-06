@@ -23,6 +23,8 @@ public class Game
 
 	private GameMode gameMode;
 
+	private const int DefaultRemotePort = 28597;
+
 	private History history = new History();
 
 	private NotationModel notationModel = new NotationModel();
@@ -179,7 +181,7 @@ public class Game
 		}
 	}
 
-	public void Destory()
+	public void Destroy()
 	{
 		threatmateAnalyzer.Dispose();
 		policyAnalyzer.Dispose();
@@ -701,7 +703,7 @@ public class Game
 				}
 				else
 				{
-					int port = 28597;
+					int port = DefaultRemotePort;
 					int.TryParse(Settings.EngineSettings.RemotePort, out port);
 					AppDebug.Log.Info($"initEnginePlayer: TCP mode port={port}");
 					remoteEnginePlayer = new RemoteEnginePlayer(PlayerColor.Black, host, port);
@@ -723,10 +725,10 @@ public class Game
 				enginePlayer.OptionsApplying += Player_OptionsApplying;
 				enginePlayer.Initialized += Player_Initialized;
 				enginePlayer.ReadyOk += Player_ReadyOk;
-				enginePlayer.BestMoveRecieved += Player_BestMoveRecieved;
-				enginePlayer.CheckMateRecieved += Player_CheckMateRecieved;
+				enginePlayer.BestMoveReceived += Player_BestMoveReceived;
+				enginePlayer.CheckMateReceived += Player_CheckMateReceived;
 				enginePlayer.Stopped += Player_Stopped;
-				enginePlayer.InfoRecieved += Player_InfoRecieved;
+				enginePlayer.InfoReceived += Player_InfoReceived;
 				enginePlayer.ReportError += Player_ReportError;
 
 				bool connected;
@@ -736,7 +738,7 @@ public class Game
 				}
 				else
 				{
-					int port = 28597;
+					int port = DefaultRemotePort;
 					int.TryParse(Settings.EngineSettings.RemotePort, out port);
 					connected = enginePlayer.InitRemote(host, port);
 				}
@@ -802,10 +804,10 @@ public class Game
 				AppDebug.Log.Info($"initEnginePlayer: launching engine at {enginePath}");
 				enginePlayer.Initialized += Player_Initialized;
 				enginePlayer.ReadyOk += Player_ReadyOk;
-				enginePlayer.BestMoveRecieved += Player_BestMoveRecieved;
-				enginePlayer.CheckMateRecieved += Player_CheckMateRecieved;
+				enginePlayer.BestMoveReceived += Player_BestMoveReceived;
+				enginePlayer.CheckMateReceived += Player_CheckMateReceived;
 				enginePlayer.Stopped += Player_Stopped;
-				enginePlayer.InfoRecieved += Player_InfoRecieved;
+				enginePlayer.InfoReceived += Player_InfoReceived;
 				enginePlayer.ReportError += Player_ReportError;
 				if (!enginePlayer.Init(enginePath))
 				{
@@ -1167,20 +1169,17 @@ public class Game
 
 	private bool IsHumanPlayer(PlayerColor color)
 	{
-		bool result = false;
 		switch (color)
 		{
 		case PlayerColor.Black:
-			result = gameParam.BlackNo == 0;
-			break;
+			return gameParam.BlackNo == 0;
 		case PlayerColor.White:
-			result = gameParam.WhiteNo == 0;
-			break;
+			return gameParam.WhiteNo == 0;
 		}
-		return result;
+		return false;
 	}
 
-	private void Player_BestMoveRecieved(object sender, BestMoveEventArgs e)
+	private void Player_BestMoveReceived(object sender, BestMoveEventArgs e)
 	{
 		ComputerState num = comState;
 		comState = ComputerState.Stop;
@@ -1225,7 +1224,7 @@ public class Game
 		}
 	}
 
-	private void Player_CheckMateRecieved(object sender, CheckMateEventArgs e)
+	private void Player_CheckMateReceived(object sender, CheckMateEventArgs e)
 	{
 		if (comState == ComputerState.Mating)
 		{
@@ -1234,7 +1233,7 @@ public class Game
 		}
 	}
 
-	private void Player_InfoRecieved(object sender, InfoEventArgs e)
+	private void Player_InfoReceived(object sender, InfoEventArgs e)
 	{
 		pvinfos.Add(e.PvInfo);
 		if (comState == ComputerState.Analyzing)

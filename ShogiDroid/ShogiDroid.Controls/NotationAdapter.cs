@@ -60,7 +60,7 @@ public class NotationAdapter : BaseAdapter
 		TextView textView2 = view.FindViewById<TextView>(Resource.Id.time_text);
 		if (moveNode.Number == 0)
 		{
-			textView.Text = $"=== {MoveStringExtention.InitialPosition(moveStyle)} ===";
+			textView.Text = $"=== {MoveStringExtension.InitialPosition(moveStyle)} ===";
 			textView2.Text = string.Empty;
 		}
 		else
@@ -103,17 +103,17 @@ public class NotationAdapter : BaseAdapter
 		TextView textView6 = view.FindViewById<TextView>(Resource.Id.eval_text);
 		if (moveNode.HasScore)
 		{
-			textView6.Text = MoveStringExtention.ToEvalString(moveNode.Score, moveStyle);
+			textView6.Text = MoveStringExtension.ToEvalString(moveNode.Score, moveStyle);
 		}
 		else if (moveNode.HasEval)
 		{
-			textView6.Text = MoveStringExtention.ToEvalString(moveNode.Eval, moveStyle);
+			textView6.Text = MoveStringExtension.ToEvalString(moveNode.Eval, moveStyle);
 		}
 		else
 		{
 			textView6.Text = string.Empty;
 		}
-		switch (MoveEvalExtention.GetMoveEval(moveNode, moveNode.Parent))
+		switch (MoveEvalExtension.GetMoveEval(moveNode, moveNode.Parent))
 		{
 		case MoveEval.Bad:
 			textView6.SetTextColor(ColorUtils.Get(activity, Resource.Color.warning_tint));
