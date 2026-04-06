@@ -53,9 +53,10 @@ public class AwsSpotManager : IDisposable
 	{
 		string keyName = KeyPairPrefix + "key";
 
-		if (!File.Exists(publicKeyPath))
-			throw new FileNotFoundException($"SSH公開鍵が見つかりません: {publicKeyPath}\n秘密鍵と同じ場所に .pub ファイルを配置してください");
-		string pubKeyContent = File.ReadAllText(publicKeyPath).Trim();
+		string privateKeyPath = publicKeyPath.EndsWith(".pub", StringComparison.OrdinalIgnoreCase)
+			? publicKeyPath.Substring(0, publicKeyPath.Length - 4)
+			: publicKeyPath;
+		string pubKeyContent = SshPublicKeyUtil.EnsurePublicKey(privateKeyPath, publicKeyPath);
 
 		// shogidroid-key が既にあるか確認
 		try

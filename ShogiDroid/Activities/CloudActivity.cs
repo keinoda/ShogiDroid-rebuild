@@ -101,6 +101,8 @@ public class CloudActivity : ThemedActivity
 	protected override void OnCreate(Bundle savedInstanceState)
 	{
 		base.OnCreate(savedInstanceState);
+		// IPv6 が不通のネットワークで HttpURLConnection がハングするのを防ぐ
+		Java.Lang.JavaSystem.SetProperty("java.net.preferIPv4Stack", "true");
 		cts_ = new CancellationTokenSource();
 		BuildUI();
 		LoadSettings();
@@ -110,6 +112,8 @@ public class CloudActivity : ThemedActivity
 	protected override void OnDestroy()
 	{
 		base.OnDestroy();
+		loadCts_?.Cancel();
+		loadCts_?.Dispose();
 		cts_?.Cancel();
 		cts_?.Dispose();
 		vastAi_?.Dispose();
@@ -772,8 +776,16 @@ public class CloudActivity : ThemedActivity
 
 	// ===== 統合インスタンス一覧 =====
 
+	private CancellationTokenSource loadCts_;
+
 	private async void LoadAllInstancesAsync()
 	{
+		// 前回の取得をキャンセル
+		loadCts_?.Cancel();
+		loadCts_?.Dispose();
+		loadCts_ = CancellationTokenSource.CreateLinkedTokenSource(cts_.Token);
+		var token = loadCts_.Token;
+
 		existingInstancesContainer_.RemoveAllViews();
 		SetBusy(true, "インスタンス一覧を取得中...");
 
@@ -782,57 +794,90 @@ public class CloudActivity : ThemedActivity
 			&& !string.IsNullOrEmpty(Settings.EngineSettings.AwsSecretKey);
 		bool hasGcp = !string.IsNullOrEmpty(Settings.EngineSettings.GcpServiceAccountKeyPath);
 
-		// vast.ai インスタンス
+		// 各クラウドプロバイダを並列で取得
 		List<VastAiInstance> vastAiInstances = null;
 		double? vastAiCredit = null;
+		List<AwsInstance> awsInstances = null;
+		List<GcpInstance> gcpInstances = null;
+
+		var tasks = new List<Task>();
+
+		// vast.ai インスタンス
 		if (hasVastAi)
 		{
-			try
+			tasks.Add(Task.Run(async () =>
 			{
-				var manager = GetVastAiManager();
-				if (manager != null)
+				try
 				{
-					vastAiInstances = await manager.ListInstancesAsync(cts_.Token);
-					vastAiCredit = await manager.GetCreditBalanceAsync(cts_.Token);
+					using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+					timeout.CancelAfter(TimeSpan.FromSeconds(15));
+					var manager = GetVastAiManager();
+					if (manager != null)
+					{
+						vastAiInstances = await manager.ListInstancesAsync(timeout.Token);
+						vastAiCredit = await manager.GetCreditBalanceAsync(timeout.Token);
+					}
 				}
-			}
-			catch (Exception ex)
-			{
-				AppDebug.Log.Error($"CloudActivity: vast.ai一覧取得エラー: {ex.Message}");
-			}
+				catch (Exception ex)
+				{
+					// リフレッシュ or Activity破棄なら再スロー
+					token.ThrowIfCancellationRequested();
+					AppDebug.Log.Error($"CloudActivity: vast.ai一覧取得エラー: {ex.Message}");
+				}
+			}));
 		}
 
 		// AWS インスタンス
-		List<AwsInstance> awsInstances = null;
 		if (hasAws)
 		{
-			try
+			tasks.Add(Task.Run(async () =>
 			{
-				var manager = GetAwsManager();
-				if (manager != null)
+				try
 				{
-					awsInstances = await manager.ListInstancesAsync(cts_.Token);
+					using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+					timeout.CancelAfter(TimeSpan.FromSeconds(15));
+					var manager = GetAwsManager();
+					if (manager != null)
+					{
+						awsInstances = await manager.ListInstancesAsync(timeout.Token);
+					}
 				}
-			}
-			catch (Exception ex)
-			{
-				AppDebug.Log.Error($"CloudActivity: AWS一覧取得エラー: {ex.Message}");
-			}
+				catch (Exception ex)
+				{
+					token.ThrowIfCancellationRequested();
+					AppDebug.Log.Error($"CloudActivity: AWS一覧取得エラー: {ex.Message}");
+				}
+			}));
 		}
 
 		// GCP インスタンス
-		List<GcpInstance> gcpInstances = null;
 		if (hasGcp && System.IO.File.Exists(Settings.EngineSettings.GcpServiceAccountKeyPath))
 		{
-			try
+			tasks.Add(Task.Run(async () =>
 			{
-				using var gcpTemp = new GcpSpotManager(Settings.EngineSettings.GcpServiceAccountKeyPath);
-				gcpInstances = await gcpTemp.ListInstancesAsync(cts_.Token);
-			}
-			catch (Exception ex)
-			{
-				AppDebug.Log.Error($"CloudActivity: GCP一覧取得エラー: {ex.Message}");
-			}
+				try
+				{
+					using var timeout = CancellationTokenSource.CreateLinkedTokenSource(token);
+					timeout.CancelAfter(TimeSpan.FromSeconds(15));
+					using var gcpTemp = new GcpSpotManager(Settings.EngineSettings.GcpServiceAccountKeyPath);
+					gcpInstances = await gcpTemp.ListInstancesAsync(timeout.Token);
+				}
+				catch (Exception ex)
+				{
+					token.ThrowIfCancellationRequested();
+					AppDebug.Log.Error($"CloudActivity: GCP一覧取得エラー: {ex.Message}");
+				}
+			}));
+		}
+
+		try
+		{
+			await Task.WhenAll(tasks);
+		}
+		catch (System.OperationCanceledException)
+		{
+			// リフレッシュ or Activity破棄でキャンセルされた場合のみUI更新しない
+			return;
 		}
 
 		RunOnUiThread(() =>
@@ -1708,9 +1753,7 @@ public class CloudActivity : ThemedActivity
 		{
 			// SSH公開鍵を読み込み
 			string pubKeyPath = sshKeyPath + ".pub";
-			if (!System.IO.File.Exists(pubKeyPath))
-				throw new System.IO.FileNotFoundException($"SSH公開鍵が見つかりません: {pubKeyPath}");
-			string pubKeyContent = System.IO.File.ReadAllText(pubKeyPath).Trim();
+			string pubKeyContent = SshPublicKeyUtil.EnsurePublicKey(sshKeyPath, pubKeyPath);
 
 			// ファイアウォールルールを確保
 			RunOnUiThread(() => statusText_.Text = "ファイアウォールルールを確認中...");
@@ -2510,10 +2553,14 @@ public class CloudActivity : ThemedActivity
 							}
 						}
 					}
+
+					// 既存 .pub はコメント/BOM を除去して正規化し、なければ秘密鍵から生成する
+					SshPublicKeyUtil.EnsurePublicKey(destPath, pubDestPath);
+					pubCopied = true;
 				}
 				catch (Exception pubEx)
 				{
-					AppDebug.Log.Info($"SSH公開鍵のコピーに失敗: {pubEx.Message}");
+					AppDebug.Log.Info($"SSH公開鍵の準備に失敗: {pubEx.Message}");
 				}
 
 				sshKeyPathEdit_.Text = destPath;
