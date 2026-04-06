@@ -10,6 +10,7 @@ public class PolicyMoveInfo
 	public int Rank { get; set; }
 	public string MoveUSI { get; set; }
 	public double SelectionRate { get; set; } // 0.0 - 100.0%
+	public int Score { get; set; } // depth 1 の評価値（cp）
 }
 
 public class PolicyInfo
