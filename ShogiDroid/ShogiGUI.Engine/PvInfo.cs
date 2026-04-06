@@ -398,27 +398,65 @@ public class PvInfo
 
 	/// <summary>
 	/// 候補手（最初の1手）を返す。
+	/// PvMoves がない場合（コメントから復元した場合）は Message からフォールバック。
 	/// </summary>
 	public string GetFirstMove(MoveStyle style)
 	{
-		if (PvMoves == null || PvMoves.Count == 0) return string.Empty;
-		var m = PvMoves[0];
-		return ((m.Turn == PlayerColor.Black) ? "☗" : "☖") + m.ToString(style);
+		if (PvMoves != null && PvMoves.Count > 0)
+		{
+			var m = PvMoves[0];
+			return ((m.Turn == PlayerColor.Black) ? "☗" : "☖") + m.ToString(style);
+		}
+		if (message != null)
+		{
+			var (first, _) = SplitFirstMove(message);
+			return first;
+		}
+		return string.Empty;
 	}
 
 	/// <summary>
 	/// 候補手以降の残りの読み筋を返す。
+	/// PvMoves がない場合（コメントから復元した場合）は Message からフォールバック。
 	/// </summary>
 	public string GetRestMoves(MoveStyle style)
 	{
-		if (PvMoves == null || PvMoves.Count <= 1) return string.Empty;
-		string text = string.Empty;
-		for (int i = 1; i < PvMoves.Count; i++)
+		if (PvMoves != null && PvMoves.Count > 1)
 		{
-			var m = PvMoves[i];
-			text = text + " " + ((m.Turn == PlayerColor.Black) ? "☗" : "☖") + m.ToString(style);
+			string text = string.Empty;
+			for (int i = 1; i < PvMoves.Count; i++)
+			{
+				var m = PvMoves[i];
+				text = text + " " + ((m.Turn == PlayerColor.Black) ? "☗" : "☖") + m.ToString(style);
+			}
+			return text.TrimStart();
 		}
-		return text.TrimStart();
+		if (message != null)
+		{
+			var (_, rest) = SplitFirstMove(message);
+			return rest;
+		}
+		return string.Empty;
+	}
+
+	/// <summary>
+	/// Message文字列から最初の手と残りの読み筋を分離する。
+	/// 手マーカー（▲/△）で区切る。
+	/// </summary>
+	private static (string firstMove, string restMoves) SplitFirstMove(string msg)
+	{
+		string trimmed = msg.TrimStart();
+		if (string.IsNullOrEmpty(trimmed)) return (string.Empty, string.Empty);
+
+		for (int i = 1; i < trimmed.Length; i++)
+		{
+			char c = trimmed[i];
+			if (c == '▲' || c == '△')
+			{
+				return (trimmed.Substring(0, i).TrimEnd(), trimmed.Substring(i));
+			}
+		}
+		return (trimmed, string.Empty);
 	}
 
 	private static string FormatWithSuffix(long value, long divisor, string suffix)

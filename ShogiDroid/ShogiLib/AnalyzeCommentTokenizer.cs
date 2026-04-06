@@ -69,6 +69,7 @@ public class AnalyzeCommentTokenizer
 		long num = 0L;
 		int i = 0;
 		bool flag = false;
+		long decimalDivisor = 0;
 		if (str.Length >= 1 && str[0] == '-')
 		{
 			flag = true;
@@ -81,6 +82,13 @@ public class AnalyzeCommentTokenizer
 			{
 				num *= 10;
 				num += c - 48;
+				if (decimalDivisor > 0)
+					decimalDivisor *= 10;
+				continue;
+			}
+			if (c == '.')
+			{
+				decimalDivisor = 1;
 				continue;
 			}
 			switch (c)
@@ -91,11 +99,17 @@ public class AnalyzeCommentTokenizer
 				break;
 			case 'M':
 			case 'm':
-				num = num * 1000 * 1000;
+				num *= 1000000;
+				break;
+			case 'B':
+			case 'b':
+				num *= 1000000000;
 				break;
 			}
 			break;
 		}
+		if (decimalDivisor > 0)
+			num /= decimalDivisor;
 		cnt = i;
 		if (flag)
 		{
