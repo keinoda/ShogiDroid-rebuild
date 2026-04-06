@@ -89,11 +89,11 @@ public class AwsSpotManager : IDisposable
 			// 存在しない → 新規インポート
 		}
 
-		// 公開鍵をインポート
+		// 公開鍵をインポート（AWS API は Base64 エンコードを要求）
 		var importReq = new ImportKeyPairRequest
 		{
 			KeyName = keyName,
-			PublicKeyMaterial = pubKeyContent
+			PublicKeyMaterial = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(pubKeyContent))
 		};
 		var result = await client_.ImportKeyPairAsync(importReq, ct);
 		AppDebug.Log.Info($"AwsSpot: キーペア '{keyName}' をインポート: {result.KeyFingerprint}");
