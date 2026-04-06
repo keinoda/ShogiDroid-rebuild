@@ -152,6 +152,7 @@
     <item type="id" name="cmd_pass" />
     <item type="id" name="cmd_prev" />
     <item type="id" name="cmd_reverse" />
+    <item type="id" name="clear_all_comments" />
     <item type="id" name="comment_edit" />
     <item type="id" name="comment_info_select" />
     <item type="id" name="comment_moves" />

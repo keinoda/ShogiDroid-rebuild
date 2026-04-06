@@ -517,6 +517,22 @@ public class NotationModel
 		OnNotationChanged(new NotationEventArgs(NotationEventId.COMMENT));
 	}
 
+	/// <summary>
+	/// すべての手のコメントを削除する
+	/// </summary>
+	public void ClearAllComments()
+	{
+		foreach (MoveNode moveNode in notation.MoveNodes)
+		{
+			moveNode.CommentList.Clear();
+			moveNode.UpdateCommentCount();
+		}
+		// 開始局面のコメントもクリア
+		notation.MoveFirst.CommentList.Clear();
+		notation.MoveFirst.UpdateCommentCount();
+		OnNotationChanged(new NotationEventArgs(NotationEventId.COMMENT));
+	}
+
 	public static void SetMoves(SNotation notation, SPosition position, MoveData ponder, List<MoveDataEx> moveDataList)
 	{
 		notation.Init();
