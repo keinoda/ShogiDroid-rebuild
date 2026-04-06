@@ -166,8 +166,9 @@ public class Game
 
 	protected virtual void OnGameEvent(GameEventArgs e)
 	{
-		// リモートエンジン使用中のみ Watchdog にイベントを転送
-		if (Settings.EngineSettings.EngineNo == RemoteEnginePlayer.RemoteEngineNo)
+		// vast.ai リモートエンジン使用中のみ Watchdog にイベントを転送
+		if (Settings.EngineSettings.EngineNo == RemoteEnginePlayer.RemoteEngineNo
+			&& Settings.EngineSettings.CloudProvider == "vastai")
 		{
 			VastAiWatchdog.Instance.OnGameEvent(e.EventId);
 		}
@@ -755,7 +756,8 @@ public class Game
 					return false;
 				}
 				AppDebug.Log.Info("initEnginePlayer: remote engine connected successfully");
-				if (Settings.EngineSettings.VastAiInstanceId > 0
+				if (Settings.EngineSettings.CloudProvider == "vastai"
+					&& Settings.EngineSettings.VastAiInstanceId > 0
 					&& !string.IsNullOrEmpty(Settings.EngineSettings.VastAiApiKey))
 				{
 					VastAiWatchdog.Instance.StartMonitoring(

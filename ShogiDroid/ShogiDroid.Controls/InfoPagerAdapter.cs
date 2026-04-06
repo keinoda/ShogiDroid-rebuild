@@ -403,6 +403,74 @@ public class InfoPagerAdapter : PagerAdapter
 		}
 	}
 
+	/// <summary>
+	/// 解析中でない時に、コメントに残っている過去の解析結果を表示する
+	/// </summary>
+	public void SetCommentAnalysis(System.Collections.Generic.List<string> commentList)
+	{
+		if (commentList == null || commentList.Count == 0)
+		{
+			ClearThinkInfo();
+			return;
+		}
+
+		var pvInfoList = new System.Collections.Generic.List<PvInfo>();
+		PvInfo bestInfo = null;
+
+		foreach (string comment in commentList)
+		{
+			if (string.IsNullOrEmpty(comment) || comment[0] != '*')
+				continue;
+
+			PvInfo pvInfo = AnalyzeInfoList.Parse(comment);
+			if (pvInfo.Kind == AnalyzeCommentKind.Analysis || pvInfo.Kind == AnalyzeCommentKind.Candidate)
+			{
+				pvInfoList.Add(pvInfo);
+				if (pvInfo.Kind == AnalyzeCommentKind.Analysis
+					&& (bestInfo == null || (pvInfo.Rank > 0 && pvInfo.Rank < bestInfo.Rank) || bestInfo.Rank <= 0))
+				{
+					bestInfo = pvInfo;
+				}
+			}
+		}
+
+		if (pvInfoList.Count == 0)
+		{
+			ClearThinkInfo();
+			return;
+		}
+
+		// ヘッダー情報を最善の解析結果から取得
+		if (bestInfo != null)
+		{
+			timeMs = bestInfo.TimeMs;
+			depth = bestInfo.Depth;
+			selDepth = bestInfo.SelDepth;
+			nodes = bestInfo.Nodes;
+			nps = bestInfo.NPS;
+			hashFull = -1;
+		}
+		UpdateThinkInfo();
+		UpdateRemoteStatsLine();
+		thinkInfoListViewAdapter.SetPvInfo(pvInfoList);
+	}
+
+	/// <summary>
+	/// 解析結果表示をクリアする
+	/// </summary>
+	public void ClearThinkInfo()
+	{
+		timeMs = 0;
+		depth = 0;
+		selDepth = 0;
+		nodes = 0;
+		nps = 0;
+		hashFull = -1;
+		UpdateThinkInfo();
+		UpdateRemoteStatsLine();
+		thinkInfoListViewAdapter.SetPvInfo(new System.Collections.Generic.List<PvInfo>());
+	}
+
 	public void SetNotation(SNotation notation)
 	{
 		this.notation = notation;

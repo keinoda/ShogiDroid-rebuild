@@ -169,7 +169,8 @@ public class PolicyAnalyzer : IDisposable
 			{
 				Rank = rank,
 				MoveUSI = moveUSI,
-				SelectionRate = selectionRate
+				SelectionRate = selectionRate,
+				Score = e.PvInfo.Score
 			};
 		}
 	}

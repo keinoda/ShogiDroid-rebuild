@@ -260,6 +260,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		detail.Add(Resource.Id.file_import, GetString(Resource.String.Menu_FileImport_Text), isEnabled: enabled(Resource.Id.file_import));
 		detail.Add(Resource.Id.comment_edit, GetString(Resource.String.CommentMenuEdit_Text), isEnabled: enabled(Resource.Id.comment_edit));
 		detail.Add(Resource.Id.comment_info_select, GetString(Resource.String.CommentInfoSelect_Text), isEnabled: enabled(Resource.Id.comment_info_select));
+		detail.Add(Resource.Id.clear_all_comments, GetString(Resource.String.ClearAllComments_Text), isEnabled: () => true);
 		detail.Add(Resource.Id.cmd_kyokumen, GetString(Resource.String.MenuKyokumen_Text), isEnabled: enabled(Resource.Id.cmd_kyokumen));
 		detail.Add(Resource.Id.cmd_auto_play, GetString(Resource.String.MenuAutoPlay_Text), isEnabled: enabled(Resource.Id.cmd_auto_play));
 		detail.Add(Resource.Id.engine_connection_settings, GetString(Resource.String.Menu_RemoteConnectionSettings_Text), isEnabled: enabled(Resource.Id.engine_connection_settings));
@@ -1537,6 +1538,9 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		case Resource.Id.menu_about:
 			MessagePopup(GetString(Resource.String.app_name) + " ver " + Assembly.GetExecutingAssembly().GetName().Version, lengthShort: true);
 			break;
+		case Resource.Id.clear_all_comments:
+			ConfirmClearAllComments();
+			break;
 		case Resource.Id.thinkinfo_add_branch:
 			presenter.AddBranch(selpvnum, infoPageAdepter.DispMode);
 			break;
@@ -1552,6 +1556,20 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			break;
 		}
 		return flag;
+	}
+
+	private void ConfirmClearAllComments()
+	{
+		drawerLayout.CloseDrawers();
+		new Android.App.AlertDialog.Builder(this)
+			.SetMessage(GetString(Resource.String.ClearAllCommentsConfirm_Text))
+			.SetPositiveButton(Android.Resource.String.Ok, (s, a) =>
+			{
+				presenter.ClearAllComments();
+				UpdateNotation(NotationEventId.COMMENT);
+			})
+			.SetNegativeButton(Android.Resource.String.Cancel, (s, a) => { })
+			.Show();
 	}
 
 	private void OpenSettingsHome()
@@ -1716,6 +1734,11 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		UpdateNotationListView(eventid);
 		UpdateNotationText(eventid);
 		infoPageAdepter.Comment = notation.MoveCurrent.Comment;
+		// 解析中でない時はコメントに残っている過去の解析結果を表示
+		if (!presenter.ComState.IsThinking())
+		{
+			infoPageAdepter.SetCommentAnalysis(notation.MoveCurrent.CommentList);
+		}
 		infoPageAdepter.UpdateNotation(eventid);
 		if (evalGraphView != null)
 		{

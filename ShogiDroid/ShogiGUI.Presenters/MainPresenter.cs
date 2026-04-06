@@ -725,6 +725,11 @@ public class MainPresenter : PresenterBase<IMainView>
 		Domain.Game.NotationModel.SetComment(str);
 	}
 
+	public void ClearAllComments()
+	{
+		Domain.Game.NotationModel.ClearAllComments();
+	}
+
 	public bool CanCommentEdit()
 	{
 		bool result = true;
