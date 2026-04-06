@@ -17,7 +17,14 @@ public static class Log
 	private static string GetCallerInfo()
 	{
 		var frame = new StackTrace(fNeedFileInfo: true).GetFrame(2);
-		return frame?.GetMethod()?.DeclaringType?.Name + "." + frame?.GetMethod()?.Name;
+		var method = frame?.GetMethod();
+		var typeName = method?.DeclaringType?.Name;
+		var methodName = method?.Name;
+		if (typeName == null || methodName == null)
+		{
+			return null;
+		}
+		return $"{typeName}.{methodName}";
 	}
 
 	public static void Fatal(string str)
