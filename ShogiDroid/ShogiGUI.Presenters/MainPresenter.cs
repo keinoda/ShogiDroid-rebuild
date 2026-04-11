@@ -719,6 +719,20 @@ public class MainPresenter : PresenterBase<IMainView>
 		Domain.Game.NotationModel.ClearAllComments();
 	}
 
+	public void UpdateGameInfo(
+		string blackName,
+		string whiteName,
+		string ev,
+		string site,
+		string startTime,
+		string endTime,
+		string timeLimit,
+		string opening)
+	{
+		Domain.Game.NotationModel.UpdateGameInfo(
+			blackName, whiteName, ev, site, startTime, endTime, timeLimit, opening);
+	}
+
 	public bool CanCommentEdit()
 	{
 		if (GameMode != GameMode.Input && GameMode != GameMode.Consider)

@@ -518,6 +518,46 @@ public class NotationModel
 	}
 
 	/// <summary>
+	/// 棋譜情報（対局者名・棋戦・場所等）を更新する。
+	/// 空文字列が渡された項目は KifuInfos から削除する。
+	/// </summary>
+	public void UpdateGameInfo(
+		string blackName,
+		string whiteName,
+		string ev,
+		string site,
+		string startTime,
+		string endTime,
+		string timeLimit,
+		string opening)
+	{
+		notation.BlackName = blackName ?? string.Empty;
+		notation.WhiteName = whiteName ?? string.Empty;
+		SetOrRemoveKifuInfo("棋戦", ev);
+		SetOrRemoveKifuInfo("場所", site);
+		SetOrRemoveKifuInfo("開始日時", startTime);
+		SetOrRemoveKifuInfo("終了日時", endTime);
+		SetOrRemoveKifuInfo("持ち時間", timeLimit);
+		SetOrRemoveKifuInfo("戦型", opening);
+		OnNotationChanged(new NotationEventArgs(NotationEventId.OTHER));
+	}
+
+	private void SetOrRemoveKifuInfo(string key, string value)
+	{
+		if (string.IsNullOrEmpty(value))
+		{
+			if (notation.KifuInfos.Contains(key))
+			{
+				notation.KifuInfos.Remove(key);
+			}
+		}
+		else
+		{
+			notation.KifuInfos[key] = value;
+		}
+	}
+
+	/// <summary>
 	/// すべての手のコメントを削除する
 	/// </summary>
 	public void ClearAllComments()
