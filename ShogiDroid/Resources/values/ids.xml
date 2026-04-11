@@ -155,6 +155,15 @@
     <item type="id" name="clear_all_comments" />
     <item type="id" name="comment_edit" />
     <item type="id" name="comment_info_select" />
+    <item type="id" name="game_info_edit" />
+    <item type="id" name="game_info_black" />
+    <item type="id" name="game_info_white" />
+    <item type="id" name="game_info_event" />
+    <item type="id" name="game_info_site" />
+    <item type="id" name="game_info_start_time" />
+    <item type="id" name="game_info_end_time" />
+    <item type="id" name="game_info_time_limit" />
+    <item type="id" name="game_info_opening" />
     <item type="id" name="comment_moves" />
     <item type="id" name="comments" />
     <item type="id" name="confirm_button" />

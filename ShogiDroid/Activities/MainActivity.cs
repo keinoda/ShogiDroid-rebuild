@@ -260,6 +260,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		detail.Add(Resource.Id.file_import, GetString(Resource.String.Menu_FileImport_Text), isEnabled: enabled(Resource.Id.file_import));
 		detail.Add(Resource.Id.comment_edit, GetString(Resource.String.CommentMenuEdit_Text), isEnabled: enabled(Resource.Id.comment_edit));
 		detail.Add(Resource.Id.comment_info_select, GetString(Resource.String.CommentInfoSelect_Text), isEnabled: enabled(Resource.Id.comment_info_select));
+		detail.Add(Resource.Id.game_info_edit, GetString(Resource.String.GameInfoEdit_Text), isEnabled: () => true);
 		detail.Add(Resource.Id.clear_all_comments, GetString(Resource.String.ClearAllComments_Text), isEnabled: () => true);
 		detail.Add(Resource.Id.cmd_kyokumen, GetString(Resource.String.MenuKyokumen_Text), isEnabled: enabled(Resource.Id.cmd_kyokumen));
 		detail.Add(Resource.Id.cmd_auto_play, GetString(Resource.String.MenuAutoPlay_Text), isEnabled: enabled(Resource.Id.cmd_auto_play));
@@ -1540,6 +1541,10 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			break;
 		case Resource.Id.clear_all_comments:
 			ConfirmClearAllComments();
+			break;
+		case Resource.Id.game_info_edit:
+			ShowGameInfoEditDialog();
+			drawerLayout.CloseDrawers();
 			break;
 		case Resource.Id.thinkinfo_add_branch:
 			presenter.AddBranch(selpvnum, infoPageAdepter.DispMode);
@@ -2846,6 +2851,34 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		{
 			presenter.SetComment(dialog.Comment);
 		});
+	}
+
+	private void ShowGameInfoEditDialog()
+	{
+		string GetInfo(string key) => notation.KifuInfos.Contains(key) ? notation.KifuInfos[key]?.ToString() ?? string.Empty : string.Empty;
+		var dialog = GameInfoEditDialog.NewInstance(
+			notation.BlackName,
+			notation.WhiteName,
+			GetInfo("棋戦"),
+			GetInfo("場所"),
+			GetInfo("開始日時"),
+			GetInfo("終了日時"),
+			GetInfo("持ち時間"),
+			GetInfo("戦型"));
+		dialog.OKClick += (sender, e) =>
+		{
+			presenter.UpdateGameInfo(
+				dialog.BlackName,
+				dialog.WhiteName,
+				dialog.Event,
+				dialog.Site,
+				dialog.StartTime,
+				dialog.EndTime,
+				dialog.TimeLimit,
+				dialog.Opening);
+			UpdateNotation(ShogiGUI.Events.NotationEventId.OTHER);
+		};
+		dialog.Show(FragmentManager, "GameInfoEditDialog");
 	}
 
 	private void ShowCommentInfoDialog()

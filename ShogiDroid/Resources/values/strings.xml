@@ -28,6 +28,16 @@
     <string name="CommentEditDialogTitle_Text">コメント</string>
     <string name="ClearAllComments_Text">コメント一括削除</string>
     <string name="ClearAllCommentsConfirm_Text">すべての手のコメントを削除しますか？</string>
+    <string name="GameInfoEdit_Text">棋譜情報編集</string>
+    <string name="GameInfoEditDialogTitle_Text">棋譜情報</string>
+    <string name="GameInfoBlack_Text">先手</string>
+    <string name="GameInfoWhite_Text">後手</string>
+    <string name="GameInfoEvent_Text">棋戦</string>
+    <string name="GameInfoSite_Text">場所</string>
+    <string name="GameInfoStartTime_Text">開始日時</string>
+    <string name="GameInfoEndTime_Text">終了日時</string>
+    <string name="GameInfoTimeLimit_Text">持ち時間</string>
+    <string name="GameInfoOpening_Text">戦型</string>
     <string name="CommentInfoSelect_Text">コメント情報</string>
     <string name="CommentMenuEdit_Text">コメント編集</string>
     <string name="Comment_Text">コメント</string>

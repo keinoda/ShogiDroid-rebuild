@@ -1,0 +1,152 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout android:orientation="vertical"
+  android:layout_width="fill_parent"
+  android:layout_height="fill_parent"
+  xmlns:android="http://schemas.android.com/apk/res/android">
+    <TextView
+        android:textAppearance="?android:textAppearanceLarge"
+        android:textColor="@color/title_text"
+        android:gravity="center"
+        android:background="@color/title_background"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/GameInfoEditDialogTitle_Text" />
+    <Space android:layout_width="fill_parent" android:layout_height="8.0dip" />
+    <ScrollView
+        android:layout_width="fill_parent"
+        android:layout_height="0.0dip"
+        android:layout_weight="1">
+        <LinearLayout
+            android:orientation="vertical"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
+            android:paddingLeft="16.0dip"
+            android:paddingRight="16.0dip">
+
+            <TextView
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/GameInfoBlack_Text"
+                android:textStyle="bold" />
+            <EditText
+                android:id="@id/game_info_black"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true" />
+
+            <Space android:layout_width="fill_parent" android:layout_height="8.0dip" />
+
+            <TextView
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/GameInfoWhite_Text"
+                android:textStyle="bold" />
+            <EditText
+                android:id="@id/game_info_white"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true" />
+
+            <Space android:layout_width="fill_parent" android:layout_height="8.0dip" />
+
+            <TextView
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/GameInfoEvent_Text"
+                android:textStyle="bold" />
+            <EditText
+                android:id="@id/game_info_event"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true" />
+
+            <Space android:layout_width="fill_parent" android:layout_height="8.0dip" />
+
+            <TextView
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/GameInfoSite_Text"
+                android:textStyle="bold" />
+            <EditText
+                android:id="@id/game_info_site"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true" />
+
+            <Space android:layout_width="fill_parent" android:layout_height="8.0dip" />
+
+            <TextView
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/GameInfoStartTime_Text"
+                android:textStyle="bold" />
+            <EditText
+                android:id="@id/game_info_start_time"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true" />
+
+            <Space android:layout_width="fill_parent" android:layout_height="8.0dip" />
+
+            <TextView
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/GameInfoEndTime_Text"
+                android:textStyle="bold" />
+            <EditText
+                android:id="@id/game_info_end_time"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true" />
+
+            <Space android:layout_width="fill_parent" android:layout_height="8.0dip" />
+
+            <TextView
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/GameInfoTimeLimit_Text"
+                android:textStyle="bold" />
+            <EditText
+                android:id="@id/game_info_time_limit"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true" />
+
+            <Space android:layout_width="fill_parent" android:layout_height="8.0dip" />
+
+            <TextView
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:text="@string/GameInfoOpening_Text"
+                android:textStyle="bold" />
+            <EditText
+                android:id="@id/game_info_opening"
+                android:layout_width="fill_parent"
+                android:layout_height="wrap_content"
+                android:singleLine="true" />
+
+            <Space android:layout_width="fill_parent" android:layout_height="8.0dip" />
+        </LinearLayout>
+    </ScrollView>
+    <Space android:layout_width="fill_parent" android:layout_height="8.0dip" />
+    <LinearLayout
+        android:orientation="horizontal"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content">
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+        <Button
+            android:id="@id/DialogCancelButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/DialogCancel_Text"
+            android:layout_weight="2.0" />
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+        <Button
+            android:id="@id/DialogOKButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/DialogOK_Text"
+            android:layout_weight="2.0" />
+        <Space android:layout_width="0.0dip" android:layout_height="0.0dip" android:layout_weight="1.0" />
+    </LinearLayout>
+</LinearLayout>
