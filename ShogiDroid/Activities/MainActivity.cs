@@ -148,10 +148,6 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 
 	private bool isActivityVisible_;
 
-	private CancellationTokenSource vastAiBootCts_;
-
-	private Task vastAiBootTask_;
-
 	private bool isDestroyed_;
 
 	private View contextMenuParentView;
@@ -193,11 +189,11 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		// 1. クイック操作（常時展開）
 		var quick = new DrawerSectionModel("クイック操作", isQuickAction: true);
 		quick.Add(Resource.Id.notation_analysis, GetString(Resource.String.Menu_Analysis_Text), isEnabled: enabled(Resource.Id.notation_analysis));
-		quick.Add(Resource.Id.consider, GetString(Resource.String.Consider_Text), isEnabled: enabled(Resource.Id.consider));
 		quick.Add(Resource.Id.camera_read, GetString(Resource.String.Menu_CameraRead_Text), isEnabled: enabled(Resource.Id.camera_read));
 		quick.Add(Resource.Id.book_browse, GetString(Resource.String.Menu_BookBrowse_Text), isEnabled: enabled(Resource.Id.book_browse));
 		quick.Add(Resource.Id.engine_select, GetString(Resource.String.Menu_EngineSelect_Text), isEnabled: enabled(Resource.Id.engine_select));
-		quick.Add(Resource.Id.menu_vastai, GetString(Resource.String.Menu_VastAi_Text), isEnabled: enabled(Resource.Id.menu_vastai));
+		quick.Add(Resource.Id.engine_settings_wrapper, GetString(Resource.String.Menu_EngineSettings_Text), isEnabled: enabled(Resource.Id.engine_settings_wrapper));
+		quick.Add(Resource.Id.menu_cloud, GetString(Resource.String.Menu_Cloud_Text), isEnabled: enabled(Resource.Id.menu_cloud));
 		sections.Add(quick);
 
 		// 2. 解析
@@ -385,7 +381,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		case Resource.Id.analysis_settings:
 		case Resource.Id.display_settings:
 		case Resource.Id.action_settings:
-		case Resource.Id.menu_vastai:
+		case Resource.Id.menu_cloud:
 		case Resource.Id.menu_about:
 			return true;
 		default:
@@ -873,9 +869,9 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		InitCommand();
 		InitDrawer();
 
-		// vast.ai watchdog: 解析終了後のアイドルで全インスタンスを自動終了
-		VastAiWatchdog.Instance.InstanceAutoStopped -= OnVastAiAutoStopped;
-		VastAiWatchdog.Instance.InstanceAutoStopped += OnVastAiAutoStopped;
+		// クラウドエンジン watchdog: 解析終了後のアイドルでインスタンスを自動終了
+		CloudInstanceWatchdog.Instance.InstanceAutoStopped -= OnCloudInstanceAutoStopped;
+		CloudInstanceWatchdog.Instance.InstanceAutoStopped += OnCloudInstanceAutoStopped;
 		UpdateSettings();
 		UpdateNotation(NotationEventId.OBJECT_CHANGED);
 		CreateFolders();
@@ -1081,7 +1077,6 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		UnregisterDebugReceiver();
 #endif
 		isActivityVisible_ = false;
-		DismissVastAiBootDialog();
 		base.OnPause();
 		shogiBoard.AnimationStop();
 		StoreSettings();
@@ -1093,8 +1088,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 	protected override void OnDestroy()
 	{
 		isDestroyed_ = true;
-		CancelAutoBootVastAi();
-		VastAiWatchdog.Instance.InstanceAutoStopped -= OnVastAiAutoStopped;
+		CloudInstanceWatchdog.Instance.InstanceAutoStopped -= OnCloudInstanceAutoStopped;
 		base.OnDestroy();
 		CancelBackgroundAnalysisNotification();
 		StopRemoteMonitor();
@@ -1234,7 +1228,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 				presenter.CreateFolders();
 			}
 			break;
-		case VASTAI_ACTIVITY_CODE:
+		case CLOUD_ACTIVITY_CODE:
 			if (resultCode == Result.Ok)
 			{
 				// VastAiActivity has saved RemoteHost/RemotePort/EngineNo to disk.
@@ -1480,8 +1474,8 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		case Resource.Id.action_settings:
 			OpenSettingsHome();
 			break;
-		case Resource.Id.menu_vastai:
-			StartActivityForResult(new Intent(this, typeof(CloudActivity)), VASTAI_ACTIVITY_CODE);
+		case Resource.Id.menu_cloud:
+			StartActivityForResult(new Intent(this, typeof(CloudActivity)), CLOUD_ACTIVITY_CODE);
 			drawerLayout.CloseDrawers();
 			break;
 		case Resource.Id.analysis_settings:
@@ -2453,7 +2447,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 	}
 
 
-	private const int VASTAI_ACTIVITY_CODE = 120;
+	private const int CLOUD_ACTIVITY_CODE = 120;
 
 	public void OnEngineInitialized()
 	{
@@ -2464,311 +2458,12 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			StopRemoteMonitor();
 	}
 
-	private void OnVastAiAutoStopped()
+	private void OnCloudInstanceAutoStopped()
 	{
 		RunOnUiThread(() =>
 		{
-			Toast.MakeText(this, "vast.ai インスタンスをアイドルのため一時停止しました", ToastLength.Long).Show();
+			Toast.MakeText(this, "クラウドインスタンスをアイドルのため一時停止しました", ToastLength.Long).Show();
 		});
-	}
-
-	private bool HasActiveVastAiBoot()
-	{
-		return vastAiBootTask_ != null && !vastAiBootTask_.IsCompleted;
-	}
-
-	private void CancelAutoBootVastAi()
-	{
-		if (vastAiBootCts_ != null && !vastAiBootCts_.IsCancellationRequested)
-		{
-			vastAiBootCts_.Cancel();
-		}
-
-		DismissVastAiBootDialog();
-	}
-
-	private void CompleteAutoBootVastAi(CancellationTokenSource cts)
-	{
-		if (ReferenceEquals(vastAiBootCts_, cts))
-		{
-			vastAiBootCts_ = null;
-			vastAiBootTask_ = null;
-		}
-
-		cts.Dispose();
-	}
-
-	private void RunOnUiThreadIfAlive(CancellationToken ct, Action action)
-	{
-		if (ct.IsCancellationRequested || isDestroyed_ || IsFinishing)
-		{
-			return;
-		}
-
-		RunOnUiThread(() =>
-		{
-			if (ct.IsCancellationRequested || isDestroyed_ || IsFinishing)
-			{
-				return;
-			}
-
-			action();
-		});
-	}
-
-	private void RunOnUiThreadIfVisible(CancellationToken ct, Action action)
-	{
-		RunOnUiThreadIfAlive(ct, () =>
-		{
-			if (!isActivityVisible_)
-			{
-				return;
-			}
-
-			action();
-		});
-	}
-
-	private IProgress<string> CreateVastAiBootProgress(CancellationToken ct)
-	{
-		return new Progress<string>(msg =>
-		{
-			RunOnUiThreadIfVisible(ct, () => SetStatusText(msg));
-		});
-	}
-
-	public void OnVastAiBootRequired()
-	{
-		RunOnUiThread(() =>
-		{
-			if (HasActiveVastAiBoot())
-			{
-				AppDebug.Log.Info("AutoBootVastAi: boot already in progress");
-				return;
-			}
-
-			var cts = new CancellationTokenSource();
-			vastAiBootCts_ = cts;
-			vastAiBootTask_ = AutoBootVastAiAsync(cts);
-		});
-	}
-
-	private AlertDialog vastAiBootDialog_;
-	private TextView vastAiBootStatusText_;
-
-	private void ShowVastAiBootDialog(string message)
-	{
-		DismissVastAiBootDialog();
-		var layout = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Vertical };
-		layout.SetPadding(48, 32, 48, 16);
-
-		vastAiBootStatusText_ = new TextView(this) { Text = message };
-		vastAiBootStatusText_.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
-		layout.AddView(vastAiBootStatusText_);
-
-		var bar = new ProgressBar(this, null, Android.Resource.Attribute.ProgressBarStyleHorizontal);
-		bar.Indeterminate = true;
-		var barLp = new LinearLayout.LayoutParams(
-			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
-		barLp.TopMargin = 16;
-		bar.LayoutParameters = barLp;
-		layout.AddView(bar);
-
-		vastAiBootDialog_ = new AlertDialog.Builder(this)
-			.SetTitle("インスタンス起動中")
-			.SetView(layout)
-			.SetNegativeButton("キャンセル", (s, e) =>
-			{
-				CancelAutoBootVastAi();
-				DismissVastAiBootDialog();
-			})
-			.SetCancelable(true)
-			.Create();
-		vastAiBootDialog_.CancelEvent += (s, e) =>
-		{
-			CancelAutoBootVastAi();
-		};
-		vastAiBootDialog_.Show();
-	}
-
-	private void DismissVastAiBootDialog()
-	{
-		try { vastAiBootDialog_?.Dismiss(); } catch { }
-		vastAiBootDialog_ = null;
-		vastAiBootStatusText_ = null;
-	}
-
-	private void SetStatusText(string text)
-	{
-		if (string.IsNullOrEmpty(text))
-		{
-			DismissVastAiBootDialog();
-			return;
-		}
-		if (vastAiBootDialog_ == null)
-		{
-			ShowVastAiBootDialog(text);
-		}
-		else if (vastAiBootStatusText_ != null)
-		{
-			vastAiBootStatusText_.Text = text;
-		}
-	}
-
-	private async System.Threading.Tasks.Task AutoBootVastAiAsync(CancellationTokenSource cts)
-	{
-		CancellationToken ct = cts.Token;
-		string apiKey = Settings.EngineSettings.VastAiApiKey;
-		int lastInstanceId = Settings.EngineSettings.VastAiInstanceId;
-
-		if (string.IsNullOrEmpty(apiKey) || lastInstanceId <= 0)
-		{
-			Toast.MakeText(this, GetString(Resource.String.VastAiBootFailed_Text), ToastLength.Long).Show();
-			return;
-		}
-
-		// プログレスダイアログを表示
-		ShowVastAiBootDialog(GetString(Resource.String.VastAiBooting_Text));
-
-		try
-		{
-			using var manager = new VastAiManager(apiKey);
-
-			// 前回のインスタンスを探す
-			var instances = await manager.ListInstancesAsync(ct);
-			VastAiInstance target = null;
-			foreach (var inst in instances)
-			{
-				if (inst.Id == lastInstanceId)
-				{
-					target = inst;
-					break;
-				}
-			}
-
-			var bootProgress = CreateVastAiBootProgress(ct);
-
-			if (target != null && target.IsRunning && !string.IsNullOrEmpty(target.PublicIpAddr))
-			{
-				// 既に稼働中ならSSH待ちだけ行う
-				AppDebug.Log.Info($"AutoBootVastAi: instance {lastInstanceId} は稼働中");
-			}
-			else if (target != null && (target.IsRunning || target.IsLoading))
-			{
-				RunOnUiThreadIfVisible(ct, () => SetStatusText("既存インスタンスの起動完了を待機中..."));
-				target = await manager.WaitForReadyAsync(lastInstanceId, bootProgress, ct);
-			}
-			else if (target != null && target.IsStopped)
-			{
-				// 休止中なら再開
-				RunOnUiThreadIfVisible(ct, () => SetStatusText("インスタンス再開中..."));
-				await manager.StartInstanceAsync(lastInstanceId, ct);
-				target = await manager.WaitForReadyAsync(lastInstanceId, bootProgress, ct);
-			}
-			else
-			{
-				// インスタンスが存在しない場合は新規検索＆作成
-				RunOnUiThreadIfVisible(ct, () => SetStatusText("新規インスタンスを検索中..."));
-				target = await SearchAndCreateInstance(manager, ct);
-			}
-
-			ct.ThrowIfCancellationRequested();
-
-			if (target == null)
-			{
-				throw new VastAiException("インスタンスが見つかりません");
-			}
-
-			// まだ起動途中（Loading）の場合はリトライのために再取得
-			if (!target.IsRunning || string.IsNullOrEmpty(target.PublicIpAddr))
-			{
-				RunOnUiThreadIfVisible(ct, () => SetStatusText("起動完了を待機中..."));
-				target = await manager.WaitForReadyAsync(lastInstanceId, CreateVastAiBootProgress(ct), ct);
-			}
-
-			if (target == null || !target.IsRunning || string.IsNullOrEmpty(target.PublicIpAddr))
-			{
-				throw new VastAiException("インスタンスの起動がタイムアウトしました。クラウド画面から状態を確認してください。");
-			}
-
-			// エンジン接続設定を更新
-			var (sshHost, sshPort) = target.GetSshEndpoint();
-			Settings.EngineSettings.RemoteHost = sshHost;
-			Settings.EngineSettings.VastAiSshPort = sshPort;
-			Settings.EngineSettings.VastAiInstanceId = target.Id;
-			Settings.EngineSettings.VastAiCpuCores = (int)target.CpuCoresEffective;
-			Settings.EngineSettings.VastAiRamMb = (int)(target.CpuRamGb * 1024);
-			Settings.EngineSettings.VastAiGpuRamMb = (int)(target.GpuRamGb * 1024);
-			Settings.Save();
-
-			// Watchdog を再開
-			VastAiWatchdog.Instance.StartMonitoring(target.Id, apiKey);
-			VastAiWatchdog.Instance.SaveLastConnectionInfo(
-				target.Id, sshHost, sshPort,
-				Settings.EngineSettings.VastAiSshEngineCommand);
-
-			RunOnUiThreadIfAlive(ct, () =>
-			{
-				SetStatusText(string.Empty);
-				// 保留中の操作を再開
-				ShogiGUI.Domain.Game.ResumeAfterVastAiBoot();
-			});
-		}
-		catch (System.OperationCanceledException)
-		{
-			AppDebug.Log.Info("AutoBootVastAi: cancelled");
-		}
-		catch (Exception ex)
-		{
-			AppDebug.Log.Error($"AutoBootVastAi: {ex.Message}");
-			RunOnUiThreadIfVisible(ct, () =>
-			{
-				SetStatusText(string.Empty);
-				Toast.MakeText(this, $"{GetString(Resource.String.VastAiBootFailed_Text)}: {ex.Message}", ToastLength.Long).Show();
-			});
-		}
-		finally
-		{
-			CompleteAutoBootVastAi(cts);
-		}
-	}
-
-	private async System.Threading.Tasks.Task<VastAiInstance> SearchAndCreateInstance(
-		VastAiManager manager,
-		CancellationToken ct)
-	{
-		// 前回の検索条件で新規インスタンスを作成
-		var criteria = new VastAiSearchCriteria
-		{
-			GpuNames = Settings.EngineSettings.VastAiGpuNames?.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries)
-				?? new[] { "RTX 4090" },
-			MinCpuCoresEffective = Settings.EngineSettings.VastAiMinCpuCores,
-			MaxDphTotal = Settings.EngineSettings.VastAiMaxDph,
-			MinCudaVersion = Settings.EngineSettings.VastAiMinCudaVersion,
-			RentType = "bid"
-		};
-
-		var offers = await manager.SearchOffersAsync(criteria, ct);
-		if (offers == null || offers.Count == 0)
-			throw new VastAiException("条件に合うオファーが見つかりません");
-
-		var offer = offers[0]; // 最安値
-		RunOnUiThreadIfVisible(ct, () => SetStatusText($"インスタンス作成中... ({offer.GpuName})"));
-
-		var config = new VastAiInstanceConfig
-		{
-			DockerImage = Settings.EngineSettings.VastAiDockerImage,
-			Ports = Array.Empty<int>(),
-			DiskGb = 8.0,
-			OnStartCmd = Settings.EngineSettings.VastAiOnStartCmd,
-			BidPrice = offer.DphTotal
-		};
-
-		int newId = await manager.CreateInstanceAsync(offer.Id, config, ct);
-		Settings.EngineSettings.VastAiInstanceId = newId;
-		Settings.Save();
-
-		return await manager.WaitForReadyAsync(newId, CreateVastAiBootProgress(ct), ct);
 	}
 
 	private void StartRemoteMonitor()

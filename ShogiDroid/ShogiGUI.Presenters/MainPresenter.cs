@@ -95,7 +95,7 @@ public class MainPresenter : PresenterBase<IMainView>
 		bool keepRemoteAnalysisRunning = Domain.Game.ShouldKeepRemoteAnalysisRunningOnPause();
 		if (keepRemoteAnalysisRunning)
 		{
-			VastAiWatchdog.Instance.RecordActivity();
+			CloudInstanceWatchdog.Instance.RecordActivity();
 		}
 		else
 		{
@@ -866,9 +866,6 @@ public class MainPresenter : PresenterBase<IMainView>
 			break;
 		case GameEventId.InitializeError:
 			view.Message(MainViewMessageId.InitializeError);
-			break;
-		case GameEventId.VastAiBootRequired:
-			view.OnVastAiBootRequired();
 			break;
 		case GameEventId.GameStart:
 			if (gameStartPopup)

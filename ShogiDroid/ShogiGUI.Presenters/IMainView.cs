@@ -30,9 +30,4 @@ public interface IMainView
 	void ShowInterstitial();
 
 	void OnEngineInitialized();
-
-	/// <summary>
-	/// リモートエンジン接続失敗時にvast.aiインスタンスの自動起動が必要。
-	/// </summary>
-	void OnVastAiBootRequired();
 }

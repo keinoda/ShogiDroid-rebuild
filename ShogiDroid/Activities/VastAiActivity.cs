@@ -741,10 +741,9 @@ public class VastAiActivity : ThemedActivity
 		Settings.Save();
 
 		// アイドル自動終了監視を開始し、接続情報を保存
-		VastAiWatchdog.Instance.StartMonitoring(
-			inst.Id,
-			Settings.EngineSettings.VastAiApiKey);
-		VastAiWatchdog.Instance.SaveLastConnectionInfo(
+		var watchdogConfig = CloudWatchdogConfig.ForVastAi(inst.Id, Settings.EngineSettings.VastAiApiKey);
+		CloudInstanceWatchdog.Instance.StartMonitoring(watchdogConfig);
+		CloudInstanceWatchdog.Instance.SaveLastConnectionInfo(
 			inst.Id, sshHost, sshPort, engineCommand);
 
 		var resultIntent = new Intent();
@@ -764,7 +763,7 @@ public class VastAiActivity : ThemedActivity
 		try
 		{
 			await manager.StopInstanceAsync(instanceId, cts_.Token);
-			VastAiWatchdog.Instance.StopMonitoring();
+			CloudInstanceWatchdog.Instance.StopMonitoring();
 
 			// APIの状態反映を待つ
 			await Task.Delay(3000, cts_.Token);
@@ -839,7 +838,7 @@ public class VastAiActivity : ThemedActivity
 				try
 				{
 					await manager.DestroyInstanceAsync(instanceId, cts_.Token);
-					VastAiWatchdog.Instance.StopMonitoring();
+					CloudInstanceWatchdog.Instance.StopMonitoring();
 
 					if (Settings.EngineSettings.VastAiInstanceId == instanceId)
 					{
