@@ -27,6 +27,14 @@ public class SettingActivity : ThemedPreferenceActivity
 	public const string SectionEngineConnection = "engine_connection";
 	public const string ActionExportSettings = "Action.ExportSettings";
 	public const string ActionImportSettings = "Action.ImportSettings";
+	public const string ActionPickSshPrivateKey = "Engine.SshPrivateKeyPath";
+	public const string ActionPickSshPublicKey = "Engine.SshPublicKeyPath";
+	public const string ActionClearSshSettings = "Engine.ClearSshSettings";
+	public const string ActionRemoteCpuCores = "Engine.RemoteCpuCores";
+	public const string ActionRemoteRamMb = "Engine.RemoteRamMb";
+
+	private const int RequestPickSshPrivateKey = 9001;
+	private const int RequestPickSshPublicKey = 9002;
 
 	public class SettingsFragment : PreferenceFragment, ISharedPreferencesOnSharedPreferenceChangeListener, IJavaObject, IDisposable, IJavaPeerable
 	{
@@ -100,6 +108,32 @@ public class SettingActivity : ThemedPreferenceActivity
 			string path = Settings.GetBackupFilePath();
 			SetStaticSummary(ActionExportSettings, string.Format(Activity?.GetString(Resource.String.SettingsExportSummary_Text) ?? string.Empty, path));
 			SetStaticSummary(ActionImportSettings, string.Format(Activity?.GetString(Resource.String.SettingsImportSummary_Text) ?? string.Empty, path));
+			RefreshSshKeySummaries();
+			RefreshRemoteSpecSummaries();
+		}
+
+		internal void RefreshSshKeySummaries()
+		{
+			string defaultHintPrivate = Activity?.GetString(Resource.String.SettingsSshPrivateKeySummary_Text) ?? "タップしてファイルを選択";
+			string defaultHintPublic = Activity?.GetString(Resource.String.SettingsSshPublicKeySummary_Text) ?? "タップしてファイルを選択";
+
+			string privatePath = Settings.EngineSettings.VastAiSshKeyPath;
+			SetStaticSummary(ActionPickSshPrivateKey,
+				string.IsNullOrEmpty(privatePath) ? defaultHintPrivate : privatePath);
+
+			string publicPath = Settings.EngineSettings.SshPublicKeyPath;
+			SetStaticSummary(ActionPickSshPublicKey,
+				string.IsNullOrEmpty(publicPath) ? defaultHintPublic : publicPath);
+		}
+
+		internal void RefreshRemoteSpecSummaries()
+		{
+			int cores = Settings.EngineSettings.VastAiCpuCores;
+			int ramMb = Settings.EngineSettings.VastAiRamMb;
+			SetStaticSummary(ActionRemoteCpuCores,
+				cores > 0 ? $"{cores} コア" : "自動設定に使用（0=自動設定しない）");
+			SetStaticSummary(ActionRemoteRamMb,
+				ramMb > 0 ? $"{ramMb} MB" : "自動設定に使用（0=自動設定しない）");
 		}
 
 		private void SetStaticSummary(string key, string summary)
@@ -169,9 +203,185 @@ public class SettingActivity : ThemedPreferenceActivity
 		case ActionImportSettings:
 			ConfirmImportSettings();
 			return true;
+		case ActionPickSshPrivateKey:
+			LaunchSshKeyPicker(RequestPickSshPrivateKey);
+			return true;
+		case ActionPickSshPublicKey:
+			LaunchSshKeyPicker(RequestPickSshPublicKey);
+			return true;
+		case ActionClearSshSettings:
+			ClearSshSettings();
+			return true;
+		case ActionRemoteCpuCores:
+			ShowNumberInputDialog("CPUコア数", Settings.EngineSettings.VastAiCpuCores, val =>
+			{
+				Settings.EngineSettings.VastAiCpuCores = val;
+				Settings.Save();
+				RefreshSpecSummaries();
+			});
+			return true;
+		case ActionRemoteRamMb:
+			ShowNumberInputDialog("メモリ (MB)", Settings.EngineSettings.VastAiRamMb, val =>
+			{
+				Settings.EngineSettings.VastAiRamMb = val;
+				Settings.Save();
+				RefreshSpecSummaries();
+			});
+			return true;
 		default:
 			return false;
 		}
+	}
+
+	private void ShowNumberInputDialog(string title, int currentValue, Action<int> onOk)
+	{
+		var input = new EditText(this);
+		input.InputType = Android.Text.InputTypes.ClassNumber;
+		input.Text = currentValue.ToString();
+		input.SetSelection(input.Text.Length);
+
+		new AlertDialog.Builder(this)
+			.SetTitle(title)
+			.SetView(input)
+			.SetPositiveButton("OK", (s, e) =>
+			{
+				if (int.TryParse(input.Text, out int val) && val >= 0)
+					onOk(val);
+			})
+			.SetNegativeButton("キャンセル", (s, e) => { })
+			.Show();
+	}
+
+	private void RefreshSpecSummaries()
+	{
+		if (FragmentManager.FindFragmentById(16908290) is SettingsFragment fragment)
+			fragment.RefreshRemoteSpecSummaries();
+	}
+
+	private void ClearSshSettings()
+	{
+		new AlertDialog.Builder(this)
+			.SetTitle("TCP接続モードに切り替え")
+			.SetMessage("SSHポート・エンジンコマンドをリセットして、TCP接続モード（IP:Port のみ）に切り替えますか？\n\nSSH鍵は保持されるので、クラウド接続時にはそのまま使えます。")
+			.SetPositiveButton("切り替え", (s, e) =>
+			{
+				// 鍵パスは残す。TCP/SSH 判定に使われるフィールドだけリセット。
+				Settings.EngineSettings.VastAiSshPort = 0;
+				Settings.EngineSettings.VastAiSshEngineCommand = string.Empty;
+				Settings.Save();
+
+				Toast.MakeText(this, "TCP接続モードに切り替えました", ToastLength.Short).Show();
+			})
+			.SetNegativeButton("キャンセル", (s, e) => { })
+			.Show();
+	}
+
+	private void LaunchSshKeyPicker(int requestCode)
+	{
+		var intent = new Intent(Intent.ActionOpenDocument);
+		intent.AddCategory(Intent.CategoryOpenable);
+		intent.SetType("*/*");
+		try
+		{
+			StartActivityForResult(intent, requestCode);
+		}
+		catch (Exception ex)
+		{
+			Toast.MakeText(this, $"ファイル選択画面を開けませんでした: {ex.Message}", ToastLength.Long).Show();
+		}
+	}
+
+	protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)
+	{
+		base.OnActivityResult(requestCode, resultCode, data);
+		if (resultCode != Result.Ok || data?.Data == null)
+			return;
+
+		bool isPublic;
+		if (requestCode == RequestPickSshPrivateKey) isPublic = false;
+		else if (requestCode == RequestPickSshPublicKey) isPublic = true;
+		else return;
+
+		try
+		{
+			var uri = data.Data;
+			string destDir = IOPath.Combine(FilesDir.AbsolutePath, "ssh");
+			Directory.CreateDirectory(destDir);
+
+			string originalName = ResolveFileNameFromUri(uri);
+			if (string.IsNullOrEmpty(originalName))
+				originalName = isPublic ? "id_rsa.pub" : "id_rsa";
+
+			string destPath = IOPath.Combine(destDir, originalName);
+
+			// 同名ファイルがあれば必ず上書き。秘密鍵の read-only 属性を一旦解除して削除する。
+			if (File.Exists(destPath))
+			{
+				try
+				{
+					var existing = new Java.IO.File(destPath);
+					existing.SetWritable(true, true);
+					File.Delete(destPath);
+				}
+				catch (Exception delEx)
+				{
+					AppDebug.Log.Info($"SettingActivity: 既存鍵ファイル削除失敗（続行）: {delEx.Message}");
+				}
+			}
+
+			using (var input = ContentResolver.OpenInputStream(uri))
+			using (var output = new FileStream(destPath, FileMode.Create))
+			{
+				input.CopyTo(output);
+			}
+
+			var file = new Java.IO.File(destPath);
+			if (isPublic)
+			{
+				// 公開鍵は全ユーザー読み取り可。write 属性は残して再インポート時に上書き可能にする。
+				file.SetReadable(true, false);
+				Settings.EngineSettings.SshPublicKeyPath = destPath;
+			}
+			else
+			{
+				// 秘密鍵は owner のみ読み取り可（SSH クライアントの必須条件）。
+				// .NET の ReadOnly 扱いになるのを避けるため write 属性は owner 維持のまま残す。
+				file.SetReadable(false, false);
+				file.SetReadable(true, true);
+				Settings.EngineSettings.VastAiSshKeyPath = destPath;
+			}
+			Settings.Save();
+
+			Toast.MakeText(this,
+				isPublic ? "SSH公開鍵をインポートしました" : "SSH秘密鍵をインポートしました",
+				ToastLength.Short).Show();
+
+			if (FragmentManager.FindFragmentById(16908290) is SettingsFragment fragment)
+			{
+				fragment.RefreshSshKeySummaries();
+			}
+		}
+		catch (Exception ex)
+		{
+			Toast.MakeText(this, $"SSH鍵の読み込みに失敗: {ex.Message}", ToastLength.Long).Show();
+		}
+	}
+
+	private string ResolveFileNameFromUri(Android.Net.Uri uri)
+	{
+		string name = null;
+		if (uri.Scheme == "content")
+		{
+			using var cursor = ContentResolver.Query(uri, null, null, null, null);
+			if (cursor != null && cursor.MoveToFirst())
+			{
+				int idx = cursor.GetColumnIndex(Android.Provider.OpenableColumns.DisplayName);
+				if (idx >= 0) name = cursor.GetString(idx);
+			}
+		}
+		if (string.IsNullOrEmpty(name))
+			name = IOPath.GetFileName(uri.Path);
+		return name;
 	}
 
 	public override void OnWindowFocusChanged(bool hasFocus)

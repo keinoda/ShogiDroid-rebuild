@@ -38,7 +38,10 @@ public class EngineSettings
 	public string VastAiOnStartCmd = "env >> /etc/environment; touch ~/.no_auto_tmux;";
 
 	// SSH接続設定
+	// VastAiSshKeyPath は秘密鍵の絶対パス（全クラウドプロバイダ共通で使用）
 	public string VastAiSshKeyPath = string.Empty;
+	// 公開鍵の絶対パス。自動生成はせず、アプリ設定から明示的にインポートする。
+	public string SshPublicKeyPath = string.Empty;
 	public int VastAiSshPort = 0;
 	public string VastAiSshEngineCommand = string.Empty;
 
@@ -75,8 +78,9 @@ public class EngineSettings
 
 	/// <summary>
 	/// 現在どのクラウドプロバイダーで接続中か ("vastai", "aws", "gcp")
+	/// 新規インストール時は GCP をメインとして扱う。
 	/// </summary>
-	public string CloudProvider = string.Empty;
+	public string CloudProvider = "gcp";
 
 	// GCP Spot VM 設定
 	public string GcpServiceAccountKeyPath = string.Empty;

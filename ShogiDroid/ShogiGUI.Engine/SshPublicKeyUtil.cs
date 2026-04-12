@@ -8,7 +8,7 @@ using Renci.SshNet.Security;
 namespace ShogiGUI.Engine;
 
 /// <summary>
-/// SSH 公開鍵を .pub から正規化して読み込むか、秘密鍵から再生成する。
+/// SSH 公開鍵を .pub から正規化して読み込む。自動生成は行わない。
 /// </summary>
 public static class SshPublicKeyUtil
 {
@@ -21,36 +21,32 @@ public static class SshPublicKeyUtil
 		if (!File.Exists(privateKeyPath))
 			throw new FileNotFoundException($"SSH秘密鍵が見つかりません: {privateKeyPath}");
 
-		string normalized;
-		if (!string.IsNullOrEmpty(publicKeyPath) && File.Exists(publicKeyPath))
+		// 自動生成機能は一旦無効化。公開鍵ファイルが無い/読めない場合はエラーにする。
+		if (string.IsNullOrEmpty(publicKeyPath) || !File.Exists(publicKeyPath))
+			throw new FileNotFoundException($"SSH公開鍵が見つかりません: {publicKeyPath}。アプリ設定のリモート接続設定から公開鍵をインポートしてください。");
+
+		string normalized = NormalizePublicKey(File.ReadAllText(publicKeyPath));
+
+		string dir = Path.GetDirectoryName(publicKeyPath);
+		if (!string.IsNullOrEmpty(dir))
+			Directory.CreateDirectory(dir);
+
+		string existing = File.ReadAllText(publicKeyPath).Replace("\uFEFF", "").Trim();
+		if (!string.Equals(existing, normalized, StringComparison.Ordinal))
 		{
+			// 旧インポート処理でファイルに read-only 属性がついていると
+			// File.WriteAllText が UnauthorizedAccessException を出すため、
+			// 書き戻す前に属性をクリアする。失敗した場合は正規化済み文字列だけ返す。
 			try
 			{
-				normalized = NormalizePublicKey(File.ReadAllText(publicKeyPath));
+				var attrs = File.GetAttributes(publicKeyPath);
+				if ((attrs & FileAttributes.ReadOnly) != 0)
+					File.SetAttributes(publicKeyPath, attrs & ~FileAttributes.ReadOnly);
+				File.WriteAllText(publicKeyPath, normalized + Environment.NewLine, Utf8NoBom);
 			}
 			catch (Exception ex)
 			{
-				AppDebug.Log.Info($"SshPublicKey: 既存 .pub を利用できないため秘密鍵から再生成します: {ex.Message}");
-				normalized = DerivePublicKey(privateKeyPath);
-			}
-		}
-		else
-		{
-			normalized = DerivePublicKey(privateKeyPath);
-		}
-
-		if (!string.IsNullOrEmpty(publicKeyPath))
-		{
-			string dir = Path.GetDirectoryName(publicKeyPath);
-			if (!string.IsNullOrEmpty(dir))
-				Directory.CreateDirectory(dir);
-
-			string existing = File.Exists(publicKeyPath)
-				? File.ReadAllText(publicKeyPath).Replace("\uFEFF", "").Trim()
-				: string.Empty;
-			if (!string.Equals(existing, normalized, StringComparison.Ordinal))
-			{
-				File.WriteAllText(publicKeyPath, normalized + Environment.NewLine, Utf8NoBom);
+				AppDebug.Log.Info($"SshPublicKey: 正規化内容の書き戻しに失敗（続行）: {ex.Message}");
 			}
 		}
 
