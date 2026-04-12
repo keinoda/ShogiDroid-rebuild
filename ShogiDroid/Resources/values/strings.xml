@@ -137,8 +137,6 @@
     <string name="MessageGameStop_Text">対局中断</string>
     <string name="MessageInitializeError_Text">エンジン起動エラー</string>
     <string name="MessageInitialized_Text">エンジン起動中</string>
-    <string name="VastAiBooting_Text">インスタンス起動中...</string>
-    <string name="VastAiBootFailed_Text">vast.ai インスタンスの自動起動に失敗しました</string>
     <string name="Min_Text">最小値</string>
     <string name="Moves_Text">読み筋</string>
     <string name="Nodes_Text">ノード数</string>
@@ -197,8 +195,12 @@
     <string name="SettingsRemoteEngine_Text">リモートエンジン</string>
     <string name="SettingsRemoteHost_Text">ホスト</string>
     <string name="SettingsRemotePort_Text">ポート</string>
+    <string name="SettingsSshPrivateKey_Text">SSH秘密鍵パス</string>
+    <string name="SettingsSshPrivateKeySummary_Text">タップしてファイルを選択</string>
+    <string name="SettingsSshPublicKey_Text">SSH公開鍵パス</string>
+    <string name="SettingsSshPublicKeySummary_Text">タップしてファイルを選択</string>
     <string name="SettingsVastAi_Text">vast.ai クラウド設定</string>
-    <string name="Menu_VastAi_Text">クラウド</string>
+    <string name="Menu_Cloud_Text">クラウド</string>
     <string name="SettingsVastAiApiKey_Text">APIキー</string>
     <string name="SettingsVastAiDockerImage_Text">Dockerイメージ</string>
     <string name="SettingsPVDisplay_Text">PV表示設定</string>

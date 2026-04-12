@@ -4,5 +4,10 @@
     <PreferenceCategory android:title="@string/SettingsRemoteEngine_Text">
         <EditTextPreference android:singleLine="true" android:title="@string/SettingsRemoteHost_Text" android:key="Engine.RemoteHost" android:defaultValue="" />
         <EditTextPreference android:singleLine="true" android:title="@string/SettingsRemotePort_Text" android:key="Engine.RemotePort" android:defaultValue="28597" android:inputType="number" />
+        <Preference android:key="Engine.RemoteCpuCores" android:title="CPUコア数" android:summary="自動設定に使用（0=自動設定しない）" android:persistent="false" />
+        <Preference android:key="Engine.RemoteRamMb" android:title="メモリ (MB)" android:summary="自動設定に使用（0=自動設定しない）" android:persistent="false" />
+        <Preference android:key="Engine.SshPrivateKeyPath" android:title="@string/SettingsSshPrivateKey_Text" android:summary="@string/SettingsSshPrivateKeySummary_Text" android:persistent="false" />
+        <Preference android:key="Engine.SshPublicKeyPath" android:title="@string/SettingsSshPublicKey_Text" android:summary="@string/SettingsSshPublicKeySummary_Text" android:persistent="false" />
+        <Preference android:key="Engine.ClearSshSettings" android:title="TCP接続モードに切り替え" android:summary="SSHポート・コマンドをリセット（SSH鍵は保持）" android:persistent="false" />
     </PreferenceCategory>
 </PreferenceScreen>

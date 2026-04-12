@@ -32,11 +32,11 @@ public static class ParallelAnalysisTaskRunner
 		var analyzer = new ParallelAnalyzer();
 		void HandleProgress(string message)
 		{
-			VastAiWatchdog.Instance.RecordActivity();
+			CloudInstanceWatchdog.Instance.RecordActivity();
 			progress?.Invoke(message);
 		}
 		analyzer.Progress += HandleProgress;
-		VastAiWatchdog.Instance.RecordActivity();
+		CloudInstanceWatchdog.Instance.RecordActivity();
 
 		return await analyzer.ExecuteAsync(
 			host,

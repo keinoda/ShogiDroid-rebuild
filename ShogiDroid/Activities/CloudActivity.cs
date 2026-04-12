@@ -18,7 +18,6 @@ namespace ShogiDroid;
 [Activity(Label = "クラウド", ConfigurationChanges = (Android.Content.PM.ConfigChanges.Orientation | Android.Content.PM.ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
 public class CloudActivity : ThemedActivity
 {
-	private const int SSH_KEY_PICK_CODE = 130;
 	public const string ExtraHost = "vast_ai_host";
 	public const string ExtraPort = "vast_ai_port";
 	public const string ExtraInstanceId = "vast_ai_instance_id";
@@ -34,7 +33,11 @@ public class CloudActivity : ThemedActivity
 	private ProgressBar progressBar_;
 	private LinearLayout existingInstancesContainer_;
 	private LinearLayout connectButtonsContainer_;
-	private EditText sshKeyPathEdit_;
+
+	// ── 折りたたみセクションのヘッダー参照（初期展開制御用） ──
+	private Button awsSectionHeader_;
+	private Button gcpSectionHeader_;
+	private Button vastAiSectionHeader_;
 
 	// ── vast.ai UI ──
 	private LinearLayout vastAiSectionContent_;
@@ -187,44 +190,21 @@ public class CloudActivity : ThemedActivity
 		connectButtonsContainer_.Visibility = ViewStates.Gone;
 		rootLayout_.AddView(connectButtonsContainer_);
 
-		// ── SSH接続設定（共通） ──
+		// SSH 鍵のインポートはアプリ設定側（リモート接続設定）に移動。
+		// ここでは現在の秘密鍵パスを参照のみとして表示する。
 		AddSectionHeader(rootLayout_, "SSH接続設定");
-
-		var sshKeyLabel = new TextView(this) { Text = "SSH秘密鍵パス" };
-		sshKeyLabel.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
-		sshKeyLabel.SetTypeface(null, TypefaceStyle.Bold);
-		var sshKeyLabelLp = new LinearLayout.LayoutParams(
+		var sshInfoText = new TextView(this);
+		sshInfoText.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
+		string currentKey = Settings.EngineSettings.VastAiSshKeyPath;
+		sshInfoText.Text = string.IsNullOrEmpty(currentKey)
+			? "SSH秘密鍵が未設定です。アプリ設定 → リモート接続設定から取り込んでください。"
+			: $"秘密鍵: {currentKey}";
+		var sshInfoLp = new LinearLayout.LayoutParams(
 			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
-		sshKeyLabelLp.TopMargin = DpToPx(8);
-		sshKeyLabel.LayoutParameters = sshKeyLabelLp;
-		rootLayout_.AddView(sshKeyLabel);
-
-		var sshKeyRow = new LinearLayout(this) { Orientation = Orientation.Horizontal };
-		sshKeyRow.SetGravity(GravityFlags.CenterVertical);
-		sshKeyRow.LayoutParameters = new LinearLayout.LayoutParams(
-			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
-
-		sshKeyPathEdit_ = new EditText(this);
-		sshKeyPathEdit_.Hint = "/sdcard/.ssh/id_ed25519";
-		sshKeyPathEdit_.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
-		sshKeyPathEdit_.SetSingleLine(true);
-		sshKeyPathEdit_.LayoutParameters = new LinearLayout.LayoutParams(
-			0, LinearLayout.LayoutParams.WrapContent, 1f);
-		sshKeyRow.AddView(sshKeyPathEdit_);
-
-		var sshKeyBrowseBtn = new Button(this) { Text = "選択" };
-		sshKeyBrowseBtn.SetTextSize(Android.Util.ComplexUnitType.Sp, 12);
-		sshKeyBrowseBtn.LayoutParameters = new LinearLayout.LayoutParams(
-			LinearLayout.LayoutParams.WrapContent, LinearLayout.LayoutParams.WrapContent);
-		sshKeyBrowseBtn.Click += (s, e) =>
-		{
-			var intent = new Intent(Intent.ActionOpenDocument);
-			intent.AddCategory(Intent.CategoryOpenable);
-			intent.SetType("*/*");
-			StartActivityForResult(intent, SSH_KEY_PICK_CODE);
-		};
-		sshKeyRow.AddView(sshKeyBrowseBtn);
-		rootLayout_.AddView(sshKeyRow);
+		sshInfoLp.TopMargin = DpToPx(4);
+		sshInfoLp.BottomMargin = DpToPx(4);
+		sshInfoText.LayoutParameters = sshInfoLp;
+		rootLayout_.AddView(sshInfoText);
 
 		// ── AWS スポットインスタンス（折りたたみ） ──
 		BuildAwsSection();
@@ -238,6 +218,69 @@ public class CloudActivity : ThemedActivity
 		scroll.AddView(rootLayout_);
 		outerFrame.AddView(scroll);
 		SetContentView(outerFrame);
+
+		ExpandInitialSection();
+	}
+
+	/// <summary>
+	/// 稼働中の GCP Spot インスタンスから概算時間料金を合計し、
+	/// ステータス行に表示する文字列を作る。対応表に無いマシンタイプは集計対象外。
+	/// </summary>
+	private string FormatGcpRunningCost(List<GcpInstance> instances)
+	{
+		if (instances == null || instances.Count == 0)
+			return string.Empty;
+
+		double totalHourly = 0;
+		int matched = 0;
+		int runningUnknown = 0;
+		foreach (var inst in instances)
+		{
+			if (!inst.IsRunning) continue;
+			string machineShort = inst.MachineType?.Split('/').LastOrDefault() ?? string.Empty;
+			var type = GcpMachineTypes.FirstOrDefault(t => t.type == machineShort);
+			if (!string.IsNullOrEmpty(type.type))
+			{
+				totalHourly += type.estSpot;
+				matched++;
+			}
+			else
+			{
+				runningUnknown++;
+			}
+		}
+
+		if (matched == 0 && runningUnknown == 0)
+			return string.Empty;
+
+		if (matched == 0)
+			return "GCP 稼働料金: 不明";
+
+		string suffix = runningUnknown > 0 ? $" (+{runningUnknown}件 不明)" : string.Empty;
+		return $"GCP 稼働料金: ~${totalHourly:F2}/h{suffix}";
+	}
+
+	/// <summary>
+	/// 現在の CloudProvider 設定に応じて、該当セクションを初期展開する。
+	/// 未設定の場合は GCP を展開する（GCP をメインに据える方針）。
+	/// </summary>
+	private void ExpandInitialSection()
+	{
+		string provider = Settings.EngineSettings.CloudProvider;
+		switch (provider)
+		{
+			case "aws":
+				ToggleFoldable(awsSectionHeader_, awsSectionContent_, "AWS スポットインスタンス");
+				break;
+			case "vastai":
+				ToggleFoldable(vastAiSectionHeader_, vastAiSectionContent_, "vast.ai");
+				break;
+			case "gcp":
+			default:
+				ToggleFoldable(gcpSectionHeader_, gcpSectionContent_, "GCP Spot VM");
+				FetchGcpSpotPrices();
+				break;
+		}
 	}
 
 	/// <summary>
@@ -246,6 +289,7 @@ public class CloudActivity : ThemedActivity
 	private void BuildAwsSection()
 	{
 		var header = MakeFoldableHeader("▶ AWS スポットインスタンス");
+		awsSectionHeader_ = header;
 		awsSectionContent_ = new LinearLayout(this) { Orientation = Orientation.Vertical };
 		awsSectionContent_.Visibility = ViewStates.Gone;
 		awsSectionContent_.SetPadding(DpToPx(4), 0, 0, DpToPx(8));
@@ -404,6 +448,7 @@ public class CloudActivity : ThemedActivity
 	private void BuildGcpSection()
 	{
 		var header = MakeFoldableHeader("▶ GCP Spot VM");
+		gcpSectionHeader_ = header;
 		gcpSectionContent_ = new LinearLayout(this) { Orientation = Orientation.Vertical };
 		gcpSectionContent_.Visibility = ViewStates.Gone;
 		gcpSectionContent_.SetPadding(DpToPx(4), 0, 0, DpToPx(8));
@@ -503,6 +548,7 @@ public class CloudActivity : ThemedActivity
 	private void BuildVastAiSection()
 	{
 		var header = MakeFoldableHeader("▶ vast.ai");
+		vastAiSectionHeader_ = header;
 		vastAiSectionContent_ = new LinearLayout(this) { Orientation = Orientation.Vertical };
 		vastAiSectionContent_.Visibility = ViewStates.Gone;
 		vastAiSectionContent_.SetPadding(DpToPx(4), 0, 0, DpToPx(8));
@@ -616,9 +662,6 @@ public class CloudActivity : ThemedActivity
 
 	private void LoadSettings()
 	{
-		// 共通
-		sshKeyPathEdit_.Text = Settings.EngineSettings.VastAiSshKeyPath;
-
 		// vast.ai
 		apiKeyEdit_.Text = Settings.EngineSettings.VastAiApiKey;
 		dockerImageEdit_.Text = Settings.EngineSettings.VastAiDockerImage;
@@ -669,9 +712,6 @@ public class CloudActivity : ThemedActivity
 
 	private void SaveSettings()
 	{
-		// 共通
-		Settings.EngineSettings.VastAiSshKeyPath = sshKeyPathEdit_.Text?.Trim() ?? "";
-
 		// vast.ai
 		Settings.EngineSettings.VastAiApiKey = apiKeyEdit_.Text?.Trim() ?? "";
 		Settings.EngineSettings.VastAiDockerImage = dockerImageEdit_.Text?.Trim() ?? "";
@@ -796,13 +836,12 @@ public class CloudActivity : ThemedActivity
 
 		// 各クラウドプロバイダを並列で取得
 		List<VastAiInstance> vastAiInstances = null;
-		double? vastAiCredit = null;
 		List<AwsInstance> awsInstances = null;
 		List<GcpInstance> gcpInstances = null;
 
 		var tasks = new List<Task>();
 
-		// vast.ai インスタンス
+		// vast.ai インスタンス（クレジット残高表示は廃止済み）
 		if (hasVastAi)
 		{
 			tasks.Add(Task.Run(async () =>
@@ -815,7 +854,6 @@ public class CloudActivity : ThemedActivity
 					if (manager != null)
 					{
 						vastAiInstances = await manager.ListInstancesAsync(timeout.Token);
-						vastAiCredit = await manager.GetCreditBalanceAsync(timeout.Token);
 					}
 				}
 				catch (Exception ex)
@@ -884,8 +922,8 @@ public class CloudActivity : ThemedActivity
 		{
 			existingInstancesContainer_.RemoveAllViews();
 
-			if (vastAiCredit.HasValue)
-				creditText_.Text = $"vast.ai残高: ${vastAiCredit.Value:F2}";
+			// GCP 稼働インスタンスの概算時間料金を表示
+			creditText_.Text = FormatGcpRunningCost(gcpInstances);
 
 			bool hasAny = false;
 
@@ -1315,21 +1353,22 @@ public class CloudActivity : ThemedActivity
 
 		try
 		{
-			// SSH公開鍵パスを秘密鍵パスから推定
+			// SSH 鍵パスはアプリ設定から取得
 			string sshKeyPath = Settings.EngineSettings.VastAiSshKeyPath;
-			if (string.IsNullOrEmpty(sshKeyPath))
+			string sshPubKeyPath = Settings.EngineSettings.SshPublicKeyPath;
+			if (string.IsNullOrEmpty(sshKeyPath) || string.IsNullOrEmpty(sshPubKeyPath))
 			{
 				RunOnUiThread(() =>
 				{
 					SetBusy(false, "");
-					Toast.MakeText(this, "SSH秘密鍵パスを設定してください", ToastLength.Short).Show();
+					Toast.MakeText(this, "SSH秘密鍵/公開鍵パスをアプリ設定から取り込んでください", ToastLength.Long).Show();
 				});
 				return;
 			}
 
 			// キーペアとセキュリティグループを確保
 			RunOnUiThread(() => statusText_.Text = "キーペアを確認中...");
-			string keyPairName = await manager.EnsureKeyPairAsync(sshKeyPath + ".pub", cts_.Token);
+			string keyPairName = await manager.EnsureKeyPairAsync(sshPubKeyPath, cts_.Token);
 			Settings.EngineSettings.AwsKeyPairName = keyPairName;
 
 			RunOnUiThread(() => statusText_.Text = "セキュリティグループを確認中...");
@@ -1555,6 +1594,7 @@ public class CloudActivity : ThemedActivity
 				try
 				{
 					await manager.StopInstanceAsync(inst.Zone, inst.Name, cts_.Token);
+					CloudInstanceWatchdog.Instance.StopMonitoring();
 					RunOnUiThread(() => { SetBusy(false, "停止しました"); LoadAllInstancesAsync(); });
 				}
 				catch (Exception ex)
@@ -1688,6 +1728,13 @@ public class CloudActivity : ThemedActivity
 		Settings.EngineSettings.VastAiGpuRamMb = 0;
 		Settings.Save();
 
+		// アイドル自動終了監視を開始
+		var watchdogConfig = CloudWatchdogConfig.ForGcp(
+			Settings.EngineSettings.GcpServiceAccountKeyPath,
+			inst.Zone,
+			inst.Name);
+		CloudInstanceWatchdog.Instance.StartMonitoring(watchdogConfig);
+
 		var resultIntent = new Intent();
 		resultIntent.PutExtra(ExtraHost, inst.ExternalIp);
 		SetResult(Result.Ok, resultIntent);
@@ -1741,9 +1788,10 @@ public class CloudActivity : ThemedActivity
 		if (manager == null) return;
 
 		string sshKeyPath = Settings.EngineSettings.VastAiSshKeyPath;
-		if (string.IsNullOrEmpty(sshKeyPath))
+		string pubKeyPath = Settings.EngineSettings.SshPublicKeyPath;
+		if (string.IsNullOrEmpty(sshKeyPath) || string.IsNullOrEmpty(pubKeyPath))
 		{
-			Toast.MakeText(this, "SSH秘密鍵パスを設定してください", ToastLength.Short).Show();
+			Toast.MakeText(this, "SSH秘密鍵/公開鍵パスをアプリ設定から取り込んでください", ToastLength.Long).Show();
 			return;
 		}
 
@@ -1752,7 +1800,6 @@ public class CloudActivity : ThemedActivity
 		try
 		{
 			// SSH公開鍵を読み込み
-			string pubKeyPath = sshKeyPath + ".pub";
 			string pubKeyContent = SshPublicKeyUtil.EnsurePublicKey(sshKeyPath, pubKeyPath);
 
 			// ファイアウォールルールを確保
@@ -1823,6 +1870,7 @@ public class CloudActivity : ThemedActivity
 				try
 				{
 					await manager.DeleteInstanceAsync(zone, instanceName, cts_.Token);
+					CloudInstanceWatchdog.Instance.StopMonitoring();
 
 					if (Settings.EngineSettings.GcpInstanceName == instanceName)
 					{
@@ -2003,10 +2051,9 @@ public class CloudActivity : ThemedActivity
 		Settings.EngineSettings.VastAiGpuRamMb = (int)(inst.GpuRamGb * 1024);
 		Settings.Save();
 
-		VastAiWatchdog.Instance.StartMonitoring(
-			inst.Id,
-			Settings.EngineSettings.VastAiApiKey);
-		VastAiWatchdog.Instance.SaveLastConnectionInfo(
+		var watchdogConfig = CloudWatchdogConfig.ForVastAi(inst.Id, Settings.EngineSettings.VastAiApiKey);
+		CloudInstanceWatchdog.Instance.StartMonitoring(watchdogConfig);
+		CloudInstanceWatchdog.Instance.SaveLastConnectionInfo(
 			inst.Id, sshHost, sshPort, engineCommand);
 
 		var resultIntent = new Intent();
@@ -2027,7 +2074,7 @@ public class CloudActivity : ThemedActivity
 		try
 		{
 			await manager.StopInstanceAsync(instanceId, cts_.Token);
-			VastAiWatchdog.Instance.StopMonitoring();
+			CloudInstanceWatchdog.Instance.StopMonitoring();
 			await Task.Delay(3000, cts_.Token);
 			RunOnUiThread(() =>
 			{
@@ -2095,7 +2142,7 @@ public class CloudActivity : ThemedActivity
 				try
 				{
 					await manager.DestroyInstanceAsync(instanceId, cts_.Token);
-					VastAiWatchdog.Instance.StopMonitoring();
+					CloudInstanceWatchdog.Instance.StopMonitoring();
 					if (Settings.EngineSettings.VastAiInstanceId == instanceId)
 					{
 						Settings.EngineSettings.VastAiInstanceId = 0;
@@ -2489,107 +2536,6 @@ public class CloudActivity : ThemedActivity
 		int first = 0x1F1E6 + (countryCode[0] - 'A');
 		int second = 0x1F1E6 + (countryCode[1] - 'A');
 		return char.ConvertFromUtf32(first) + char.ConvertFromUtf32(second);
-	}
-
-	protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)
-	{
-		base.OnActivityResult(requestCode, resultCode, data);
-		if (requestCode == SSH_KEY_PICK_CODE && resultCode == Result.Ok && data?.Data != null)
-		{
-			try
-			{
-				var uri = data.Data;
-				string destDir = System.IO.Path.Combine(FilesDir.AbsolutePath, "ssh");
-				System.IO.Directory.CreateDirectory(destDir);
-
-				// 元のファイル名を取得（例: id_ed25519）
-				string originalName = GetFileNameFromUri(uri) ?? "id_rsa";
-				// .pub が選ばれた場合は秘密鍵名に戻す
-				if (originalName.EndsWith(".pub"))
-					originalName = originalName.Substring(0, originalName.Length - 4);
-
-				string destPath = System.IO.Path.Combine(destDir, originalName);
-
-				using (var input = ContentResolver.OpenInputStream(uri))
-				using (var output = new System.IO.FileStream(destPath, System.IO.FileMode.Create))
-				{
-					input.CopyTo(output);
-				}
-
-				var file = new Java.IO.File(destPath);
-				file.SetReadable(false, false);
-				file.SetReadable(true, true);
-				file.SetWritable(false, false);
-
-				// 同じディレクトリにある .pub ファイルも探してコピー
-				string pubDestPath = destPath + ".pub";
-				bool pubCopied = false;
-				try
-				{
-					// 元のURIのパスから .pub を推定して探す
-					string uriPath = uri.Path;
-					if (!string.IsNullOrEmpty(uriPath))
-					{
-						// SAF経由のパスから実際のファイルパスを推定
-						// /document/primary:xxx/id_ed25519 → /sdcard/xxx/id_ed25519.pub
-						string[] searchPaths = {
-							uriPath + ".pub",
-							"/sdcard/.ssh/" + originalName + ".pub",
-							"/storage/emulated/0/.ssh/" + originalName + ".pub",
-						};
-						foreach (var pubPath in searchPaths)
-						{
-							if (System.IO.File.Exists(pubPath))
-							{
-								System.IO.File.Copy(pubPath, pubDestPath, true);
-								pubCopied = true;
-								AppDebug.Log.Info($"SSH公開鍵をコピー: {pubPath} → {pubDestPath}");
-								break;
-							}
-						}
-					}
-
-					// 既存 .pub はコメント/BOM を除去して正規化し、なければ秘密鍵から生成する
-					SshPublicKeyUtil.EnsurePublicKey(destPath, pubDestPath);
-					pubCopied = true;
-				}
-				catch (Exception pubEx)
-				{
-					AppDebug.Log.Info($"SSH公開鍵の準備に失敗: {pubEx.Message}");
-				}
-
-				sshKeyPathEdit_.Text = destPath;
-				// パスを即座に永続化（LoadSettings で上書きされるのを防ぐ）
-				Settings.EngineSettings.VastAiSshKeyPath = destPath;
-				Settings.Save();
-
-				string msg = pubCopied
-					? "SSH秘密鍵と公開鍵をインポートしました"
-					: "SSH秘密鍵をインポートしました（公開鍵は手動で配置してください: " + pubDestPath + "）";
-				Toast.MakeText(this, msg, pubCopied ? ToastLength.Short : ToastLength.Long).Show();
-			}
-			catch (Exception ex)
-			{
-				Toast.MakeText(this, $"秘密鍵の読み込みに失敗: {ex.Message}", ToastLength.Long).Show();
-			}
-		}
-	}
-
-	private string GetFileNameFromUri(Android.Net.Uri uri)
-	{
-		string name = null;
-		if (uri.Scheme == "content")
-		{
-			using var cursor = ContentResolver.Query(uri, null, null, null, null);
-			if (cursor != null && cursor.MoveToFirst())
-			{
-				int idx = cursor.GetColumnIndex(Android.Provider.OpenableColumns.DisplayName);
-				if (idx >= 0) name = cursor.GetString(idx);
-			}
-		}
-		if (string.IsNullOrEmpty(name))
-			name = System.IO.Path.GetFileName(uri.Path);
-		return name;
 	}
 
 	private void UpdateWindowSettings()
