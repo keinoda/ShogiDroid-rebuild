@@ -11,6 +11,8 @@ public interface IMainView
 
 	void UpdateInfo(PvInfos pvinfos);
 
+	void UpdatePolicyInfo(PolicyInfo policyInfo);
+
 	void SetPlayer(bool black, bool white);
 
 	void MessageError(string error);
@@ -28,9 +30,4 @@ public interface IMainView
 	void ShowInterstitial();
 
 	void OnEngineInitialized();
-
-	/// <summary>
-	/// リモートエンジン接続失敗時にvast.aiインスタンスの自動起動が必要。
-	/// </summary>
-	void OnVastAiBootRequired();
 }

@@ -36,3 +36,6 @@ ShogiDroid/Shinden3-YO9-Android/
 
 # Docker build files (not for GitHub)
 ShogiDroid/docker/
+policy-engine/
+policy-engine/
+ShogiDroid/Assets/policy-engine/model.onnx

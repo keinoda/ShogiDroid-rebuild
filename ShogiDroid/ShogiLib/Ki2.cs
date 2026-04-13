@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 namespace ShogiLib;
@@ -356,86 +357,32 @@ public class Ki2 : Kifu
 
 	private static bool IsRankSmall(List<int> squareCollection, int sq)
 	{
-		bool result = true;
-		foreach (int item in squareCollection)
-		{
-			if (item.RankOf() < sq.RankOf())
-			{
-				result = false;
-				break;
-			}
-		}
-		return result;
+		return squareCollection.All(item => item.RankOf() >= sq.RankOf());
 	}
 
 	private static bool IsRankGrater(List<int> squareCollection, int sq)
 	{
-		bool result = true;
-		foreach (int item in squareCollection)
-		{
-			if (item.RankOf() > sq.RankOf())
-			{
-				result = false;
-				break;
-			}
-		}
-		return result;
+		return squareCollection.All(item => item.RankOf() <= sq.RankOf());
 	}
 
 	private static bool IsRankEmpty(List<int> squareCollection, int sq)
 	{
-		bool result = true;
-		foreach (int item in squareCollection)
-		{
-			if (item.RankOf() == sq.RankOf())
-			{
-				result = false;
-				break;
-			}
-		}
-		return result;
+		return squareCollection.All(item => item.RankOf() != sq.RankOf());
 	}
 
 	private static bool IsRightMost(List<int> squareCollection, int sq)
 	{
-		bool result = false;
-		foreach (int item in squareCollection)
-		{
-			if (item.FileOf() < sq.FileOf())
-			{
-				result = true;
-				break;
-			}
-		}
-		return result;
+		return squareCollection.Any(item => item.FileOf() < sq.FileOf());
 	}
 
 	private static bool EqualFile(List<int> squareCollection, int sq)
 	{
-		bool result = false;
-		foreach (int item in squareCollection)
-		{
-			if (item.FileOf() == sq.FileOf())
-			{
-				result = true;
-				break;
-			}
-		}
-		return result;
+		return squareCollection.Any(item => item.FileOf() == sq.FileOf());
 	}
 
 	private static bool IsLeftMost(List<int> squareCollection, int sq)
 	{
-		bool result = false;
-		foreach (int item in squareCollection)
-		{
-			if (item.FileOf() > sq.FileOf())
-			{
-				result = true;
-				break;
-			}
-		}
-		return result;
+		return squareCollection.Any(item => item.FileOf() > sq.FileOf());
 	}
 
 	public static bool IsNotPromotion(MoveData moveData)
@@ -444,6 +391,6 @@ public class Ki2 : Kifu
 		{
 			return false;
 		}
-		return MoveCheck.CanPromota(moveData);
+		return MoveCheck.CanPromote(moveData);
 	}
 }

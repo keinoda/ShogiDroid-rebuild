@@ -34,8 +34,9 @@ public sealed class Settings
 			new PrefSerializer().Deserialize(PreferenceManager.GetDefaultSharedPreferences(Application.Context), settings);
 			MigrateOnStartCmd();
 		}
-		catch
+		catch (Exception ex)
 		{
+			AppDebug.Log.Error($"Settings.Load に失敗: {ex.Message}");
 		}
 	}
 
@@ -70,8 +71,9 @@ public sealed class Settings
 			}
 			new PrefSerializer().Serialize(pref, settings);
 		}
-		catch
+		catch (Exception ex)
 		{
+			AppDebug.Log.Error($"Settings.Save に失敗: {ex.Message}");
 		}
 	}
 

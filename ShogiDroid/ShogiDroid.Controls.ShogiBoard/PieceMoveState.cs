@@ -1,6 +1,6 @@
 namespace ShogiDroid.Controls.ShogiBoard;
 
-public enum PieceMoveStae
+public enum PieceMoveState
 {
 	Stop,
 	Play

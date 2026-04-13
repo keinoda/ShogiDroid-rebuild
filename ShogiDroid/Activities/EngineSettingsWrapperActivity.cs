@@ -17,7 +17,7 @@ using Math = System.Math;
 namespace ShogiDroid;
 
 [Activity(Label = "@string/EngineSettingsTitle_Text", ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
-public class EngineSettingsWrapperActivity : Activity, IEngineOptions
+public class EngineSettingsWrapperActivity : ThemedActivity, IEngineOptions
 {
 	private EngineOptionsPresenter presenter;
 	private LinearLayout container;
@@ -39,9 +39,6 @@ public class EngineSettingsWrapperActivity : Activity, IEngineOptions
 		new OptionDef(new[] { "Threads" }, "基本設定",
 			"探索スレッド数",
 			"CPUコア数に合わせます。推奨: コア数と同じ"),
-		new OptionDef(new[] { "USI_Ponder" }, "基本設定",
-			"先読み(Ponder)",
-			"相手の手番中も思考を続けます。推奨: 対局時ON"),
 		new OptionDef(new[] { "MultiPV" }, "基本設定",
 			"候補手の数",
 			"推奨: 対局時は1、検討時のみ増やす(2以上で棋力低下)"),
@@ -60,21 +57,7 @@ public class EngineSettingsWrapperActivity : Activity, IEngineOptions
 			"MCTS最大ノード数",
 			"探索木の最大ノード数。1ノード≒2KBのメモリを使用。\n推奨: 50000000(50M≒100GB)。長時間解析時は増やす"),
 
-		// === 定跡設定 ===
-		new OptionDef(new[] { "USI_OwnBook" }, "定跡設定",
-			"定跡を使用",
-			"エンジン内蔵の定跡DBを使って序盤を指します。推奨: ON\n※評価値付き定跡使用時、NarrowBookはOFF推奨(全オプションで設定)"),
-
 		// === 対局設定 ===
-		new OptionDef(new[] { "ResignValue" }, "対局設定",
-			"投了する評価値",
-			"この評価値以下で投了。推奨: 対局時は低め(例:500)、棋譜解析時は99999(投了しない)"),
-		new OptionDef(new[] { "Resign_Threshold" }, "対局設定",
-			"投了する勝率(‰)",
-			"この勝率以下で投了(deep系)。0で投了しません"),
-		new OptionDef(new[] { "EnteringKingRule" }, "対局設定",
-			"入玉ルール",
-			"入玉宣言勝ちのルール。CSARule27が一般的"),
 		new OptionDef(new[] { "ConsiderationMode" }, "対局設定",
 			"検討モード",
 			"推奨: 検討時ON(不完全な読み筋の出力を抑制)、対局時OFF"),
@@ -112,6 +95,16 @@ public class EngineSettingsWrapperActivity : Activity, IEngineOptions
 			engineNameText.Text = Settings.EngineSettings.EngineName;
 		}
 
+		// リモートエンジンの場合、接続先を表示
+		if (Settings.EngineSettings.EngineNo == ShogiGUI.Engine.RemoteEnginePlayer.RemoteEngineNo)
+		{
+			string host = Settings.EngineSettings.RemoteHost;
+			int sshPort = Settings.EngineSettings.VastAiSshPort;
+			string port = sshPort > 0 ? sshPort.ToString() : Settings.EngineSettings.RemotePort;
+			string connMode = sshPort > 0 ? "SSH" : "TCP";
+			engineNameText.Text += $"\n接続先: {host}:{port} ({connMode})";
+		}
+
 		if (presenter.EnginePlayer != null && presenter.EnginePlayer.IsInitialized)
 		{
 			BuildOptionViews();
@@ -137,7 +130,7 @@ public class EngineSettingsWrapperActivity : Activity, IEngineOptions
 	protected override void OnDestroy()
 	{
 		base.OnDestroy();
-		presenter.Destory();
+		presenter.Destroy();
 	}
 
 	public override void OnConfigurationChanged(Configuration newConfig)
@@ -514,11 +507,6 @@ public class EngineSettingsWrapperActivity : Activity, IEngineOptions
 		defaultText.SetTextSize(Android.Util.ComplexUnitType.Sp, 11);
 		defaultText.SetTextColor(Color.Gray);
 		card.AddView(defaultText);
-	}
-
-	private int DpToPx(int dp)
-	{
-		return (int)(dp * Resources.DisplayMetrics.Density + 0.5f);
 	}
 
 	private void UpdateWindowSettings()

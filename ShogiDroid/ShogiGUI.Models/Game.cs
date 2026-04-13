@@ -23,6 +23,8 @@ public class Game
 
 	private GameMode gameMode;
 
+	private const int DefaultRemotePort = 28597;
+
 	private History history = new History();
 
 	private NotationModel notationModel = new NotationModel();
@@ -57,14 +59,11 @@ public class Game
 
 	private ThreatmateAnalyzer threatmateAnalyzer = new ThreatmateAnalyzer();
 
+	private PolicyAnalyzer policyAnalyzer = new PolicyAnalyzer();
+
 	private int analyzeStopNumber_ = -1;
 
 	private EngineMode engineMode;
-
-	/// <summary>
-	/// vast.ai起動完了後に再開すべきエンジンモード。Noneなら保留なし。
-	/// </summary>
-	private EngineMode pendingEngineMode_ = EngineMode.None;
 
 	private static string gameText = Application.Context.GetString(Resource.String.Game_Text);
 
@@ -145,6 +144,8 @@ public class Game
 
 	public ThreatmateInfo ThreatmateInfo => threatmateAnalyzer.CurrentInfo;
 
+	public PolicyInfo PolicyInfo => policyAnalyzer.CurrentInfo;
+
 	public event EventHandler<GameEventArgs> GameEventHandler;
 
 	public Game()
@@ -157,14 +158,17 @@ public class Game
 		gameTimer.UpdateTime += GameTimer_UpdateTime;
 		notationModel.NotationChanged += NotationModel_NotationChanged;
 		threatmateAnalyzer.Updated += ThreatmateAnalyzer_Updated;
+		policyAnalyzer.Updated += PolicyAnalyzer_Updated;
 	}
 
 	protected virtual void OnGameEvent(GameEventArgs e)
 	{
-		// リモートエンジン使用中のみ Watchdog にイベントを転送
-		if (Settings.EngineSettings.EngineNo == RemoteEnginePlayer.RemoteEngineNo)
+		// vast.ai / GCP のクラウドエンジン使用中のみ Watchdog にイベントを転送
+		if (Settings.EngineSettings.EngineNo == RemoteEnginePlayer.RemoteEngineNo
+			&& (Settings.EngineSettings.CloudProvider == "vastai"
+				|| Settings.EngineSettings.CloudProvider == "gcp"))
 		{
-			VastAiWatchdog.Instance.OnGameEvent(e.EventId);
+			CloudInstanceWatchdog.Instance.OnGameEvent(e.EventId);
 		}
 
 		if (this.GameEventHandler != null)
@@ -173,9 +177,10 @@ public class Game
 		}
 	}
 
-	public void Destory()
+	public void Destroy()
 	{
 		threatmateAnalyzer.Dispose();
+		policyAnalyzer.Dispose();
 		EngineTerminate();
 	}
 
@@ -185,10 +190,6 @@ public class Game
 		{
 			if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 			{
-				if (RequestVastAiBoot(EngineMode.None))
-				{
-					return;
-				}
 				EngineTerminate();
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
@@ -212,72 +213,8 @@ public class Game
 			comState = ComputerState.None;
 			busy = false;
 			// エンジン切替時に Watchdog 監視を停止（ローカルエンジンへの切替で課金が続くのを防止）
-			VastAiWatchdog.Instance.StopMonitoring();
+			CloudInstanceWatchdog.Instance.StopMonitoring();
 			OnGameEvent(new GameEventArgs(GameEventId.AnalyzeEnd));
-		}
-	}
-
-	/// <summary>
-	/// リモートエンジン選択中で vast.ai 設定がある場合 true。
-	/// </summary>
-	private bool CanAutoBootVastAi()
-	{
-		return Settings.EngineSettings.EngineNo == RemoteEnginePlayer.RemoteEngineNo
-			&& Settings.EngineSettings.VastAiInstanceId > 0
-			&& !string.IsNullOrEmpty(Settings.EngineSettings.VastAiApiKey);
-	}
-
-	private bool RequestVastAiBoot(EngineMode pendingMode)
-	{
-		if (!CanAutoBootVastAi())
-		{
-			return false;
-		}
-
-		pendingEngineMode_ = pendingMode;
-		OnGameEvent(new GameEventArgs(GameEventId.VastAiBootRequired));
-		return true;
-	}
-
-	private void ResumePlayAfterVastAiBoot()
-	{
-		if (gameParam == null)
-		{
-			EngineWakeup();
-			return;
-		}
-
-		GameStart(new GameParam(gameParam));
-	}
-
-	/// <summary>
-	/// vast.ai インスタンス起動完了後に呼び出す。
-	/// 保留中だった操作（解析・検討等）を再開する。
-	/// </summary>
-	public void ResumeAfterVastAiBoot()
-	{
-		EngineMode pending = pendingEngineMode_;
-		pendingEngineMode_ = EngineMode.None;
-
-		AppDebug.Log.Info($"ResumeAfterVastAiBoot: pendingMode={pending}");
-
-		switch (pending)
-		{
-			case EngineMode.Analyze:
-				AnalyzerStart();
-				break;
-			case EngineMode.Hint:
-				ConsiderStart();
-				break;
-			case EngineMode.Mate:
-				Mate();
-				break;
-			case EngineMode.Play:
-				ResumePlayAfterVastAiBoot();
-				break;
-			default:
-				EngineWakeup();
-				break;
 		}
 	}
 
@@ -317,10 +254,6 @@ public class Game
 				flag = true;
 				if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 				{
-					if (RequestVastAiBoot(EngineMode.Play))
-					{
-						return;
-					}
 					GameTerminate();
 					OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 					return;
@@ -407,10 +340,6 @@ public class Game
 		{
 			if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 			{
-				if (RequestVastAiBoot(EngineMode.Hint))
-				{
-					return;
-				}
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
 			}
@@ -449,10 +378,6 @@ public class Game
 		{
 			if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 			{
-				if (RequestVastAiBoot(EngineMode.Mate))
-				{
-					return;
-				}
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
 			}
@@ -513,10 +438,6 @@ public class Game
 		{
 			if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 			{
-				if (RequestVastAiBoot(EngineMode.Analyze))
-				{
-					return;
-				}
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
 			}
@@ -610,10 +531,6 @@ public class Game
 		{
 			if (!initEnginePlayer(Settings.EngineSettings.EngineNo))
 			{
-				if (RequestVastAiBoot(EngineMode.Hint))
-				{
-					return;
-				}
 				OnGameEvent(new GameEventArgs(GameEventId.InitializeError));
 				return;
 			}
@@ -694,7 +611,7 @@ public class Game
 				}
 				else
 				{
-					int port = 28597;
+					int port = DefaultRemotePort;
 					int.TryParse(Settings.EngineSettings.RemotePort, out port);
 					AppDebug.Log.Info($"initEnginePlayer: TCP mode port={port}");
 					remoteEnginePlayer = new RemoteEnginePlayer(PlayerColor.Black, host, port);
@@ -702,13 +619,24 @@ public class Game
 
 				remoteEnginePlayer.CopyFiles();
 				remoteEnginePlayer.LoadSettings();
+
+				// マシンIDが一致しない場合でもユーザー設定（MultiPV, FV_SCALE等）は保持する。
+				// Threads/Hash等のリソース設定は OptionsApplying → ApplyVastAiAutoOptions で
+				// tempOptions_ 経由で確実に上書きされるため、全クリアは不要。
+				if (Settings.EngineSettings.VastAiMachineId > 0
+					&& Settings.EngineSettings.VastAiOptionsMachineId != Settings.EngineSettings.VastAiMachineId)
+				{
+					AppDebug.Log.Info($"initEnginePlayer: マシンID不一致 (saved={Settings.EngineSettings.VastAiOptionsMachineId}, current={Settings.EngineSettings.VastAiMachineId}) → リソース設定は自動補正で上書き");
+				}
+
 				enginePlayer = remoteEnginePlayer;
+				enginePlayer.OptionsApplying += Player_OptionsApplying;
 				enginePlayer.Initialized += Player_Initialized;
 				enginePlayer.ReadyOk += Player_ReadyOk;
-				enginePlayer.BestMoveRecieved += Player_BestMoveRecieved;
-				enginePlayer.CheckMateRecieved += Player_CheckMateRecieved;
+				enginePlayer.BestMoveReceived += Player_BestMoveReceived;
+				enginePlayer.CheckMateReceived += Player_CheckMateReceived;
 				enginePlayer.Stopped += Player_Stopped;
-				enginePlayer.InfoRecieved += Player_InfoRecieved;
+				enginePlayer.InfoReceived += Player_InfoReceived;
 				enginePlayer.ReportError += Player_ReportError;
 
 				bool connected;
@@ -718,7 +646,7 @@ public class Game
 				}
 				else
 				{
-					int port = 28597;
+					int port = DefaultRemotePort;
 					int.TryParse(Settings.EngineSettings.RemotePort, out port);
 					connected = enginePlayer.InitRemote(host, port);
 				}
@@ -728,27 +656,36 @@ public class Game
 					AppDebug.Log.Error($"initEnginePlayer: remote connection failed for {host}");
 					enginePlayer.Terminate();
 					enginePlayer = null;
-
-					// vast.ai設定がある場合、インスタンス自動起動を要求
-					if (CanAutoBootVastAi())
-					{
-						AppDebug.Log.Info("initEnginePlayer: vast.ai自動起動を要求");
-						return false; // 呼び出し元で VastAiBootRequired イベントを処理
-					}
 					return false;
 				}
 				AppDebug.Log.Info("initEnginePlayer: remote engine connected successfully");
-				if (Settings.EngineSettings.VastAiInstanceId > 0
-					&& !string.IsNullOrEmpty(Settings.EngineSettings.VastAiApiKey))
+
+				string provider = Settings.EngineSettings.CloudProvider;
+				if (provider == "vastai")
 				{
-					VastAiWatchdog.Instance.StartMonitoring(
+					var config = CloudWatchdogConfig.ForVastAi(
 						Settings.EngineSettings.VastAiInstanceId,
 						Settings.EngineSettings.VastAiApiKey);
-					VastAiWatchdog.Instance.SaveLastConnectionInfo(
-						Settings.EngineSettings.VastAiInstanceId,
-						host,
-						Settings.EngineSettings.VastAiSshPort,
-						Settings.EngineSettings.VastAiSshEngineCommand);
+					if (config.IsValid())
+					{
+						CloudInstanceWatchdog.Instance.StartMonitoring(config);
+						CloudInstanceWatchdog.Instance.SaveLastConnectionInfo(
+							Settings.EngineSettings.VastAiInstanceId,
+							host,
+							Settings.EngineSettings.VastAiSshPort,
+							Settings.EngineSettings.VastAiSshEngineCommand);
+					}
+				}
+				else if (provider == "gcp")
+				{
+					var config = CloudWatchdogConfig.ForGcp(
+						Settings.EngineSettings.GcpServiceAccountKeyPath,
+						Settings.EngineSettings.GcpZone,
+						Settings.EngineSettings.GcpInstanceName);
+					if (config.IsValid())
+					{
+						CloudInstanceWatchdog.Instance.StartMonitoring(config);
+					}
 				}
 			}
 			else
@@ -783,10 +720,10 @@ public class Game
 				AppDebug.Log.Info($"initEnginePlayer: launching engine at {enginePath}");
 				enginePlayer.Initialized += Player_Initialized;
 				enginePlayer.ReadyOk += Player_ReadyOk;
-				enginePlayer.BestMoveRecieved += Player_BestMoveRecieved;
-				enginePlayer.CheckMateRecieved += Player_CheckMateRecieved;
+				enginePlayer.BestMoveReceived += Player_BestMoveReceived;
+				enginePlayer.CheckMateReceived += Player_CheckMateReceived;
 				enginePlayer.Stopped += Player_Stopped;
-				enginePlayer.InfoRecieved += Player_InfoRecieved;
+				enginePlayer.InfoReceived += Player_InfoReceived;
 				enginePlayer.ReportError += Player_ReportError;
 				if (!enginePlayer.Init(enginePath))
 				{
@@ -1148,20 +1085,17 @@ public class Game
 
 	private bool IsHumanPlayer(PlayerColor color)
 	{
-		bool result = false;
 		switch (color)
 		{
 		case PlayerColor.Black:
-			result = gameParam.BlackNo == 0;
-			break;
+			return gameParam.BlackNo == 0;
 		case PlayerColor.White:
-			result = gameParam.WhiteNo == 0;
-			break;
+			return gameParam.WhiteNo == 0;
 		}
-		return result;
+		return false;
 	}
 
-	private void Player_BestMoveRecieved(object sender, BestMoveEventArgs e)
+	private void Player_BestMoveReceived(object sender, BestMoveEventArgs e)
 	{
 		ComputerState num = comState;
 		comState = ComputerState.Stop;
@@ -1206,7 +1140,7 @@ public class Game
 		}
 	}
 
-	private void Player_CheckMateRecieved(object sender, CheckMateEventArgs e)
+	private void Player_CheckMateReceived(object sender, CheckMateEventArgs e)
 	{
 		if (comState == ComputerState.Mating)
 		{
@@ -1215,7 +1149,7 @@ public class Game
 		}
 	}
 
-	private void Player_InfoRecieved(object sender, InfoEventArgs e)
+	private void Player_InfoReceived(object sender, InfoEventArgs e)
 	{
 		pvinfos.Add(e.PvInfo);
 		if (comState == ComputerState.Analyzing)
@@ -1239,13 +1173,22 @@ public class Game
 		}
 	}
 
+	/// <summary>
+	/// usiok受信後、オプション送信前に呼ばれる。
+	/// クラウドインスタンスのスペックに基づく自動オプションを tempOptions_ にセットする。
+	/// </summary>
+	private void Player_OptionsApplying(object sender, InitializedEventArgs e)
+	{
+		if (!cancel)
+		{
+			ApplyVastAiAutoOptions();
+		}
+	}
+
 	private void Player_Initialized(object sender, InitializedEventArgs e)
 	{
 		if (!cancel)
 		{
-			// vast.aiインスタンスのスペックに基づいてThreads/Hashを自動設定
-			ApplyVastAiAutoOptions();
-
 			if (engineMode == EngineMode.None)
 			{
 				busy = false;
@@ -1258,6 +1201,11 @@ public class Game
 		}
 	}
 
+	/// <summary>
+	/// クラウドインスタンスのスペックに基づいてThreads/Hash等を自動設定する。
+	/// OptionsApplying イベントから呼ばれ、SetTempOptionDeferred で tempOptions_ にセットする。
+	/// update_options() でユーザー保存オプションの後に適用されるため、確実に上書きされる。
+	/// </summary>
 	private void ApplyVastAiAutoOptions()
 	{
 		if (Settings.EngineSettings.EngineNo != RemoteEnginePlayer.RemoteEngineNo) return;
@@ -1279,13 +1227,13 @@ public class Game
 
 			if (cores > 0)
 			{
-				enginePlayer.SetOption("Threads", cores, temp: true);
+				enginePlayer.SetTempOptionDeferred("Threads", cores);
 				AppDebug.Log.Info($"VastAi auto-option: Threads={cores}");
 			}
 
 			// Hash: DEEPでは1024MBで十分
-			enginePlayer.SetOption("USI_Hash", 1024, temp: true);
-			enginePlayer.SetOption("Hash", 1024, temp: true);
+			enginePlayer.SetTempOptionDeferred("USI_Hash", 1024);
+			enginePlayer.SetTempOptionDeferred("Hash", 1024);
 			AppDebug.Log.Info("VastAi auto-option: Hash=1024MB (DEEP)");
 
 			// UCT_NodeLimit: MCTSツリーのノード上限
@@ -1295,7 +1243,7 @@ public class Game
 				if (availableBytes < 0) availableBytes = (long)ramMb * 512L * 1024L;
 				long nodeLimit = availableBytes / 200;
 				int nodeLimitInt = (int)System.Math.Min(nodeLimit, 50000000L);
-				enginePlayer.SetOption("UCT_NodeLimit", nodeLimitInt, temp: true);
+				enginePlayer.SetTempOptionDeferred("UCT_NodeLimit", nodeLimitInt);
 				AppDebug.Log.Info($"VastAi auto-option: UCT_NodeLimit={nodeLimitInt}");
 			}
 		}
@@ -1305,16 +1253,16 @@ public class Game
 
 			if (cores > 0)
 			{
-				enginePlayer.SetOption("Threads", cores, temp: true);
+				enginePlayer.SetTempOptionDeferred("Threads", cores);
 				AppDebug.Log.Info($"VastAi auto-option: Threads={cores}");
 			}
 
-			if (ramMb > 0)
+			if (cores > 0)
 			{
-				// RAMの70%、上限32768MB
-				int hashMb = System.Math.Min((int)(ramMb * 0.7), 32768);
-				enginePlayer.SetOption("USI_Hash", hashMb, temp: true);
-				enginePlayer.SetOption("Hash", hashMb, temp: true);
+				// 4コアにつき1024MB、上限65536MB（64GB）
+				int hashMb = System.Math.Min(cores / 4 * 1024, 65536);
+				enginePlayer.SetTempOptionDeferred("USI_Hash", hashMb);
+				enginePlayer.SetTempOptionDeferred("Hash", hashMb);
 				AppDebug.Log.Info($"VastAi auto-option: Hash={hashMb}MB");
 			}
 		}
@@ -1435,6 +1383,11 @@ public class Game
 		OnGameEvent(new GameEventArgs(GameEventId.ThreatmateUpdated));
 	}
 
+	private void PolicyAnalyzer_Updated(object sender, EventArgs e)
+	{
+		OnGameEvent(new GameEventArgs(GameEventId.PolicyUpdated));
+	}
+
 	private void RefreshThreatmateAnalysis()
 	{
 		if (!Settings.AppSettings.AutoThreatmateAnalysis || Notation == null || Notation.MoveCurrent.MoveType.IsResult())
@@ -1450,6 +1403,16 @@ public class Game
 		RefreshThreatmateAnalysis();
 	}
 
+	private void RefreshPolicyAnalysis()
+	{
+		if (!Settings.AppSettings.AutoPolicyAnalysis || Notation == null || Notation.MoveCurrent.MoveType.IsResult())
+		{
+			policyAnalyzer.Clear();
+			return;
+		}
+		policyAnalyzer.Analyze(Notation);
+	}
+
 	private void NotationModel_NotationChanged(object sender, NotationEventArgs e)
 	{
 		if (e.EventId != NotationEventId.COMMENT)
@@ -1463,6 +1426,7 @@ public class Game
 				AnalyzeStop();
 			}
 			RefreshThreatmateAnalysis();
+			RefreshPolicyAnalysis();
 		}
 	}
 }

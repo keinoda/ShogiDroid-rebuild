@@ -85,7 +85,7 @@ public class EvalGraph : View
 		set { liner = value; Invalidate(); }
 	}
 
-	public event EventHandler<GraphPositoinEventArgs> SelectPosition;
+	public event EventHandler<GraphPositionEventArgs> SelectPosition;
 
 	protected EvalGraph(IntPtr javaReference, JniHandleOwnership transfer) : base(javaReference, transfer) { }
 
@@ -269,7 +269,7 @@ public class EvalGraph : View
 			else if (node.HasEval)
 				evalByMove[num] = node.Eval;
 
-			gradeByMove[num] = MoveEvalExtention.GetMoveEval(node, node.Parent);
+			gradeByMove[num] = MoveEvalExtension.GetMoveEval(node, node.Parent);
 		}
 
 		using var linePaint = new Paint { Color = ColorUtils.Get(Context, Resource.Color.graph_line), StrokeWidth = 2f, AntiAlias = true };
@@ -390,7 +390,7 @@ public class EvalGraph : View
 
 	private void OnSelectPosition(int number)
 	{
-		SelectPosition?.Invoke(this, new GraphPositoinEventArgs(number));
+		SelectPosition?.Invoke(this, new GraphPositionEventArgs(number));
 	}
 
 	private void Ges_DoubleTap(object sender, GestureDetector.DoubleTapEventArgs e)

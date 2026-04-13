@@ -110,7 +110,6 @@
     <item type="id" name="action_text" />
     <item type="id" name="actions" />
     <item type="id" name="activity_chooser_view_content" />
-    <item type="id" name="adView" />
     <item type="id" name="alertTitle" />
     <item type="id" name="analyze_button" />
     <item type="id" name="analysis_settings" />
@@ -152,8 +151,18 @@
     <item type="id" name="cmd_pass" />
     <item type="id" name="cmd_prev" />
     <item type="id" name="cmd_reverse" />
+    <item type="id" name="clear_all_comments" />
     <item type="id" name="comment_edit" />
     <item type="id" name="comment_info_select" />
+    <item type="id" name="game_info_edit" />
+    <item type="id" name="game_info_black" />
+    <item type="id" name="game_info_white" />
+    <item type="id" name="game_info_event" />
+    <item type="id" name="game_info_site" />
+    <item type="id" name="game_info_start_time" />
+    <item type="id" name="game_info_end_time" />
+    <item type="id" name="game_info_time_limit" />
+    <item type="id" name="game_info_opening" />
     <item type="id" name="comment_moves" />
     <item type="id" name="comments" />
     <item type="id" name="confirm_button" />
@@ -253,7 +262,11 @@
     <item type="id" name="media_actions" />
     <item type="id" name="media_controller_compat_view_tag" />
     <item type="id" name="menu_about" />
-    <item type="id" name="menu_vastai" />
+    <item type="id" name="menu_wars_history" />
+    <item type="id" name="wars_close_button" />
+    <item type="id" name="wars_webview" />
+    <item type="id" name="wars_progress_bar" />
+    <item type="id" name="menu_cloud" />
     <item type="id" name="menu_board_edit" />
     <item type="id" name="menu_button" />
     <item type="id" name="menu_engine" />
@@ -391,6 +404,8 @@
     <item type="id" name="thinkinfo_add_branch" />
     <item type="id" name="thinkinfo_add_comment" />
     <item type="id" name="thinklistview" />
+    <item type="id" name="policy_header" />
+    <item type="id" name="policy_listview" />
     <item type="id" name="time" />
     <item type="id" name="time_text" />
     <item type="id" name="title" />

@@ -37,6 +37,12 @@ public abstract class ThemedActivity : Activity
 			Recreate();
 		}
 	}
+
+	/// <summary>dp 値をピクセルに変換する</summary>
+	protected int DpToPx(int dp)
+	{
+		return (int)(dp * Resources.DisplayMetrics.Density + 0.5f);
+	}
 }
 
 public abstract class ThemedPreferenceActivity : PreferenceActivity

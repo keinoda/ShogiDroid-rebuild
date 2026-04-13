@@ -1,6 +1,6 @@
 namespace ShogiLib;
 
-public static class MoveStringExtention
+public static class MoveStringExtension
 {
 	public static string ToString(this MoveData move, MoveStyle type, SPosition position, RankStyle rankStyle = RankStyle.Number)
 	{

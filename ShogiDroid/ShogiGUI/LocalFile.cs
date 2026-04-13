@@ -33,8 +33,9 @@ public class LocalFile
 			BundledExternalEngineInstaller.InstallAll();
 			MediaScannerConnection.ScanFile(Application.Context, new string[1] { storageFolderPath }, null, new MediaScannerClient());
 		}
-		catch
+		catch (Exception ex)
 		{
+			AppDebug.Log.Error($"LocalFile.CreateFolders に失敗: {ex.Message}");
 		}
 	}
 

@@ -10,7 +10,7 @@ using ShogiGUI;
 namespace ShogiDroid;
 
 [Activity(Label = "設定", Theme = "@style/AppTheme")]
-public class SettingsHomeActivity : Activity
+public class SettingsHomeActivity : ThemedActivity
 {
 	private static readonly (string Section, string Label, string Description)[] Sections = {
 		(SettingActivity.SectionAnalyze, "解析設定", "局面や棋譜を見ながら使う解析まわりの設定です。"),
@@ -31,16 +31,16 @@ public class SettingsHomeActivity : Activity
 		var scroll = new ScrollView(this);
 		scroll.FillViewport = true;
 		var layout = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Vertical };
-		layout.SetPadding(Dp(20), Dp(20), Dp(20), Dp(24));
+		layout.SetPadding(DpToPx(20), DpToPx(20), DpToPx(20), DpToPx(24));
 
 		var hero = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Vertical };
 		hero.SetBackgroundResource(Resource.Drawable.surface_panel_bg);
-		hero.SetPadding(Dp(24), Dp(24), Dp(24), Dp(24));
+		hero.SetPadding(DpToPx(24), DpToPx(24), DpToPx(24), DpToPx(24));
 		hero.LayoutParameters = new LinearLayout.LayoutParams(
 			ViewGroup.LayoutParams.MatchParent,
 			ViewGroup.LayoutParams.WrapContent)
 		{
-			BottomMargin = Dp(16)
+			BottomMargin = DpToPx(16)
 		};
 
 		var heroTitle = new TextView(this) { Text = "設定" };
@@ -55,7 +55,7 @@ public class SettingsHomeActivity : Activity
 		};
 		heroBody.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
 		heroBody.SetTextColor(ColorUtils.Get(this, Resource.Color.secondary_text));
-		heroBody.SetPadding(0, Dp(6), 0, 0);
+		heroBody.SetPadding(0, DpToPx(6), 0, 0);
 		hero.AddView(heroBody);
 		layout.AddView(hero);
 
@@ -66,14 +66,14 @@ public class SettingsHomeActivity : Activity
 		{
 			var item = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Vertical };
 			item.SetBackgroundResource(Resource.Drawable.surface_clickable_bg);
-			item.SetPadding(Dp(20), Dp(18), Dp(20), Dp(18));
+			item.SetPadding(DpToPx(20), DpToPx(18), DpToPx(20), DpToPx(18));
 			item.Clickable = true;
 			item.Focusable = true;
 			item.LayoutParameters = new LinearLayout.LayoutParams(
 				ViewGroup.LayoutParams.MatchParent,
 				ViewGroup.LayoutParams.WrapContent)
 			{
-				BottomMargin = Dp(12)
+				BottomMargin = DpToPx(12)
 			};
 
 			var title = new TextView(this) { Text = label };
@@ -85,7 +85,7 @@ public class SettingsHomeActivity : Activity
 			var body = new TextView(this) { Text = description };
 			body.SetTextSize(Android.Util.ComplexUnitType.Sp, 13);
 			body.SetTextColor(ColorUtils.Get(this, Resource.Color.secondary_text));
-			body.SetPadding(0, Dp(6), 0, 0);
+			body.SetPadding(0, DpToPx(6), 0, 0);
 			item.AddView(body);
 
 			string sec = section; // closure capture
@@ -108,13 +108,13 @@ public class SettingsHomeActivity : Activity
 	{
 		var row = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Horizontal };
 		row.SetBackgroundResource(Resource.Drawable.surface_clickable_bg);
-		row.SetPadding(Dp(20), Dp(14), Dp(20), Dp(14));
+		row.SetPadding(DpToPx(20), DpToPx(14), DpToPx(20), DpToPx(14));
 		row.SetGravity(GravityFlags.CenterVertical);
 		row.LayoutParameters = new LinearLayout.LayoutParams(
 			ViewGroup.LayoutParams.MatchParent,
 			ViewGroup.LayoutParams.WrapContent)
 		{
-			BottomMargin = Dp(12)
+			BottomMargin = DpToPx(12)
 		};
 
 		var label = new TextView(this) { Text = "内蔵エンジンを非表示" };
@@ -134,8 +134,6 @@ public class SettingsHomeActivity : Activity
 
 		return row;
 	}
-
-	private int Dp(int dp) => (int)(dp * Resources.DisplayMetrics.Density + 0.5f);
 
 	private void UpdateWindowSettings()
 	{

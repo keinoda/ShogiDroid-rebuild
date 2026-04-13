@@ -202,12 +202,7 @@ public class Kifu
 
 	protected static bool IsSankaku(char ch)
 	{
-		bool result = false;
-		if (ch == '▲' || ch == '△' || ch == '▽' || ch == '▼')
-		{
-			result = true;
-		}
-		return result;
+		return ch == '▲' || ch == '△' || ch == '▽' || ch == '▼';
 	}
 
 	protected static List<string> SplitKifMove(string line)
@@ -1002,7 +997,7 @@ public class Kifu
 
 	protected static Handicap HandicapFromStr(string str)
 	{
-		if (HandicapExtention.HandicapHash.TryGetValue(str, out var result))
+		if (HandicapExtension.HandicapHash.TryGetValue(str, out var result))
 		{
 			return result;
 		}

@@ -1,6 +1,6 @@
 namespace ShogiGUI;
 
-public static class ComputerStateExtention
+public static class ComputerStateExtension
 {
 	public static bool IsThinking(this ComputerState state)
 	{

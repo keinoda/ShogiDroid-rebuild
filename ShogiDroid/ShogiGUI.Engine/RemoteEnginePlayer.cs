@@ -57,5 +57,9 @@ public class RemoteEnginePlayer : EnginePlayer
 	{
 		string filename = Path.Combine(SettingsFolder, "remote_engine.xml");
 		EngineOptions.Save(filename, engineOptions_);
+
+		// 保存時のマシンIDを記録（次回ロード時に一致判定に使う）
+		Settings.EngineSettings.VastAiOptionsMachineId = Settings.EngineSettings.VastAiMachineId;
+		Settings.Save();
 	}
 }

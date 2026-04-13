@@ -255,7 +255,7 @@ public class VastAiManager : IDisposable
 	public async Task DestroyInstanceAsync(int instanceId, CancellationToken ct = default)
 	{
 		// Remove shogi label before destroying
-		try { await LabelInstanceAsync(instanceId, "", ct); } catch { }
+		try { await LabelInstanceAsync(instanceId, "", ct); } catch (Exception ex) { AppDebug.Log.Info($"VastAi: ラベル削除失敗（続行）: {ex.Message}"); }
 
 		string url = $"{BaseUrl}/instances/{instanceId}/?api_key={apiKey_}";
 
@@ -324,7 +324,10 @@ public class VastAiManager : IDisposable
 				return threshold.GetDouble();
 			}
 		}
-		catch { }
+		catch (Exception ex)
+		{
+			AppDebug.Log.Info($"VastAi: クレジット残高取得失敗: {ex.Message}");
+		}
 		return null;
 	}
 
@@ -425,8 +428,9 @@ public class VastAiManager : IDisposable
 			var completed = await Task.WhenAny(connectTask, Task.Delay(3000, ct));
 			return completed == connectTask && tcp.Connected;
 		}
-		catch
+		catch (Exception ex)
 		{
+			AppDebug.Log.Info($"VastAi: SSH到達確認失敗 ({host}:{port}): {ex.Message}");
 			return false;
 		}
 	}
@@ -527,6 +531,9 @@ public class VastAiOffer
 	[JsonPropertyName("search_price")]
 	public double SearchPrice { get; set; }
 
+	[JsonPropertyName("machine_id")]
+	public int MachineId { get; set; }
+
 	public double GpuRamGb => GpuRam / 1024.0;
 	public double CpuRamGb => CpuRam / 1024.0;
 }
@@ -598,6 +605,9 @@ public class VastAiInstance
 
 	[JsonPropertyName("cur_state")]
 	public string CurState { get; set; }
+
+	[JsonPropertyName("machine_id")]
+	public int MachineId { get; set; }
 
 	public double GpuRamGb => GpuRam / 1024.0;
 	public double CpuRamGb => CpuRam / 1024.0;

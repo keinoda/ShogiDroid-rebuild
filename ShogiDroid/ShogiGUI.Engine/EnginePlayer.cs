@@ -8,6 +8,10 @@ namespace ShogiGUI.Engine;
 
 public class EnginePlayer : IPlayer
 {
+	private const int InitTimeoutMs = 60000;
+	private const int ReadyTimeoutMs = 30000;
+	private const int DefaultByoyomiMs = 10000;
+
 	private USIEngine engine_;
 
 	private Thread th_;
@@ -98,13 +102,20 @@ public class EnginePlayer : IPlayer
 
 	public event EventHandler<InitializedEventArgs> Initialized;
 
+	/// <summary>
+	/// usiok受信後、オプション送信前に発火する。
+	/// ハンドラ内で SetTempOptionDeferred() を呼ぶことで、
+	/// ユーザー保存オプションを自動設定値で上書きできる。
+	/// </summary>
+	public event EventHandler<InitializedEventArgs> OptionsApplying;
+
 	public event EventHandler<ReadyOkEventArgs> ReadyOk;
 
-	public event EventHandler<BestMoveEventArgs> BestMoveRecieved;
+	public event EventHandler<BestMoveEventArgs> BestMoveReceived;
 
-	public event EventHandler<CheckMateEventArgs> CheckMateRecieved;
+	public event EventHandler<CheckMateEventArgs> CheckMateReceived;
 
-	public event EventHandler<InfoEventArgs> InfoRecieved;
+	public event EventHandler<InfoEventArgs> InfoReceived;
 
 	public event EventHandler<StopEventArgs> Stopped;
 
@@ -118,59 +129,24 @@ public class EnginePlayer : IPlayer
 
 	public bool Init(string filename)
 	{
-		lock (lockObj)
-		{
-			if (state_ != EnginePlayerState.NONE)
-			{
-				return false;
-			}
-				engine_ = new USIEngine();
-				cancel_ = false;
-				suppressTransportErrors_ = false;
-				transportErrorReported_ = false;
-				if (!engine_.Initialize(filename, WorkingDirectory))
-			{
-				engine_ = null;
-				return false;
-			}
-				if (!StartProtocol())
-				{
-					engine_.Terminate();
-					engine_ = null;
-					return false;
-				}
-				return true;
-		}
+		return InitCore(e => e.Initialize(filename, WorkingDirectory));
 	}
 
 	public bool InitRemote(string host, int port)
 	{
-		lock (lockObj)
-		{
-			if (state_ != EnginePlayerState.NONE)
-			{
-				return false;
-			}
-				engine_ = new USIEngine();
-				cancel_ = false;
-				suppressTransportErrors_ = false;
-				transportErrorReported_ = false;
-				if (!engine_.InitializeRemote(host, port))
-			{
-				engine_ = null;
-				return false;
-			}
-				if (!StartProtocol())
-				{
-					engine_.Terminate();
-					engine_ = null;
-					return false;
-				}
-				return true;
-		}
+		return InitCore(e => e.InitializeRemote(host, port));
 	}
 
 	public bool InitRemoteSsh(string host, int sshPort, string keyPath, string engineCommand)
+	{
+		return InitCore(e => e.InitializeRemoteSsh(host, sshPort, keyPath, engineCommand));
+	}
+
+	/// <summary>
+	/// Init/InitRemote/InitRemoteSsh の共通処理。
+	/// initFunc には USIEngine の初期化メソッド呼び出しを渡す。
+	/// </summary>
+	private bool InitCore(Func<USIEngine, bool> initFunc)
 	{
 		lock (lockObj)
 		{
@@ -178,22 +154,22 @@ public class EnginePlayer : IPlayer
 			{
 				return false;
 			}
-				engine_ = new USIEngine();
-				cancel_ = false;
-				suppressTransportErrors_ = false;
-				transportErrorReported_ = false;
-				if (!engine_.InitializeRemoteSsh(host, sshPort, keyPath, engineCommand))
+			engine_ = new USIEngine();
+			cancel_ = false;
+			suppressTransportErrors_ = false;
+			transportErrorReported_ = false;
+			if (!initFunc(engine_))
 			{
 				engine_ = null;
 				return false;
 			}
-				if (!StartProtocol())
-				{
-					engine_.Terminate();
-					engine_ = null;
-					return false;
-				}
-				return true;
+			if (!StartProtocol())
+			{
+				engine_.Terminate();
+				engine_ = null;
+				return false;
+			}
+			return true;
 		}
 	}
 
@@ -210,7 +186,7 @@ public class EnginePlayer : IPlayer
 			}
 			timer_ = new System.Timers.Timer();
 			timer_.Elapsed += InitTimeout;
-			timer_.Interval = 60000.0;
+			timer_.Interval = InitTimeoutMs;
 			timer_.Start();
 		return true;
 	}
@@ -289,7 +265,7 @@ public class EnginePlayer : IPlayer
 		timer_.Stop();
 		timer_.Elapsed -= InitTimeout;
 		timer_.Elapsed += ReadyTimeout;
-		timer_.Interval = 30000.0;
+		timer_.Interval = ReadyTimeoutMs;
 		timer_.Start();
 	}
 
@@ -380,7 +356,7 @@ public class EnginePlayer : IPlayer
 			int byoyomi = gameTime.Byoyomi;
 			if (gameTime.Byoyomi == 0 && gameTime.Time == 0)
 			{
-				byoyomi = 10000;
+				byoyomi = DefaultByoyomiMs;
 			}
 			GoRequest goRequest = new GoRequest(time_info.BlackTime.RemainTime, time_info.WhiteTime.RemainTime, byoyomi);
 			goRequest.Binc = time_info.BlackTime.Increment;
@@ -511,7 +487,7 @@ public class EnginePlayer : IPlayer
 			int byoyomi = gameTime.Byoyomi;
 			if (gameTime.Byoyomi == 0 && gameTime.Time == 0)
 			{
-				byoyomi = 10000;
+				byoyomi = DefaultByoyomiMs;
 			}
 			GoRequest goRequest = new GoRequest(time_info.BlackTime.RemainTime, time_info.WhiteTime.RemainTime, byoyomi)
 			{
@@ -645,67 +621,80 @@ public class EnginePlayer : IPlayer
 
 	public bool SetOption(string key, bool value, bool temp = false)
 	{
-		bool result = false;
 		lock (lockObj)
 		{
 			if (!temp)
 			{
 				engineOptions_.SetOption(key, value);
 			}
-			if (IsInitialized)
-			{
-				result = engine_.SetOption(key, value);
-			}
-			else
+			bool applied = IsInitialized && engine_.SetOption(key, value);
+			if (!IsInitialized)
 			{
 				tempOptions_[key] = value.ToString();
 			}
 			send_change_options();
-			return result;
+			return applied;
 		}
 	}
 
 	public bool SetOption(string key, int value, bool temp = false)
 	{
-		bool result = false;
 		lock (lockObj)
 		{
 			if (!temp)
 			{
 				engineOptions_.SetOption(key, value);
 			}
-			if (IsInitialized)
-			{
-				result = engine_.SetOption(key, value);
-			}
-			else
+			bool applied = IsInitialized && engine_.SetOption(key, value);
+			if (!IsInitialized)
 			{
 				tempOptions_[key] = value.ToString();
 			}
 			send_change_options();
-			return result;
+			return applied;
 		}
 	}
 
 	public bool SetOption(string key, string value, bool temp = false)
 	{
-		bool result = false;
 		lock (lockObj)
 		{
 			if (!temp)
 			{
 				engineOptions_.SetOption(key, value);
 			}
-			if (IsInitialized)
-			{
-				result = engine_.SetOption(key, value);
-			}
-			else
+			bool applied = IsInitialized && engine_.SetOption(key, value);
+			if (!IsInitialized)
 			{
 				tempOptions_[key] = value;
 			}
 			send_change_options();
-			return result;
+			return applied;
+		}
+	}
+
+	/// <summary>
+	/// tempOptions_ にオプションを追加する（即時送信しない）。
+	/// OptionsApplying イベントハンドラ内で使用し、
+	/// update_options() でユーザー保存オプションの後に適用される。
+	/// </summary>
+	public void SetTempOptionDeferred(string key, int value)
+	{
+		lock (lockObj)
+		{
+			tempOptions_[key] = value.ToString();
+		}
+	}
+
+	/// <summary>
+	/// 保存済みエンジンオプションをクリアする。
+	/// マシンが変わった場合に、前回のオプションが不適切な値を送信するのを防ぐ。
+	/// </summary>
+	public void ClearEngineOptions()
+	{
+		lock (lockObj)
+		{
+			engineOptions_ = new EngineOptions();
 		}
 	}
 
@@ -890,6 +879,8 @@ public class EnginePlayer : IPlayer
 				{
 					state_ = EnginePlayerState.INISIALIZED;
 					timer_.Stop();
+					// 自動オプション（Threads/Hash等）をtempOptions_にセットする機会を与える
+					OptionsApplying?.Invoke(this, new InitializedEventArgs(color_));
 					update_options();
 					OnInitialized(new InitializedEventArgs(color_));
 					handleInitialized();
@@ -999,7 +990,7 @@ public class EnginePlayer : IPlayer
 				ponder_ = new MoveData(Sfen.ParseMove(pos_, text));
 				pos_.UnMove(moveData, moveLast);
 			}
-			OnBestMoveRecieved(new BestMoveEventArgs(color_, transactionNo_, moveData, ponder_));
+			OnBestMoveReceived(new BestMoveEventArgs(color_, transactionNo_, moveData, ponder_));
 		}
 	}
 
@@ -1031,25 +1022,25 @@ public class EnginePlayer : IPlayer
 			break;
 		}
 		case "none":
-			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.None));
+			OnCheckMateReceived(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.None));
 			return;
 		case "notimplemented":
-			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.NotImplemented));
+			OnCheckMateReceived(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.NotImplemented));
 			return;
 		case "timeout":
-			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.Timeout));
+			OnCheckMateReceived(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.Timeout));
 			return;
 		case "nomate":
-			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.NoMate));
+			OnCheckMateReceived(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.NoMate));
 			return;
 		}
 		if (list.Count == 0)
 		{
-			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.None));
+			OnCheckMateReceived(new CheckMateEventArgs(color_, transactionNo_, CheckMateResultKind.None));
 		}
 		else
 		{
-			OnCheckMateRecieved(new CheckMateEventArgs(color_, transactionNo_, list));
+			OnCheckMateReceived(new CheckMateEventArgs(color_, transactionNo_, list));
 		}
 	}
 
@@ -1214,7 +1205,7 @@ public class EnginePlayer : IPlayer
 			hashKey.UnMoveHash(pos_.MoveLast);
 		}
 		pvInfo.HashKey = hashKey;
-		OnInfoRecieved(new InfoEventArgs(color_, transactionNo_, pvInfo));
+		OnInfoReceived(new InfoEventArgs(color_, transactionNo_, pvInfo));
 	}
 
 	private void handleInitialized()
@@ -1315,7 +1306,7 @@ public class EnginePlayer : IPlayer
 		}, null);
 	}
 
-	protected virtual void OnBestMoveRecieved(BestMoveEventArgs e)
+	protected virtual void OnBestMoveReceived(BestMoveEventArgs e)
 	{
 		mre.Set();
 		syncContext.Post(delegate
@@ -1327,32 +1318,32 @@ public class EnginePlayer : IPlayer
 					this.Stopped(this, new StopEventArgs(e.Color, e.TransactionNo));
 				}
 			}
-			else if (this.BestMoveRecieved != null)
+			else if (this.BestMoveReceived != null)
 			{
-				this.BestMoveRecieved(this, e);
+				this.BestMoveReceived(this, e);
 			}
 		}, null);
 	}
 
-	protected virtual void OnCheckMateRecieved(CheckMateEventArgs e)
+	protected virtual void OnCheckMateReceived(CheckMateEventArgs e)
 	{
 		mre.Set();
 		syncContext.Post(delegate
 		{
-			if (transactionCounter_ == e.TransactionNo && this.CheckMateRecieved != null)
+			if (transactionCounter_ == e.TransactionNo && this.CheckMateReceived != null)
 			{
-				this.CheckMateRecieved(this, e);
+				this.CheckMateReceived(this, e);
 			}
 		}, null);
 	}
 
-	protected virtual void OnInfoRecieved(InfoEventArgs e)
+	protected virtual void OnInfoReceived(InfoEventArgs e)
 	{
 		syncContext.Post(delegate
 		{
-			if (transactionCounter_ == e.TransactionNo && this.InfoRecieved != null)
+			if (transactionCounter_ == e.TransactionNo && this.InfoReceived != null)
 			{
-				this.InfoRecieved(this, e);
+				this.InfoReceived(this, e);
 			}
 		}, null);
 	}

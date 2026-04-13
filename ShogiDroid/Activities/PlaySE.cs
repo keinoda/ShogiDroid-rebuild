@@ -23,7 +23,7 @@ public static class PlaySE
 		}
 	}
 
-	public static void Destory()
+	public static void Destroy()
 	{
 		if (soundpool != null)
 		{

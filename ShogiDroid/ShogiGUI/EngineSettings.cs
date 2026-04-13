@@ -38,7 +38,10 @@ public class EngineSettings
 	public string VastAiOnStartCmd = "env >> /etc/environment; touch ~/.no_auto_tmux;";
 
 	// SSH接続設定
+	// VastAiSshKeyPath は秘密鍵の絶対パス（全クラウドプロバイダ共通で使用）
 	public string VastAiSshKeyPath = string.Empty;
+	// 公開鍵の絶対パス。自動生成はせず、アプリ設定から明示的にインポートする。
+	public string SshPublicKeyPath = string.Empty;
 	public int VastAiSshPort = 0;
 	public string VastAiSshEngineCommand = string.Empty;
 
@@ -48,6 +51,43 @@ public class EngineSettings
 	public int VastAiGpuRamMb = 0;
 
 	public int VastAiInstanceId = 0;
+
+	/// <summary>
+	/// 現在接続中のマシンID（vast.ai の machine_id）
+	/// </summary>
+	public int VastAiMachineId = 0;
+
+	/// <summary>
+	/// エンジンオプションが最後に保存された時のマシンID。
+	/// VastAiMachineId と一致しない場合、保存オプションは使わない。
+	/// </summary>
+	public int VastAiOptionsMachineId = 0;
+
+	// AWS スポットインスタンス設定
+	public string AwsAccessKey = string.Empty;
+	public string AwsSecretKey = string.Empty;
+	public string AwsRegion = "eu-north-1";
+	public string AwsAvailabilityZone = string.Empty;
+	public string AwsInstanceType = "c7a.metal-48xl";
+	public string AwsDockerImage = "keinoda/shogi:v9.21nnue";
+	public string AwsInstanceId = string.Empty;
+	public string AwsKeyPairName = string.Empty;
+	public string AwsSecurityGroupId = string.Empty;
+	public string AwsVolumeId = string.Empty;
+	public string AwsCustomAmiId = string.Empty;
+
+	/// <summary>
+	/// 現在どのクラウドプロバイダーで接続中か ("vastai", "aws", "gcp")
+	/// 新規インストール時は GCP をメインとして扱う。
+	/// </summary>
+	public string CloudProvider = "gcp";
+
+	// GCP Spot VM 設定
+	public string GcpServiceAccountKeyPath = string.Empty;
+	public string GcpZone = "us-central1-a";
+	public string GcpMachineType = "c3d-highcpu-180";
+	public string GcpDockerImage = "keinoda/shogi:v9.21nnue";
+	public string GcpInstanceName = string.Empty;
 
 	// vast.ai search criteria
 	public string VastAiGpuNames = "RTX 4090, RTX 5090";

@@ -15,24 +15,20 @@ public class EmbResource
 
 	public static bool IsDirectory(string path)
 	{
-		bool result = false;
 		if (Application.Context.Assets.List(path).Length != 0)
 		{
-			result = true;
+			return true;
 		}
-		else
+		try
 		{
-			try
-			{
-				using Stream stream = Application.Context.Assets.Open(path);
-				stream.Close();
-			}
-			catch (Java.IO.IOException)
-			{
-				result = true;
-			}
+			using Stream stream = Application.Context.Assets.Open(path);
+			stream.Close();
+			return false;
 		}
-		return result;
+		catch (Java.IO.IOException)
+		{
+			return true;
+		}
 	}
 
 	public static string[] GetFiles(string path)

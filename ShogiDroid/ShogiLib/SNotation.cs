@@ -9,10 +9,6 @@ public class SNotation
 
 	private SPosition initialPosition;
 
-	private string blackName = string.Empty;
-
-	private string whiteName = string.Empty;
-
 	private Handicap handicap;
 
 	public bool IsOutputInitialPosition;
@@ -61,29 +57,9 @@ public class SNotation
 
 	public MoveNode MovePrev => movePrev;
 
-	public string BlackName
-	{
-		get
-		{
-			return blackName;
-		}
-		set
-		{
-			blackName = value;
-		}
-	}
+	public string BlackName { get; set; } = string.Empty;
 
-	public string WhiteName
-	{
-		get
-		{
-			return whiteName;
-		}
-		set
-		{
-			whiteName = value;
-		}
-	}
+	public string WhiteName { get; set; } = string.Empty;
 
 	public Handicap Handicap
 	{
@@ -225,8 +201,8 @@ public class SNotation
 		initialPosition = (SPosition)notation.initialPosition.Clone();
 		moveFirst = MoveNode.DeepCopy(null, notation.moveFirst);
 		kifuInfos = DeepCopyHelper.DeepCopy(notation.kifuInfos);
-		blackName = (string)notation.blackName.Clone();
-		whiteName = (string)notation.whiteName.Clone();
+		BlackName = (string)notation.BlackName.Clone();
+		WhiteName = (string)notation.WhiteName.Clone();
 		handicap = notation.handicap;
 		IsOutputInitialPosition = notation.IsOutputInitialPosition;
 		moveCurrent = FindMoveNode(notation.moveCurrent);
@@ -237,7 +213,7 @@ public class SNotation
 
 	public bool Equals(SNotation notation)
 	{
-		if (position.Equals(notation.position) && initialPosition.Equals(notation.initialPosition) && blackName == notation.blackName && whiteName == notation.whiteName && handicap == notation.handicap)
+		if (position.Equals(notation.position) && initialPosition.Equals(notation.initialPosition) && BlackName == notation.BlackName && WhiteName == notation.WhiteName && handicap == notation.handicap)
 		{
 			return Count == notation.Count;
 		}
@@ -251,7 +227,7 @@ public class SNotation
 
 	public override int GetHashCode()
 	{
-		return blackName.GetHashCode() + whiteName.GetHashCode() + Count.GetHashCode();
+		return BlackName.GetHashCode() + WhiteName.GetHashCode() + Count.GetHashCode();
 	}
 
 	public void Init()
@@ -259,8 +235,8 @@ public class SNotation
 		position.Init();
 		initialPosition.Init();
 		moveFirst.Key = initialPosition.HashKey;
-		blackName = string.Empty;
-		whiteName = string.Empty;
+		BlackName = string.Empty;
+		WhiteName = string.Empty;
 		handicap = Handicap.HIRATE;
 		IsOutputInitialPosition = false;
 		moveFirst.Initialize();

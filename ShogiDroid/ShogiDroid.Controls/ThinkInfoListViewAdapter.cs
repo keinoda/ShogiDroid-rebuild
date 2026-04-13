@@ -11,7 +11,7 @@ using ShogiLib;
 
 namespace ShogiDroid.Controls;
 
-public class ThinkInfiListViewAdapter : BaseAdapter
+public class ThinkInfoListViewAdapter : BaseAdapter
 {
 	protected Activity activity;
 
@@ -99,7 +99,7 @@ public class ThinkInfiListViewAdapter : BaseAdapter
 
 	public PVDispMode DispMode => dispMode;
 
-	public ThinkInfiListViewAdapter(Activity activity)
+	public ThinkInfoListViewAdapter(Activity activity)
 	{
 		this.activity = activity;
 	}

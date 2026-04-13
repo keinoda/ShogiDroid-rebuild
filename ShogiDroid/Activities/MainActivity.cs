@@ -36,7 +36,7 @@ using ShogiLib;
 
 namespace ShogiDroid;
 
-[Activity(Label = "@string/app_name", MainLauncher = true, Icon = "@drawable/shogidroid_icon", WindowSoftInputMode = SoftInput.AdjustNothing, ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
+[Activity(Label = "@string/app_name", MainLauncher = true, LaunchMode = Android.Content.PM.LaunchMode.SingleTask, Icon = "@drawable/shogidroid_icon", WindowSoftInputMode = SoftInput.AdjustNothing, ConfigurationChanges = (ConfigChanges.Orientation | ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT", "android.intent.category.BROWSABLE" }, DataScheme = "http", DataHost = "live.shogi.or.jp", DataPathPattern = "/.*/kifu/.*")]
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT", "android.intent.category.BROWSABLE" }, DataScheme = "http", DataHost = "*", DataPathPattern = "/.*.kif")]
 [IntentFilter(new string[] { "android.intent.action.VIEW" }, Categories = new string[] { "android.intent.category.DEFAULT", "android.intent.category.BROWSABLE" }, DataScheme = "http", DataHost = "*", DataPathPattern = "/.*.ki2")]
@@ -148,10 +148,6 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 
 	private bool isActivityVisible_;
 
-	private CancellationTokenSource vastAiBootCts_;
-
-	private Task vastAiBootTask_;
-
 	private bool isDestroyed_;
 
 	private View contextMenuParentView;
@@ -190,33 +186,47 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		var sections = new List<DrawerSectionModel>();
 		Func<int, Func<bool>> enabled = id => () => CanOpenDrawerItem(id);
 
+		bool adv = Settings.AppSettings.ShowAdvancedMenu;
+
 		// 1. クイック操作（常時展開）
 		var quick = new DrawerSectionModel("クイック操作", isQuickAction: true);
 		quick.Add(Resource.Id.notation_analysis, GetString(Resource.String.Menu_Analysis_Text), isEnabled: enabled(Resource.Id.notation_analysis));
-		quick.Add(Resource.Id.consider, GetString(Resource.String.Consider_Text), isEnabled: enabled(Resource.Id.consider));
 		quick.Add(Resource.Id.camera_read, GetString(Resource.String.Menu_CameraRead_Text), isEnabled: enabled(Resource.Id.camera_read));
 		quick.Add(Resource.Id.book_browse, GetString(Resource.String.Menu_BookBrowse_Text), isEnabled: enabled(Resource.Id.book_browse));
 		quick.Add(Resource.Id.engine_select, GetString(Resource.String.Menu_EngineSelect_Text), isEnabled: enabled(Resource.Id.engine_select));
-		quick.Add(Resource.Id.menu_vastai, GetString(Resource.String.Menu_VastAi_Text), isEnabled: enabled(Resource.Id.menu_vastai));
+		quick.Add(Resource.Id.engine_settings_wrapper, GetString(Resource.String.Menu_EngineSettings_Text), isEnabled: enabled(Resource.Id.engine_settings_wrapper));
+		quick.Add(Resource.Id.menu_cloud, GetString(Resource.String.Menu_Cloud_Text), isEnabled: enabled(Resource.Id.menu_cloud));
+		quick.Add(Resource.Id.menu_wars_history, GetString(Resource.String.Menu_WarsHistory_Text), isEnabled: () => true);
 		sections.Add(quick);
 
-		// 2. 解析
-		var analyze = new DrawerSectionModel("解析");
-		analyze.Add(Resource.Id.analysis_settings, GetString(Resource.String.Menu_AnalysisSettings_Text), isEnabled: enabled(Resource.Id.analysis_settings));
-		analyze.Add(Resource.Id.display_settings, GetString(Resource.String.Menu_DisplaySettings_Text), isEnabled: enabled(Resource.Id.display_settings));
-		analyze.Add(Resource.Id.notation_analysis, GetString(Resource.String.Menu_Analysis_Text), isEnabled: enabled(Resource.Id.notation_analysis));
-		analyze.Add(Resource.Id.consider, GetString(Resource.String.Consider_Text), isEnabled: enabled(Resource.Id.consider));
-		sections.Add(analyze);
+		// 2. 解析（詳細メニューのみ）
+		if (adv)
+		{
+			var analyze = new DrawerSectionModel("解析");
+			analyze.Add(Resource.Id.analysis_settings, GetString(Resource.String.Menu_AnalysisSettings_Text), isEnabled: enabled(Resource.Id.analysis_settings));
+			analyze.Add(Resource.Id.display_settings, GetString(Resource.String.Menu_DisplaySettings_Text), isEnabled: enabled(Resource.Id.display_settings));
+			analyze.Add(Resource.Id.notation_analysis, GetString(Resource.String.Menu_Analysis_Text), isEnabled: enabled(Resource.Id.notation_analysis));
+			analyze.Add(Resource.Id.consider, GetString(Resource.String.Consider_Text), isEnabled: enabled(Resource.Id.consider));
+			sections.Add(analyze);
+		}
 
 		// 3. 棋譜
 		var kifu = new DrawerSectionModel("棋譜");
 		kifu.Add(Resource.Id.file_save, GetString(Resource.String.Menu_FileSave_Text), isEnabled: enabled(Resource.Id.file_save));
 		kifu.Add(Resource.Id.file_save_overwrite, GetString(Resource.String.Menu_FileSaveOverwrite_Text), isEnabled: enabled(Resource.Id.file_save_overwrite));
 		kifu.Add(Resource.Id.notation_paste, GetString(Resource.String.Menu_NotaitonPaste_Text), isEnabled: enabled(Resource.Id.notation_paste));
-		kifu.Add(Resource.Id.file_open_folder, GetString(Resource.String.Menu_OpenKifuFolder_Text), isEnabled: enabled(Resource.Id.file_open_folder));
+		if (adv) kifu.Add(Resource.Id.file_open_folder, GetString(Resource.String.Menu_OpenKifuFolder_Text), isEnabled: enabled(Resource.Id.file_open_folder));
 		kifu.Add(Resource.Id.file_load, GetString(Resource.String.Menu_FileLoad_Text), isEnabled: enabled(Resource.Id.file_load));
 		kifu.Add(Resource.Id.file_web_import, GetString(Resource.String.Menu_FileWebExport_Text), isEnabled: enabled(Resource.Id.file_web_import));
+		kifu.Add(Resource.Id.menu_wars_history, GetString(Resource.String.Menu_WarsHistory_Text), isEnabled: () => true);
 		kifu.Add(Resource.Id.notation_copy, GetString(Resource.String.Menu_NotaitonCopy_Text), isEnabled: enabled(Resource.Id.notation_copy));
+		if (adv) kifu.Add(Resource.Id.file_load_last, GetString(Resource.String.Menu_FileLoadLast_Text), isEnabled: enabled(Resource.Id.file_load_last));
+		if (adv) kifu.Add(Resource.Id.file_send, GetString(Resource.String.Menu_FileSend_Text), isEnabled: enabled(Resource.Id.file_send));
+		if (adv) kifu.Add(Resource.Id.file_import, GetString(Resource.String.Menu_FileImport_Text), isEnabled: enabled(Resource.Id.file_import));
+		kifu.Add(Resource.Id.game_info_edit, GetString(Resource.String.GameInfoEdit_Text), isEnabled: () => true);
+		kifu.Add(Resource.Id.comment_edit, GetString(Resource.String.CommentMenuEdit_Text), isEnabled: enabled(Resource.Id.comment_edit));
+		if (adv) kifu.Add(Resource.Id.comment_info_select, GetString(Resource.String.CommentInfoSelect_Text), isEnabled: enabled(Resource.Id.comment_info_select));
+		kifu.Add(Resource.Id.clear_all_comments, GetString(Resource.String.ClearAllComments_Text), isEnabled: () => true);
 		sections.Add(kifu);
 
 		// 4. 定跡
@@ -228,16 +238,21 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		// 5. 局面
 		var board = new DrawerSectionModel("局面");
 		board.Add(Resource.Id.position_load, GetString(Resource.String.Menu_PositionLoad_Text), isEnabled: enabled(Resource.Id.position_load));
-		board.Add(Resource.Id.camera_read, GetString(Resource.String.Menu_CameraRead_Text), isEnabled: enabled(Resource.Id.camera_read));
-		board.Add(Resource.Id.cmd_reverse, GetString(Resource.String.MenuReverse_Text), isEnabled: enabled(Resource.Id.cmd_reverse));
+		if (adv) board.Add(Resource.Id.camera_read, GetString(Resource.String.Menu_CameraRead_Text), isEnabled: enabled(Resource.Id.camera_read));
+		if (adv) board.Add(Resource.Id.cmd_reverse, GetString(Resource.String.MenuReverse_Text), isEnabled: enabled(Resource.Id.cmd_reverse));
 		board.Add(Resource.Id.menu_board_edit, GetString(Resource.String.Menu_EditBoard_Text), isEnabled: enabled(Resource.Id.menu_board_edit));
+		if (adv) board.Add(Resource.Id.cmd_kyokumen, GetString(Resource.String.MenuKyokumen_Text), isEnabled: enabled(Resource.Id.cmd_kyokumen));
+		if (adv) board.Add(Resource.Id.cmd_auto_play, GetString(Resource.String.MenuAutoPlay_Text), isEnabled: enabled(Resource.Id.cmd_auto_play));
 		sections.Add(board);
 
 		// 6. エンジン
 		var engine = new DrawerSectionModel("エンジン");
 		engine.Add(Resource.Id.engine_select, GetString(Resource.String.Menu_EngineSelect_Text), isEnabled: enabled(Resource.Id.engine_select));
-		engine.Add(Resource.Id.engine_settings_wrapper, GetString(Resource.String.Menu_EngineSettings_Text), isEnabled: enabled(Resource.Id.engine_settings_wrapper));
+		if (adv) engine.Add(Resource.Id.engine_settings_wrapper, GetString(Resource.String.Menu_EngineSettings_Text), isEnabled: enabled(Resource.Id.engine_settings_wrapper));
 		engine.Add(Resource.Id.engine_options, GetString(Resource.String.EngineSettingsAllOptions_Text), isEnabled: enabled(Resource.Id.engine_options));
+		engine.Add(Resource.Id.engine_connection_settings, GetString(Resource.String.Menu_RemoteConnectionSettings_Text), isEnabled: enabled(Resource.Id.engine_connection_settings));
+		engine.Add(Resource.Id.engine_install, GetString(Resource.String.Menu_EngineInstall_Text), isEnabled: enabled(Resource.Id.engine_install));
+		if (adv) engine.Add(Resource.Id.engine_folder, GetString(Resource.String.Menu_EngineFolder_Text), isEnabled: enabled(Resource.Id.engine_folder));
 		sections.Add(engine);
 
 		// 7. 対局
@@ -248,25 +263,11 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		game.Add(Resource.Id.game_resign, GetString(Resource.String.Menu_ResignGame_Text), isEnabled: enabled(Resource.Id.game_resign));
 		sections.Add(game);
 
-		// 8. アプリ設定（子項目1つ = グループクリックで直接遷移）
+		// 8. アプリ設定
 		var settings = new DrawerSectionModel("アプリ設定");
 		settings.Add(Resource.Id.action_settings, GetString(Resource.String.action_settings), isEnabled: enabled(Resource.Id.action_settings));
+		if (adv) settings.Add(Resource.Id.menu_about, GetString(Resource.String.Menu_About_Text), isEnabled: enabled(Resource.Id.menu_about));
 		sections.Add(settings);
-
-		// 9. 詳細操作
-		var detail = new DrawerSectionModel("詳細操作");
-		detail.Add(Resource.Id.file_load_last, GetString(Resource.String.Menu_FileLoadLast_Text), isEnabled: enabled(Resource.Id.file_load_last));
-		detail.Add(Resource.Id.file_send, GetString(Resource.String.Menu_FileSend_Text), isEnabled: enabled(Resource.Id.file_send));
-		detail.Add(Resource.Id.file_import, GetString(Resource.String.Menu_FileImport_Text), isEnabled: enabled(Resource.Id.file_import));
-		detail.Add(Resource.Id.comment_edit, GetString(Resource.String.CommentMenuEdit_Text), isEnabled: enabled(Resource.Id.comment_edit));
-		detail.Add(Resource.Id.comment_info_select, GetString(Resource.String.CommentInfoSelect_Text), isEnabled: enabled(Resource.Id.comment_info_select));
-		detail.Add(Resource.Id.cmd_kyokumen, GetString(Resource.String.MenuKyokumen_Text), isEnabled: enabled(Resource.Id.cmd_kyokumen));
-		detail.Add(Resource.Id.cmd_auto_play, GetString(Resource.String.MenuAutoPlay_Text), isEnabled: enabled(Resource.Id.cmd_auto_play));
-		detail.Add(Resource.Id.engine_connection_settings, GetString(Resource.String.Menu_RemoteConnectionSettings_Text), isEnabled: enabled(Resource.Id.engine_connection_settings));
-		detail.Add(Resource.Id.engine_install, GetString(Resource.String.Menu_EngineInstall_Text), isEnabled: enabled(Resource.Id.engine_install));
-		detail.Add(Resource.Id.engine_folder, GetString(Resource.String.Menu_EngineFolder_Text), isEnabled: enabled(Resource.Id.engine_folder));
-		detail.Add(Resource.Id.menu_about, GetString(Resource.String.Menu_About_Text), isEnabled: enabled(Resource.Id.menu_about));
-		sections.Add(detail);
 
 		return sections;
 	}
@@ -305,6 +306,10 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 
 	private void InitDrawer()
 	{
+		// リスナーの重複登録を防止（OnResume から呼ばれるため）
+		drawerListView_.ChildClick -= DrawerChildClick;
+		drawerListView_.GroupClick -= DrawerGroupClick;
+
 		var sections = BuildDrawerSections();
 		drawerAdapter_ = new DrawerSectionAdapter(this, sections);
 		drawerListView_.SetAdapter(drawerAdapter_);
@@ -383,15 +388,16 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		case Resource.Id.analysis_settings:
 		case Resource.Id.display_settings:
 		case Resource.Id.action_settings:
-		case Resource.Id.menu_vastai:
+		case Resource.Id.menu_cloud:
 		case Resource.Id.menu_about:
+		case Resource.Id.menu_wars_history:
 			return true;
 		default:
 			return commands.IsEnable(itemId);
 		}
 	}
 
-	private bool MenuExceute(int id)
+	private bool MenuExecute(int id)
 	{
 		if (!commands.IsEnable(id))
 		{
@@ -400,7 +406,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		return commands.Execute(id);
 	}
 
-	private bool MenuExceute(CmdNo cmdno)
+	private bool MenuExecute(CmdNo cmdno)
 	{
 		if (!commands.IsEnable(cmdno))
 		{
@@ -692,7 +698,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 				if (target != ShogiLib.Piece.NoPiece && target.ColorOf() == turn) continue;
 
 				var baseMove = new ShogiLib.MoveData(ShogiLib.MoveType.MoveFlag, from, to, piece, target);
-				bool canProm = ShogiLib.MoveCheck.CanPromota(baseMove);
+				bool canProm = ShogiLib.MoveCheck.CanPromote(baseMove);
 				bool forceProm = canProm && ShogiLib.MoveCheck.ForcePromotion(piece, to);
 
 				if (canProm)
@@ -827,14 +833,13 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 
 	private void ShogiWars()
 	{
-		if (Settings.AppSettings.WarsUserName == string.Empty)
+		if (string.IsNullOrEmpty(Settings.AppSettings.WarsUserName))
 		{
 			ShowUserNameDialog();
+			return;
 		}
-		if (Settings.AppSettings.WarsUserName != string.Empty)
-		{
-			ShowWarsGameResult();
-		}
+		StartActivityForResult(new Intent(this, typeof(ShogiWarsActivity)), 108);
+		drawerLayout.CloseDrawers();
 	}
 
 	private void WebImportAs()
@@ -871,9 +876,9 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		InitCommand();
 		InitDrawer();
 
-		// vast.ai watchdog: 解析終了後のアイドルで全インスタンスを自動終了
-		VastAiWatchdog.Instance.InstanceAutoStopped -= OnVastAiAutoStopped;
-		VastAiWatchdog.Instance.InstanceAutoStopped += OnVastAiAutoStopped;
+		// クラウドエンジン watchdog: 解析終了後のアイドルでインスタンスを自動終了
+		CloudInstanceWatchdog.Instance.InstanceAutoStopped -= OnCloudInstanceAutoStopped;
+		CloudInstanceWatchdog.Instance.InstanceAutoStopped += OnCloudInstanceAutoStopped;
 		UpdateSettings();
 		UpdateNotation(NotationEventId.OBJECT_CHANGED);
 		CreateFolders();
@@ -893,7 +898,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 	protected override void OnNewIntent(Intent intent)
 	{
 		base.OnNewIntent(intent);
-		_ = Intent;
+		Intent = intent;
 		if (intent != null && presenter.LoadNotationFromWeb(intent.DataString))
 		{
 			PopupNotationInfo();
@@ -908,6 +913,8 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		shogiBoard = FindViewById<ShogiBoard>(Resource.Id.shogiboard);
 		shogiBoard.MakeMoveEvent += ShogiBoard_MakeMoveEvent;
 		shogiBoard.AnimationEnd += ShogiBoard_AnimationEnd;
+		shogiBoard.TapNext += (s, e) => presenter.Next();
+		shogiBoard.TapPrev += (s, e) => presenter.Prev();
 		prevButton = FindViewById<ImageButton>(Resource.Id.prev_button);
 		prevButton.Click += PrevButton_Click;
 		nextButton = FindViewById<ImageButton>(Resource.Id.next_button);
@@ -969,8 +976,9 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		drawerListView_ = FindViewById<ExpandableListView>(Resource.Id.main_manu_lsist_view);
 		// ドロワーのアダプター設定はpresenter初期化後にInitDrawer()で行う
 		TextView textView = FindViewById<TextView>(Resource.Id.app_name);
-		AssemblyName name = Assembly.GetExecutingAssembly().GetName();
-		textView.Text = GetString(Resource.String.app_text) + " ver " + name.Version;
+		string displayVersion = ApplicationContext.PackageManager
+			.GetPackageInfo(ApplicationContext.PackageName, 0)?.VersionName ?? "0.0.0";
+		textView.Text = GetString(Resource.String.app_text) + " ver " + displayVersion;
 		topName = FindViewById<TextView>(Resource.Id.top_name);
 		topTime = FindViewById<TextView>(Resource.Id.top_time);
 		bottomName = FindViewById<TextView>(Resource.Id.bottom_name);
@@ -1015,7 +1023,8 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			infoPageAdepter.CommentLongClick += InfoPageAdepter_CommentLongClick;
 		}
 		infoPageAdepter.DispEvalGraph = evalGraphView == null;
-		infoPager.OffscreenPageLimit = 3;
+		infoPageAdepter.DispPolicyPage = Settings.AppSettings.AutoPolicyAnalysis;
+		infoPager.OffscreenPageLimit = 4;
 		infoPager.Adapter = infoPageAdepter;
 		if (num != 0)
 		{
@@ -1060,6 +1069,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		PlaySE.Initialize(this);
 		presenter.Resume();
 		CancelBackgroundAnalysisNotification();
+		InitDrawer();
 		if (notation != null)
 		{
 			UpdateNotation(NotationEventId.OBJECT_CHANGED);
@@ -1078,25 +1088,23 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		UnregisterDebugReceiver();
 #endif
 		isActivityVisible_ = false;
-		DismissVastAiBootDialog();
 		base.OnPause();
 		shogiBoard.AnimationStop();
 		StoreSettings();
 		presenter.Pause();
 		UpdateBackgroundAnalysisNotification();
-		PlaySE.Destory();
+		PlaySE.Destroy();
 	}
 
 	protected override void OnDestroy()
 	{
 		isDestroyed_ = true;
-		CancelAutoBootVastAi();
-		VastAiWatchdog.Instance.InstanceAutoStopped -= OnVastAiAutoStopped;
+		CloudInstanceWatchdog.Instance.InstanceAutoStopped -= OnCloudInstanceAutoStopped;
 		base.OnDestroy();
 		CancelBackgroundAnalysisNotification();
 		StopRemoteMonitor();
-		presenter.Destory();
-		PlaySE.Destory();
+		presenter.Destroy();
+		PlaySE.Destroy();
 	}
 
 	public override void OnConfigurationChanged(Configuration newConfig)
@@ -1209,7 +1217,14 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			_ = -1;
 			break;
 		case 108:
-			RecieveWarsGameResult();
+			if (resultCode == Result.Ok && data != null)
+			{
+				string kifu = data.GetStringExtra(ShogiWarsActivity.ExtraKifu);
+				if (!string.IsNullOrEmpty(kifu) && presenter.LoadNotationFromString("将棋ウォーズ", kifu))
+				{
+					PopupNotationInfo();
+				}
+			}
 			break;
 		case CAMERA_READ_CODE:
 			if (resultCode == Result.Ok && data != null)
@@ -1231,7 +1246,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 				presenter.CreateFolders();
 			}
 			break;
-		case VASTAI_ACTIVITY_CODE:
+		case CLOUD_ACTIVITY_CODE:
 			if (resultCode == Result.Ok)
 			{
 				// VastAiActivity has saved RemoteHost/RemotePort/EngineNo to disk.
@@ -1453,7 +1468,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		}
 		else
 		{
-			MenuExceute((CmdNo)Settings.AppSettings.ReverseButotn);
+			MenuExecute((CmdNo)Settings.AppSettings.ReverseButotn);
 		}
 	}
 
@@ -1477,9 +1492,12 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		case Resource.Id.action_settings:
 			OpenSettingsHome();
 			break;
-		case Resource.Id.menu_vastai:
-			StartActivityForResult(new Intent(this, typeof(VastAiActivity)), VASTAI_ACTIVITY_CODE);
+		case Resource.Id.menu_cloud:
+			StartActivityForResult(new Intent(this, typeof(CloudActivity)), CLOUD_ACTIVITY_CODE);
 			drawerLayout.CloseDrawers();
+			break;
+		case Resource.Id.menu_wars_history:
+			ShogiWars();
 			break;
 		case Resource.Id.analysis_settings:
 			OpenSettingsSection(SettingActivity.SectionAnalyze);
@@ -1534,7 +1552,18 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			drawerLayout.CloseDrawers();
 			break;
 		case Resource.Id.menu_about:
-			MessagePopup(GetString(Resource.String.app_name) + " ver " + Assembly.GetExecutingAssembly().GetName().Version, lengthShort: true);
+		{
+			string aboutVersion = ApplicationContext.PackageManager
+				.GetPackageInfo(ApplicationContext.PackageName, 0)?.VersionName ?? "0.0.0";
+			MessagePopup(GetString(Resource.String.app_name) + " ver " + aboutVersion, lengthShort: true);
+			break;
+		}
+		case Resource.Id.clear_all_comments:
+			ConfirmClearAllComments();
+			break;
+		case Resource.Id.game_info_edit:
+			ShowGameInfoEditDialog();
+			drawerLayout.CloseDrawers();
 			break;
 		case Resource.Id.thinkinfo_add_branch:
 			presenter.AddBranch(selpvnum, infoPageAdepter.DispMode);
@@ -1543,7 +1572,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			presenter.AddComment(selpvnum, infoPageAdepter.DispMode);
 			break;
 		default:
-			flag = MenuExceute(itemId);
+			flag = MenuExecute(itemId);
 			if (flag)
 			{
 				drawerLayout.CloseDrawers();
@@ -1551,6 +1580,20 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			break;
 		}
 		return flag;
+	}
+
+	private void ConfirmClearAllComments()
+	{
+		drawerLayout.CloseDrawers();
+		new Android.App.AlertDialog.Builder(this)
+			.SetMessage(GetString(Resource.String.ClearAllCommentsConfirm_Text))
+			.SetPositiveButton(Android.Resource.String.Ok, (s, a) =>
+			{
+				presenter.ClearAllComments();
+				UpdateNotation(NotationEventId.COMMENT);
+			})
+			.SetNegativeButton(Android.Resource.String.Cancel, (s, a) => { })
+			.Show();
 	}
 
 	private void OpenSettingsHome()
@@ -1642,7 +1685,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		}
 	}
 
-	private void InfoPageAdepter_SelectPosition(object sender, GraphPositoinEventArgs e)
+	private void InfoPageAdepter_SelectPosition(object sender, GraphPositionEventArgs e)
 	{
 		presenter.Jump(e.Number);
 	}
@@ -1719,6 +1762,11 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		UpdateNotationListView(eventid);
 		UpdateNotationText(eventid);
 		infoPageAdepter.Comment = notation.MoveCurrent.Comment;
+		// 解析中でない時はコメントに残っている過去の解析結果を表示
+		if (!presenter.ComState.IsThinking())
+		{
+			infoPageAdepter.SetCommentAnalysis(notation.MoveCurrent.CommentList);
+		}
 		infoPageAdepter.UpdateNotation(eventid);
 		if (evalGraphView != null)
 		{
@@ -1824,6 +1872,14 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 	private void StopBackgroundAnalysisService()
 	{
 		StopService(new Intent(this, typeof(BackgroundAnalysisService)));
+	}
+
+	public void UpdatePolicyInfo(PolicyInfo policyInfo)
+	{
+		RunOnUiThread(() =>
+		{
+			infoPageAdepter?.SetPolicyInfo(policyInfo);
+		});
 	}
 
 	public void UpdateInfo(PvInfos pvinfos)
@@ -2397,7 +2453,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		StartActivityForResult(new Intent("android.intent.action.VIEW", uri), 108);
 	}
 
-	private void RecieveWarsGameResult()
+	private void ReceiveWarsGameResult()
 	{
 		string data = ClipboardUtil.GetData(this);
 		if (!string.IsNullOrEmpty(data) && data != Settings.AppSettings.ImportUrl)
@@ -2414,13 +2470,17 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		userNameDialog.OKClick = (EventHandler<EventArgs>)Delegate.Combine(userNameDialog.OKClick, (EventHandler<EventArgs>)delegate
 		{
 			Settings.AppSettings.WarsUserName = dialog.UserName;
-			ShowWarsGameResult();
+			if (!string.IsNullOrEmpty(dialog.UserName))
+			{
+				StartActivityForResult(new Intent(this, typeof(ShogiWarsActivity)), 108);
+				drawerLayout.CloseDrawers();
+			}
 		});
 		dialog.Show(FragmentManager, "UserNameDialog");
 	}
 
 
-	private const int VASTAI_ACTIVITY_CODE = 120;
+	private const int CLOUD_ACTIVITY_CODE = 120;
 
 	public void OnEngineInitialized()
 	{
@@ -2431,290 +2491,12 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			StopRemoteMonitor();
 	}
 
-	private void OnVastAiAutoStopped()
+	private void OnCloudInstanceAutoStopped()
 	{
 		RunOnUiThread(() =>
 		{
-			Toast.MakeText(this, "vast.ai インスタンスをアイドルのため一時停止しました", ToastLength.Long).Show();
+			Toast.MakeText(this, "クラウドインスタンスをアイドルのため一時停止しました", ToastLength.Long).Show();
 		});
-	}
-
-	private bool HasActiveVastAiBoot()
-	{
-		return vastAiBootTask_ != null && !vastAiBootTask_.IsCompleted;
-	}
-
-	private void CancelAutoBootVastAi()
-	{
-		if (vastAiBootCts_ != null && !vastAiBootCts_.IsCancellationRequested)
-		{
-			vastAiBootCts_.Cancel();
-		}
-
-		DismissVastAiBootDialog();
-	}
-
-	private void CompleteAutoBootVastAi(CancellationTokenSource cts)
-	{
-		if (ReferenceEquals(vastAiBootCts_, cts))
-		{
-			vastAiBootCts_ = null;
-			vastAiBootTask_ = null;
-		}
-
-		cts.Dispose();
-	}
-
-	private void RunOnUiThreadIfAlive(CancellationToken ct, Action action)
-	{
-		if (ct.IsCancellationRequested || isDestroyed_ || IsFinishing)
-		{
-			return;
-		}
-
-		RunOnUiThread(() =>
-		{
-			if (ct.IsCancellationRequested || isDestroyed_ || IsFinishing)
-			{
-				return;
-			}
-
-			action();
-		});
-	}
-
-	private void RunOnUiThreadIfVisible(CancellationToken ct, Action action)
-	{
-		RunOnUiThreadIfAlive(ct, () =>
-		{
-			if (!isActivityVisible_)
-			{
-				return;
-			}
-
-			action();
-		});
-	}
-
-	private IProgress<string> CreateVastAiBootProgress(CancellationToken ct)
-	{
-		return new Progress<string>(msg =>
-		{
-			RunOnUiThreadIfVisible(ct, () => SetStatusText(msg));
-		});
-	}
-
-	public void OnVastAiBootRequired()
-	{
-		RunOnUiThread(() =>
-		{
-			if (HasActiveVastAiBoot())
-			{
-				AppDebug.Log.Info("AutoBootVastAi: boot already in progress");
-				return;
-			}
-
-			var cts = new CancellationTokenSource();
-			vastAiBootCts_ = cts;
-			vastAiBootTask_ = AutoBootVastAiAsync(cts);
-		});
-	}
-
-	private AlertDialog vastAiBootDialog_;
-	private TextView vastAiBootStatusText_;
-
-	private void ShowVastAiBootDialog(string message)
-	{
-		DismissVastAiBootDialog();
-		var layout = new LinearLayout(this) { Orientation = Android.Widget.Orientation.Vertical };
-		layout.SetPadding(48, 32, 48, 16);
-
-		vastAiBootStatusText_ = new TextView(this) { Text = message };
-		vastAiBootStatusText_.SetTextSize(Android.Util.ComplexUnitType.Sp, 14);
-		layout.AddView(vastAiBootStatusText_);
-
-		var bar = new ProgressBar(this, null, Android.Resource.Attribute.ProgressBarStyleHorizontal);
-		bar.Indeterminate = true;
-		var barLp = new LinearLayout.LayoutParams(
-			LinearLayout.LayoutParams.MatchParent, LinearLayout.LayoutParams.WrapContent);
-		barLp.TopMargin = 16;
-		bar.LayoutParameters = barLp;
-		layout.AddView(bar);
-
-		vastAiBootDialog_ = new AlertDialog.Builder(this)
-			.SetTitle("インスタンス起動中")
-			.SetView(layout)
-			.SetCancelable(false)
-			.Create();
-		vastAiBootDialog_.Show();
-	}
-
-	private void DismissVastAiBootDialog()
-	{
-		try { vastAiBootDialog_?.Dismiss(); } catch { }
-		vastAiBootDialog_ = null;
-		vastAiBootStatusText_ = null;
-	}
-
-	private void SetStatusText(string text)
-	{
-		if (string.IsNullOrEmpty(text))
-		{
-			DismissVastAiBootDialog();
-			return;
-		}
-		if (vastAiBootDialog_ == null)
-		{
-			ShowVastAiBootDialog(text);
-		}
-		else if (vastAiBootStatusText_ != null)
-		{
-			vastAiBootStatusText_.Text = text;
-		}
-	}
-
-	private async System.Threading.Tasks.Task AutoBootVastAiAsync(CancellationTokenSource cts)
-	{
-		CancellationToken ct = cts.Token;
-		string apiKey = Settings.EngineSettings.VastAiApiKey;
-		int lastInstanceId = Settings.EngineSettings.VastAiInstanceId;
-
-		if (string.IsNullOrEmpty(apiKey) || lastInstanceId <= 0)
-		{
-			Toast.MakeText(this, GetString(Resource.String.VastAiBootFailed_Text), ToastLength.Long).Show();
-			return;
-		}
-
-		// プログレスダイアログを表示
-		ShowVastAiBootDialog(GetString(Resource.String.VastAiBooting_Text));
-
-		try
-		{
-			using var manager = new VastAiManager(apiKey);
-
-			// 前回のインスタンスを探す
-			var instances = await manager.ListInstancesAsync(ct);
-			VastAiInstance target = null;
-			foreach (var inst in instances)
-			{
-				if (inst.Id == lastInstanceId)
-				{
-					target = inst;
-					break;
-				}
-			}
-
-			var bootProgress = CreateVastAiBootProgress(ct);
-
-			if (target != null && target.IsRunning && !string.IsNullOrEmpty(target.PublicIpAddr))
-			{
-				// 既に稼働中ならSSH待ちだけ行う
-				AppDebug.Log.Info($"AutoBootVastAi: instance {lastInstanceId} は稼働中");
-			}
-			else if (target != null && (target.IsRunning || target.IsLoading))
-			{
-				RunOnUiThreadIfVisible(ct, () => SetStatusText("既存インスタンスの起動完了を待機中..."));
-				target = await manager.WaitForReadyAsync(lastInstanceId, bootProgress, ct);
-			}
-			else if (target != null && target.IsStopped)
-			{
-				// 休止中なら再開
-				RunOnUiThreadIfVisible(ct, () => SetStatusText("インスタンス再開中..."));
-				await manager.StartInstanceAsync(lastInstanceId, ct);
-				target = await manager.WaitForReadyAsync(lastInstanceId, bootProgress, ct);
-			}
-			else
-			{
-				// インスタンスが存在しない場合は新規検索＆作成
-				RunOnUiThreadIfVisible(ct, () => SetStatusText("新規インスタンスを検索中..."));
-				target = await SearchAndCreateInstance(manager, ct);
-			}
-
-			ct.ThrowIfCancellationRequested();
-
-			if (target == null || !target.IsRunning)
-			{
-				throw new VastAiException("インスタンスの起動に失敗しました");
-			}
-
-			// エンジン接続設定を更新
-			var (sshHost, sshPort) = target.GetSshEndpoint();
-			Settings.EngineSettings.RemoteHost = sshHost;
-			Settings.EngineSettings.VastAiSshPort = sshPort;
-			Settings.EngineSettings.VastAiInstanceId = target.Id;
-			Settings.EngineSettings.VastAiCpuCores = (int)target.CpuCoresEffective;
-			Settings.EngineSettings.VastAiRamMb = (int)(target.CpuRamGb * 1024);
-			Settings.EngineSettings.VastAiGpuRamMb = (int)(target.GpuRamGb * 1024);
-			Settings.Save();
-
-			// Watchdog を再開
-			VastAiWatchdog.Instance.StartMonitoring(target.Id, apiKey);
-			VastAiWatchdog.Instance.SaveLastConnectionInfo(
-				target.Id, sshHost, sshPort,
-				Settings.EngineSettings.VastAiSshEngineCommand);
-
-			RunOnUiThreadIfAlive(ct, () =>
-			{
-				SetStatusText(string.Empty);
-				// 保留中の操作を再開
-				ShogiGUI.Domain.Game.ResumeAfterVastAiBoot();
-			});
-		}
-		catch (System.OperationCanceledException)
-		{
-			AppDebug.Log.Info("AutoBootVastAi: cancelled");
-		}
-		catch (Exception ex)
-		{
-			AppDebug.Log.Error($"AutoBootVastAi: {ex.Message}");
-			RunOnUiThreadIfVisible(ct, () =>
-			{
-				SetStatusText(string.Empty);
-				Toast.MakeText(this, $"{GetString(Resource.String.VastAiBootFailed_Text)}: {ex.Message}", ToastLength.Long).Show();
-			});
-		}
-		finally
-		{
-			CompleteAutoBootVastAi(cts);
-		}
-	}
-
-	private async System.Threading.Tasks.Task<VastAiInstance> SearchAndCreateInstance(
-		VastAiManager manager,
-		CancellationToken ct)
-	{
-		// 前回の検索条件で新規インスタンスを作成
-		var criteria = new VastAiSearchCriteria
-		{
-			GpuNames = Settings.EngineSettings.VastAiGpuNames?.Split(',', System.StringSplitOptions.RemoveEmptyEntries | System.StringSplitOptions.TrimEntries)
-				?? new[] { "RTX 4090" },
-			MinCpuCoresEffective = Settings.EngineSettings.VastAiMinCpuCores,
-			MaxDphTotal = Settings.EngineSettings.VastAiMaxDph,
-			MinCudaVersion = Settings.EngineSettings.VastAiMinCudaVersion,
-			RentType = "bid"
-		};
-
-		var offers = await manager.SearchOffersAsync(criteria, ct);
-		if (offers == null || offers.Count == 0)
-			throw new VastAiException("条件に合うオファーが見つかりません");
-
-		var offer = offers[0]; // 最安値
-		RunOnUiThreadIfVisible(ct, () => SetStatusText($"インスタンス作成中... ({offer.GpuName})"));
-
-		var config = new VastAiInstanceConfig
-		{
-			DockerImage = Settings.EngineSettings.VastAiDockerImage,
-			Ports = Array.Empty<int>(),
-			DiskGb = 8.0,
-			OnStartCmd = Settings.EngineSettings.VastAiOnStartCmd,
-			BidPrice = offer.DphTotal
-		};
-
-		int newId = await manager.CreateInstanceAsync(offer.Id, config, ct);
-		Settings.EngineSettings.VastAiInstanceId = newId;
-		Settings.Save();
-
-		return await manager.WaitForReadyAsync(newId, CreateVastAiBootProgress(ct), ct);
 	}
 
 	private void StartRemoteMonitor()
@@ -2797,6 +2579,34 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		{
 			presenter.SetComment(dialog.Comment);
 		});
+	}
+
+	private void ShowGameInfoEditDialog()
+	{
+		string GetInfo(string key) => notation.KifuInfos.Contains(key) ? notation.KifuInfos[key]?.ToString() ?? string.Empty : string.Empty;
+		var dialog = GameInfoEditDialog.NewInstance(
+			notation.BlackName,
+			notation.WhiteName,
+			GetInfo("棋戦"),
+			GetInfo("場所"),
+			GetInfo("開始日時"),
+			GetInfo("終了日時"),
+			GetInfo("持ち時間"),
+			GetInfo("戦型"));
+		dialog.OKClick += (sender, e) =>
+		{
+			presenter.UpdateGameInfo(
+				dialog.BlackName,
+				dialog.WhiteName,
+				dialog.Event,
+				dialog.Site,
+				dialog.StartTime,
+				dialog.EndTime,
+				dialog.TimeLimit,
+				dialog.Opening);
+			UpdateNotation(ShogiGUI.Events.NotationEventId.OTHER);
+		};
+		dialog.Show(FragmentManager, "GameInfoEditDialog");
 	}
 
 	private void ShowCommentInfoDialog()
@@ -3194,7 +3004,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 	{
 		if (notation.MoveCurrent.Number == 0)
 		{
-			notationText.Text = MoveStringExtention.InitialPosition(Settings.AppSettings.MoveStyle);
+			notationText.Text = MoveStringExtension.InitialPosition(Settings.AppSettings.MoveStyle);
 			UpdateThreatmateBadge();
 			return;
 		}
@@ -3271,6 +3081,13 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		infoPageAdepter.EvalGraphScaleFactor = Settings.AppSettings.EvalGraphScaleFactor;
 		infoPageAdepter.EvalGraphLiner = Settings.AppSettings.GraphLiner;
 		infoPageAdepter.PVDispaly = (PVDispMode)Settings.AppSettings.PVDisplay;
+		// Policy ページの表示切替を設定変更時に反映
+		bool newPolicyDisp = Settings.AppSettings.AutoPolicyAnalysis;
+		if (infoPageAdepter.DispPolicyPage != newPolicyDisp)
+		{
+			infoPageAdepter.DispPolicyPage = newPolicyDisp;
+			infoPageAdepter.NotifyDataSetChanged();
+		}
 		if (evalGraphView != null)
 		{
 			evalGraphView.ScaleFactor = Settings.AppSettings.EvalGraphScaleFactor;
@@ -3316,8 +3133,13 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			Window.DecorView.SystemUiVisibility = (StatusBarVisibility)SystemUiFlags.Visible;
 			Window.ClearFlags(WindowManagerFlags.Fullscreen);
 			AndroidX.Core.View.WindowCompat.SetDecorFitsSystemWindows(Window, true);
-			var drawer = FindViewById<Android.Views.View>(Resource.Id.drawer_layout);
-			if (drawer != null) drawer.SetFitsSystemWindows(true);
+			var drawer = FindViewById<AndroidX.DrawerLayout.Widget.DrawerLayout>(Resource.Id.drawer_layout);
+			if (drawer != null)
+			{
+				drawer.SetFitsSystemWindows(true);
+				drawer.SetStatusBarBackgroundColor(Android.Graphics.Color.Black);
+				drawer.RequestFitSystemWindows();
+			}
 		}
 		else
 		{
@@ -3345,6 +3167,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			{
 				drawer.SetFitsSystemWindows(false);
 				drawer.SetStatusBarBackgroundColor(Android.Graphics.Color.Transparent);
+				drawer.RequestFitSystemWindows();
 			}
 		}
 
@@ -3436,7 +3259,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			presenter.Last();
 			break;
 		case "reverse":
-			MenuExceute(CmdNo.Reverse);
+			MenuExecute(CmdNo.Reverse);
 			break;
 		case "menu":
 			MenuButton_Click(this, EventArgs.Empty);

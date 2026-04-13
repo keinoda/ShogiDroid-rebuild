@@ -4,7 +4,7 @@ namespace ShogiGUI.Events;
 
 public class NotationEventArgs : EventArgs
 {
-	public NotationEventId EventId;
+	public NotationEventId EventId { get; set; }
 
 	public NotationEventArgs(NotationEventId eventId)
 	{

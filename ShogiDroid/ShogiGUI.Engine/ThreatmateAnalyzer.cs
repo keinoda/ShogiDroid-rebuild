@@ -96,16 +96,16 @@ public class ThreatmateAnalyzer : IDisposable
 		player.LoadSettings();
 		player.Initialized += EnginePlayer_Initialized;
 		player.ReadyOk += EnginePlayer_ReadyOk;
-		player.InfoRecieved += EnginePlayer_InfoRecieved;
-		player.CheckMateRecieved += EnginePlayer_CheckMateRecieved;
+		player.InfoReceived += EnginePlayer_InfoReceived;
+		player.CheckMateReceived += EnginePlayer_CheckMateReceived;
 		player.ReportError += EnginePlayer_ReportError;
 
 		if (!player.Init(player.EnginePath))
 		{
 			player.Initialized -= EnginePlayer_Initialized;
 			player.ReadyOk -= EnginePlayer_ReadyOk;
-			player.InfoRecieved -= EnginePlayer_InfoRecieved;
-			player.CheckMateRecieved -= EnginePlayer_CheckMateRecieved;
+			player.InfoReceived -= EnginePlayer_InfoReceived;
+			player.CheckMateReceived -= EnginePlayer_CheckMateReceived;
 			player.ReportError -= EnginePlayer_ReportError;
 			player.Terminate();
 			return false;
@@ -144,7 +144,7 @@ public class ThreatmateAnalyzer : IDisposable
 		}
 	}
 
-	private void EnginePlayer_InfoRecieved(object sender, InfoEventArgs e)
+	private void EnginePlayer_InfoReceived(object sender, InfoEventArgs e)
 	{
 		lock (lockObj)
 		{
@@ -175,7 +175,7 @@ public class ThreatmateAnalyzer : IDisposable
 		}
 	}
 
-	private void EnginePlayer_CheckMateRecieved(object sender, CheckMateEventArgs e)
+	private void EnginePlayer_CheckMateReceived(object sender, CheckMateEventArgs e)
 	{
 		lock (lockObj)
 		{
@@ -235,8 +235,8 @@ public class ThreatmateAnalyzer : IDisposable
 		{
 			enginePlayer.Initialized -= EnginePlayer_Initialized;
 			enginePlayer.ReadyOk -= EnginePlayer_ReadyOk;
-			enginePlayer.InfoRecieved -= EnginePlayer_InfoRecieved;
-			enginePlayer.CheckMateRecieved -= EnginePlayer_CheckMateRecieved;
+			enginePlayer.InfoReceived -= EnginePlayer_InfoReceived;
+			enginePlayer.CheckMateReceived -= EnginePlayer_CheckMateReceived;
 			enginePlayer.ReportError -= EnginePlayer_ReportError;
 			try { enginePlayer.Stop(); } catch { }
 			try { enginePlayer.Terminate(); } catch { }

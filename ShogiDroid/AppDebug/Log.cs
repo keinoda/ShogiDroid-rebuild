@@ -1,6 +1,5 @@
 using System;
 using System.Diagnostics;
-using System.Threading;
 
 namespace AppDebug;
 
@@ -8,20 +7,29 @@ public static class Log
 {
 	private const string TAG = "ShogiDroid";
 
-	private static SynchronizationContext syncContext;
-
 	private static long starttime;
 
 	public static void Initialize()
 	{
-		syncContext = SynchronizationContext.Current;
 		Android.Util.Log.Info(TAG, "Log initialized");
+	}
+
+	private static string GetCallerInfo()
+	{
+		var frame = new StackTrace(fNeedFileInfo: true).GetFrame(2);
+		var method = frame?.GetMethod();
+		var typeName = method?.DeclaringType?.Name;
+		var methodName = method?.Name;
+		if (typeName == null || methodName == null)
+		{
+			return null;
+		}
+		return $"{typeName}.{methodName}";
 	}
 
 	public static void Fatal(string str)
 	{
-		var frame = new StackTrace(fNeedFileInfo: true).GetFrame(1);
-		var caller = frame != null ? $"{frame.GetMethod()?.DeclaringType?.Name}.{frame.GetMethod()?.Name}" : "?";
+		var caller = GetCallerInfo() ?? "?";
 		Android.Util.Log.Error(TAG, $"[FATAL] {caller}: {str}");
 	}
 
@@ -37,15 +45,13 @@ public static class Log
 
 	public static void Error(string str)
 	{
-		var frame = new StackTrace(fNeedFileInfo: true).GetFrame(1);
-		var caller = frame != null ? $"{frame.GetMethod()?.DeclaringType?.Name}.{frame.GetMethod()?.Name}" : "?";
+		var caller = GetCallerInfo() ?? "?";
 		Android.Util.Log.Error(TAG, $"[ERROR] {caller}: {str}");
 	}
 
 	public static void Warning(string str)
 	{
-		var frame = new StackTrace(fNeedFileInfo: true).GetFrame(1);
-		var caller = frame != null ? $"{frame.GetMethod()?.DeclaringType?.Name}.{frame.GetMethod()?.Name}" : "?";
+		var caller = GetCallerInfo() ?? "?";
 		Android.Util.Log.Warn(TAG, $"[WARN] {caller}: {str}");
 	}
 
@@ -57,16 +63,14 @@ public static class Log
 	[Conditional("DEBUG")]
 	public static void Dbg(string str)
 	{
-		var frame = new StackTrace(fNeedFileInfo: true).GetFrame(1);
-		var caller = frame != null ? $"{frame.GetMethod()?.DeclaringType?.Name}.{frame.GetMethod()?.Name}" : "?";
+		var caller = GetCallerInfo() ?? "?";
 		Android.Util.Log.Debug(TAG, $"[DBG] {caller}: {str}");
 	}
 
 	[Conditional("TRACE_ON")]
 	public static void Trace(string str)
 	{
-		var frame = new StackTrace(fNeedFileInfo: true).GetFrame(1);
-		var caller = frame != null ? $"{frame.GetMethod()?.DeclaringType?.Name}.{frame.GetMethod()?.Name}" : "?";
+		var caller = GetCallerInfo() ?? "?";
 		Android.Util.Log.Verbose(TAG, $"[TRACE] {caller}: {str}");
 	}
 
@@ -77,8 +81,7 @@ public static class Log
 
 	public static void PrintTime()
 	{
-		var frame = new StackTrace(fNeedFileInfo: true).GetFrame(1);
-		var caller = frame != null ? $"{frame.GetMethod()?.DeclaringType?.Name}.{frame.GetMethod()?.Name}" : "?";
+		var caller = GetCallerInfo() ?? "?";
 		long elapsed = (DateTime.Now.Ticks - starttime) / TimeSpan.TicksPerMillisecond;
 		Android.Util.Log.Debug(TAG, $"[TIME] {caller}: {elapsed}ms");
 	}

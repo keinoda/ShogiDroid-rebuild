@@ -397,7 +397,12 @@ public class NotationModel
 
 	public void InputCancel()
 	{
-		notation.Back();
+		// 一手戻ってその手を削除する（入力の取り消し）
+		if (notation.MoveCurrent.Number > 0)
+		{
+			notation.Prev(1);
+			notation.Remove(notation.MoveCurrent.ChildCurrent);
+		}
 		changeState = ChangeState.Modified;
 		OnNotationChanged(new NotationEventArgs(NotationEventId.OTHER));
 	}
@@ -509,6 +514,62 @@ public class NotationModel
 			notation.MoveCurrent.CommentAdd(str);
 		}
 		notation.MoveCurrent.UpdateCommentCount();
+		OnNotationChanged(new NotationEventArgs(NotationEventId.COMMENT));
+	}
+
+	/// <summary>
+	/// 棋譜情報（対局者名・棋戦・場所等）を更新する。
+	/// 空文字列が渡された項目は KifuInfos から削除する。
+	/// </summary>
+	public void UpdateGameInfo(
+		string blackName,
+		string whiteName,
+		string ev,
+		string site,
+		string startTime,
+		string endTime,
+		string timeLimit,
+		string opening)
+	{
+		notation.BlackName = blackName ?? string.Empty;
+		notation.WhiteName = whiteName ?? string.Empty;
+		SetOrRemoveKifuInfo("棋戦", ev);
+		SetOrRemoveKifuInfo("場所", site);
+		SetOrRemoveKifuInfo("開始日時", startTime);
+		SetOrRemoveKifuInfo("終了日時", endTime);
+		SetOrRemoveKifuInfo("持ち時間", timeLimit);
+		SetOrRemoveKifuInfo("戦型", opening);
+		OnNotationChanged(new NotationEventArgs(NotationEventId.OTHER));
+	}
+
+	private void SetOrRemoveKifuInfo(string key, string value)
+	{
+		if (string.IsNullOrEmpty(value))
+		{
+			if (notation.KifuInfos.Contains(key))
+			{
+				notation.KifuInfos.Remove(key);
+			}
+		}
+		else
+		{
+			notation.KifuInfos[key] = value;
+		}
+	}
+
+	/// <summary>
+	/// すべての手のコメントを削除する
+	/// </summary>
+	public void ClearAllComments()
+	{
+		foreach (MoveNode moveNode in notation.MoveNodes)
+		{
+			moveNode.CommentList.Clear();
+			moveNode.UpdateCommentCount();
+		}
+		// 開始局面のコメントもクリア
+		notation.MoveFirst.CommentList.Clear();
+		notation.MoveFirst.UpdateCommentCount();
 		OnNotationChanged(new NotationEventArgs(NotationEventId.COMMENT));
 	}
 

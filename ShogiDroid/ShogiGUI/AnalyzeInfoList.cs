@@ -173,7 +173,7 @@ public class AnalyzeInfoList : SortedList<int, AnalyzeInfo>
 			}
 			if (info != null)
 			{
-				MoveEval moveEval = MoveEvalExtention.GetMoveEval(value.MoveData, info.MoveData);
+				MoveEval moveEval = MoveEvalExtension.GetMoveEval(value.MoveData, info.MoveData);
 				analyzeMoveInfo.Moves[(int)moveEval]++;
 			}
 		}

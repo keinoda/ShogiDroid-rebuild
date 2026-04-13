@@ -86,7 +86,7 @@ public class EngineOptionsActivity : Activity, IEngineOptions
 	protected override void OnDestroy()
 	{
 		base.OnDestroy();
-		presenter.Destory();
+		presenter.Destroy();
 	}
 
 	public override void OnConfigurationChanged(Configuration newConfig)

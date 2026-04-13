@@ -16,7 +16,7 @@ using ShogiGUI.Engine;
 namespace ShogiDroid;
 
 [Activity(Label = "リモートエンジン (vast.ai)", ConfigurationChanges = (Android.Content.PM.ConfigChanges.Orientation | Android.Content.PM.ConfigChanges.ScreenSize), Theme = "@style/AppTheme")]
-public class VastAiActivity : Activity
+public class VastAiActivity : ThemedActivity
 {
 	private const int SSH_KEY_PICK_CODE = 130;
 	public const string ExtraHost = "vast_ai_host";
@@ -573,10 +573,10 @@ public class VastAiActivity : Activity
 		var (sshHost, sshPort) = inst.GetSshEndpoint();
 		SetBusy(true, "エンジンを検出中...");
 
-		List<EngineInfo> engines;
+		(List<EngineInfo> engines, int actualRamMb) result;
 		try
 		{
-			engines = await Task.Run(() => ScanEngines(sshHost, sshPort, sshKeyPath));
+			result = await Task.Run(() => ScanEngines(sshHost, sshPort, sshKeyPath));
 		}
 		catch (Exception ex)
 		{
@@ -591,16 +591,16 @@ public class VastAiActivity : Activity
 		RunOnUiThread(() =>
 		{
 			SetBusy(false, "");
-			if (engines.Count == 0)
+			if (result.engines.Count == 0)
 			{
 				Toast.MakeText(this, "/workspace にエンジンが見つかりません", ToastLength.Long).Show();
 				return;
 			}
-			ShowEngineSelectDialog(inst, engines);
+			ShowEngineSelectDialog(inst, result.engines, result.actualRamMb);
 		});
 	}
 
-	private List<EngineInfo> ScanEngines(string host, int sshPort, string keyPath)
+	private (List<EngineInfo> engines, int actualRamMb) ScanEngines(string host, int sshPort, string keyPath)
 	{
 		var results = new List<EngineInfo>();
 		using var keyFile = new PrivateKeyFile(keyPath);
@@ -634,11 +634,55 @@ public class VastAiActivity : Activity
 			});
 		}
 
+		// 実際に利用可能なRAMを取得（cgroup制限 or 物理メモリの小さい方）
+		int actualRamMb = QueryActualRamMb(client);
+
 		client.Disconnect();
-		return results;
+		return (results, actualRamMb);
 	}
 
-	private void ShowEngineSelectDialog(VastAiInstance inst, List<EngineInfo> engines)
+	/// <summary>
+	/// SSH接続経由で実際に利用可能なRAMをMB単位で取得する。
+	/// cgroupメモリ制限と物理メモリの小さい方を返す。
+	/// </summary>
+	private int QueryActualRamMb(SshClient client)
+	{
+		int ramMb = 0;
+		try
+		{
+			// 物理メモリ（free -m の Total）
+			var freeCmd = client.RunCommand("free -m | awk '/^Mem:/{print $2}'");
+			int physicalRamMb = 0;
+			int.TryParse(freeCmd.Result?.Trim(), out physicalRamMb);
+
+			// cgroupメモリ制限（v2: memory.max, v1: memory.limit_in_bytes）
+			var cgroupCmd = client.RunCommand(
+				"cat /sys/fs/cgroup/memory.max 2>/dev/null || " +
+				"cat /sys/fs/cgroup/memory/memory.limit_in_bytes 2>/dev/null");
+			string cgroupStr = cgroupCmd.Result?.Trim() ?? "";
+			long cgroupBytes = 0;
+			int cgroupRamMb = int.MaxValue;
+			// "max" は制限なし
+			if (cgroupStr != "max" && long.TryParse(cgroupStr, out cgroupBytes) && cgroupBytes > 0)
+			{
+				cgroupRamMb = (int)(cgroupBytes / (1024L * 1024L));
+			}
+
+			if (physicalRamMb > 0)
+			{
+				ramMb = System.Math.Min(physicalRamMb, cgroupRamMb);
+			}
+
+			AppDebug.Log.Info($"VastAi RAM検出: physical={physicalRamMb}MB, cgroup={cgroupRamMb}MB, actual={ramMb}MB");
+		}
+		catch (Exception ex)
+		{
+			AppDebug.Log.Info($"VastAi RAM検出失敗: {ex.Message}");
+		}
+		return ramMb;
+	}
+
+	private void ShowEngineSelectDialog(VastAiInstance inst, List<EngineInfo> engines, int actualRamMb)
 	{
 		string[] items = engines.Select(e => e.DisplayName).ToArray();
 
@@ -647,7 +691,7 @@ public class VastAiActivity : Activity
 			.SetItems(items, (s, e) =>
 			{
 				var selected = engines[e.Which];
-				ConnectToInstance(inst, selected.Command, selected.DisplayName);
+				ConnectToInstance(inst, selected.Command, selected.DisplayName, actualRamMb);
 			})
 			.SetNegativeButton("キャンセル", (s, e) => { })
 			.Show();
@@ -660,7 +704,7 @@ public class VastAiActivity : Activity
 		public string Path;
 	}
 
-	private void ConnectToInstance(VastAiInstance inst, string engineCommand, string engineType)
+	private void ConnectToInstance(VastAiInstance inst, string engineCommand, string engineType, int actualRamMb = 0)
 	{
 		string sshKeyPath = Settings.EngineSettings.VastAiSshKeyPath;
 		if (string.IsNullOrEmpty(sshKeyPath))
@@ -676,22 +720,30 @@ public class VastAiActivity : Activity
 
 		var (sshHost, sshPort) = inst.GetSshEndpoint();
 
+		// マシンが変わった場合、保存済みオプションのマシンIDをリセット
+		int prevMachineId = Settings.EngineSettings.VastAiMachineId;
+		if (inst.MachineId > 0 && inst.MachineId != prevMachineId)
+		{
+			Settings.EngineSettings.VastAiOptionsMachineId = 0;
+		}
+
 		Settings.EngineSettings.RemoteHost = sshHost;
 		Settings.EngineSettings.VastAiSshPort = sshPort;
 		Settings.EngineSettings.VastAiSshEngineCommand = engineCommand;
 		Settings.EngineSettings.EngineNo = RemoteEnginePlayer.RemoteEngineNo;
 		Settings.EngineSettings.EngineName = $"{engineType} (vast.ai #{inst.Id})";
 		Settings.EngineSettings.VastAiInstanceId = inst.Id;
+		Settings.EngineSettings.VastAiMachineId = inst.MachineId;
 		Settings.EngineSettings.VastAiCpuCores = (int)inst.CpuCoresEffective;
-		Settings.EngineSettings.VastAiRamMb = (int)(inst.CpuRamGb * 1024);
+		// SSH経由で取得した実際のRAMを優先、取得できなかった場合はAPI値をフォールバック
+		Settings.EngineSettings.VastAiRamMb = actualRamMb > 0 ? actualRamMb : (int)(inst.CpuRamGb * 1024);
 		Settings.EngineSettings.VastAiGpuRamMb = (int)(inst.GpuRamGb * 1024);
 		Settings.Save();
 
 		// アイドル自動終了監視を開始し、接続情報を保存
-		VastAiWatchdog.Instance.StartMonitoring(
-			inst.Id,
-			Settings.EngineSettings.VastAiApiKey);
-		VastAiWatchdog.Instance.SaveLastConnectionInfo(
+		var watchdogConfig = CloudWatchdogConfig.ForVastAi(inst.Id, Settings.EngineSettings.VastAiApiKey);
+		CloudInstanceWatchdog.Instance.StartMonitoring(watchdogConfig);
+		CloudInstanceWatchdog.Instance.SaveLastConnectionInfo(
 			inst.Id, sshHost, sshPort, engineCommand);
 
 		var resultIntent = new Intent();
@@ -711,7 +763,7 @@ public class VastAiActivity : Activity
 		try
 		{
 			await manager.StopInstanceAsync(instanceId, cts_.Token);
-			VastAiWatchdog.Instance.StopMonitoring();
+			CloudInstanceWatchdog.Instance.StopMonitoring();
 
 			// APIの状態反映を待つ
 			await Task.Delay(3000, cts_.Token);
@@ -786,7 +838,7 @@ public class VastAiActivity : Activity
 				try
 				{
 					await manager.DestroyInstanceAsync(instanceId, cts_.Token);
-					VastAiWatchdog.Instance.StopMonitoring();
+					CloudInstanceWatchdog.Instance.StopMonitoring();
 
 					if (Settings.EngineSettings.VastAiInstanceId == instanceId)
 					{
@@ -1135,11 +1187,6 @@ public class VastAiActivity : Activity
 		int first = 0x1F1E6 + (countryCode[0] - 'A');
 		int second = 0x1F1E6 + (countryCode[1] - 'A');
 		return char.ConvertFromUtf32(first) + char.ConvertFromUtf32(second);
-	}
-
-	private int DpToPx(int dp)
-	{
-		return (int)(dp * Resources.DisplayMetrics.Density + 0.5f);
 	}
 
 	protected override void OnActivityResult(int requestCode, Result resultCode, Intent data)

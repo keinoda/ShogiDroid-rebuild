@@ -113,11 +113,6 @@ public class Util
 		return "com.android.providers.media.documents".Equals(uri.Authority);
 	}
 
-	private static bool IsGooglePhotosUri(Android.Net.Uri uri)
-	{
-		return "com.google.android.apps.photos.content".Equals(uri.Authority);
-	}
-
 	public static bool IsGoogleDriveUri(Android.Net.Uri uri)
 	{
 		return "com.google.android.apps.docs.storage.legacy".Equals(uri.Authority);

@@ -37,7 +37,7 @@ public class EngineInstallPresenter : PresenterBase<IEngineInstallView>
 		installer.InstallCancel(wait: true);
 	}
 
-	public override void Destory()
+	public override void Destroy()
 	{
 	}
 

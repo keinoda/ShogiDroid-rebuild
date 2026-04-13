@@ -57,6 +57,8 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public ThreatmateInfo ThreatmateInfo => Domain.Game.ThreatmateInfo;
 
+	public PolicyInfo PolicyInfo => Domain.Game.PolicyInfo;
+
 	public bool BothComputer => Domain.Game.BothComputer;
 
 	public int BlackTime => Domain.Game.BlackTime.TotalElapsedTime;
@@ -93,7 +95,7 @@ public class MainPresenter : PresenterBase<IMainView>
 		bool keepRemoteAnalysisRunning = Domain.Game.ShouldKeepRemoteAnalysisRunningOnPause();
 		if (keepRemoteAnalysisRunning)
 		{
-			VastAiWatchdog.Instance.RecordActivity();
+			CloudInstanceWatchdog.Instance.RecordActivity();
 		}
 		else
 		{
@@ -113,9 +115,9 @@ public class MainPresenter : PresenterBase<IMainView>
 		Settings.Save();
 	}
 
-	public override void Destory()
+	public override void Destroy()
 	{
-		Domain.Game.Destory();
+		Domain.Game.Destroy();
 		Settings.AppSettings.FileName = Domain.Game.NotationModel.FileName;
 		Domain.Game.NotationModel.SaveTemp();
 		AutoPlayStop();
@@ -139,12 +141,11 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public bool CanMakeMove()
 	{
-		bool result = true;
 		if (GameMode == GameMode.Analyzer)
 		{
-			result = false;
+			return false;
 		}
-		return result;
+		return true;
 	}
 
 	public void GameStart(bool continued)
@@ -193,12 +194,11 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public bool CanGameStart()
 	{
-		bool result = true;
 		if (GameMode != GameMode.Input || Domain.Game.Busy)
 		{
-			result = false;
+			return false;
 		}
-		return result;
+		return true;
 	}
 
 	private string GetPlayerName(int playerNo)
@@ -254,35 +254,23 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public bool CanPass()
 	{
-		bool result = true;
 		if (GameMode == GameMode.Play || GameMode == GameMode.Analyzer)
 		{
-			result = false;
+			return false;
 		}
-		return result;
+		return true;
 	}
 
 	public void InputCancel()
 	{
 		if (!Domain.Game.Busy)
 		{
-			if (Domain.Game.GameMode == GameMode.Play)
-			{
-				Domain.Game.Matta();
-			}
-			else
-			{
-				Domain.Game.NotationModel.InputCancel();
-			}
+			Domain.Game.NotationModel.InputCancel();
 		}
 	}
 
 	public bool CanInputCancel()
 	{
-		if (GameMode == GameMode.Analyzer)
-		{
-			return false;
-		}
 		return true;
 	}
 
@@ -341,12 +329,11 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public bool CanNext()
 	{
-		bool result = true;
 		if (GameMode == GameMode.Analyzer)
 		{
-			result = false;
+			return false;
 		}
-		return result;
+		return true;
 	}
 
 	public void Jump(int number)
@@ -375,12 +362,11 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public bool CanMove()
 	{
-		bool result = true;
 		if (GameMode == GameMode.Play || GameMode == GameMode.Analyzer)
 		{
-			result = false;
+			return false;
 		}
-		return result;
+		return true;
 	}
 
 	public void Hint()
@@ -434,17 +420,16 @@ public class MainPresenter : PresenterBase<IMainView>
 		{
 			return false;
 		}
-		bool result = false;
 		try
 		{
 			Domain.Game.NotationModel.Load(filename);
-			result = true;
+			return true;
 		}
 		catch (Exception ex)
 		{
 			view.MessageError(ex.Message);
+			return false;
 		}
-		return result;
 	}
 
 	public Dictionary<string, List<BookMove>> ParseBookFile(string filename)
@@ -472,27 +457,25 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public bool CanLoadNotaton()
 	{
-		bool result = true;
 		if (GameMode == GameMode.Play || GameMode == GameMode.Analyzer)
 		{
-			result = false;
+			return false;
 		}
-		return result;
+		return true;
 	}
 
 	public bool LoadTempNotation()
 	{
-		bool result = false;
 		try
 		{
 			Domain.Game.NotationModel.LoadTemp(Settings.AppSettings.FileName);
-			result = true;
+			return true;
 		}
 		catch (Exception ex)
 		{
 			view.MessageError(ex.Message);
+			return false;
 		}
-		return result;
 	}
 
 	public string NotaitonToString()
@@ -518,12 +501,11 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public bool CanPaste()
 	{
-		bool result = true;
 		if (Domain.Game.Busy || GameMode == GameMode.Play || GameMode == GameMode.Analyzer)
 		{
-			result = false;
+			return false;
 		}
-		return result;
+		return true;
 	}
 
 	public bool LoadNotationFromWeb(string url)
@@ -532,19 +514,18 @@ public class MainPresenter : PresenterBase<IMainView>
 		{
 			return false;
 		}
-		bool result = false;
 		try
 		{
 			string str = WebKifuFile.LoadKifu(url);
 			Domain.Game.NotationModel.LoadFromString(str);
 			notationUrl = url;
-			result = true;
+			return true;
 		}
 		catch (Exception ex)
 		{
 			view.MessageError(ex.Message);
+			return false;
 		}
-		return result;
 	}
 
 	public bool LoadNotationFromString(string subject, string text)
@@ -558,18 +539,17 @@ public class MainPresenter : PresenterBase<IMainView>
 		{
 			fileName = subject.ReplaceInvalidFileNameChars();
 		}
-		bool result = false;
 		try
 		{
 			Domain.Game.NotationModel.LoadFromString(text);
 			Domain.Game.NotationModel.FileName = fileName;
-			result = true;
+			return true;
 		}
 		catch (Exception ex)
 		{
 			view.MessageError(ex.Message);
+			return false;
 		}
-		return result;
 	}
 
 	public void ChangeBranch(int number, int child)
@@ -734,14 +714,32 @@ public class MainPresenter : PresenterBase<IMainView>
 		Domain.Game.NotationModel.SetComment(str);
 	}
 
+	public void ClearAllComments()
+	{
+		Domain.Game.NotationModel.ClearAllComments();
+	}
+
+	public void UpdateGameInfo(
+		string blackName,
+		string whiteName,
+		string ev,
+		string site,
+		string startTime,
+		string endTime,
+		string timeLimit,
+		string opening)
+	{
+		Domain.Game.NotationModel.UpdateGameInfo(
+			blackName, whiteName, ev, site, startTime, endTime, timeLimit, opening);
+	}
+
 	public bool CanCommentEdit()
 	{
-		bool result = true;
 		if (GameMode != GameMode.Input && GameMode != GameMode.Consider)
 		{
-			result = false;
+			return false;
 		}
-		return result;
+		return true;
 	}
 
 	public void AnalyzerStart()
@@ -754,12 +752,11 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public bool CanAnalyzerStart()
 	{
-		bool result = true;
 		if (Domain.Game.GameMode != GameMode.Input || Domain.Game.Busy)
 		{
-			result = false;
+			return false;
 		}
-		return result;
+		return true;
 	}
 
 	public void AnalyzeStop()
@@ -769,22 +766,20 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public bool CanEditBoard()
 	{
-		bool result = true;
 		if (GameMode == GameMode.Play || GameMode == GameMode.Analyzer)
 		{
-			result = false;
+			return false;
 		}
-		return result;
+		return true;
 	}
 
 	public bool CanManageEngine()
 	{
-		bool result = true;
 		if (GameMode == GameMode.Play || GameMode == GameMode.Analyzer)
 		{
-			result = false;
+			return false;
 		}
-		return result;
+		return true;
 	}
 
 	public void ConsiderStart()
@@ -797,12 +792,11 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public bool CanConsiderStart()
 	{
-		bool result = true;
 		if (Domain.Game.GameMode != GameMode.Input || Domain.Game.Busy)
 		{
-			result = false;
+			return false;
 		}
-		return result;
+		return true;
 	}
 
 	public void AutoPlayStart()
@@ -843,12 +837,11 @@ public class MainPresenter : PresenterBase<IMainView>
 
 	public bool CanAutoPlay()
 	{
-		bool result = false;
 		if (GameMode == GameMode.Input || GameMode == GameMode.Consider)
 		{
-			result = true;
+			return true;
 		}
-		return result;
+		return false;
 	}
 
 	public void AutoPlayTick(object sender, EventArgs e)
@@ -873,9 +866,6 @@ public class MainPresenter : PresenterBase<IMainView>
 			break;
 		case GameEventId.InitializeError:
 			view.Message(MainViewMessageId.InitializeError);
-			break;
-		case GameEventId.VastAiBootRequired:
-			view.OnVastAiBootRequired();
 			break;
 		case GameEventId.GameStart:
 			if (gameStartPopup)
@@ -907,6 +897,10 @@ public class MainPresenter : PresenterBase<IMainView>
 				view.ShowInterstitial();
 			}
 			break;
+		}
+		if (e.EventId == GameEventId.PolicyUpdated)
+		{
+			view.UpdatePolicyInfo(Domain.Game.PolicyInfo);
 		}
 		if (e.EventId != GameEventId.Info && e.EventId != GameEventId.UpdateTime)
 		{
