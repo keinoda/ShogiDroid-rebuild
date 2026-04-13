@@ -213,6 +213,13 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		kifu.Add(Resource.Id.file_load, GetString(Resource.String.Menu_FileLoad_Text), isEnabled: enabled(Resource.Id.file_load));
 		kifu.Add(Resource.Id.file_web_import, GetString(Resource.String.Menu_FileWebExport_Text), isEnabled: enabled(Resource.Id.file_web_import));
 		kifu.Add(Resource.Id.notation_copy, GetString(Resource.String.Menu_NotaitonCopy_Text), isEnabled: enabled(Resource.Id.notation_copy));
+		kifu.Add(Resource.Id.file_load_last, GetString(Resource.String.Menu_FileLoadLast_Text), isEnabled: enabled(Resource.Id.file_load_last));
+		kifu.Add(Resource.Id.file_send, GetString(Resource.String.Menu_FileSend_Text), isEnabled: enabled(Resource.Id.file_send));
+		kifu.Add(Resource.Id.file_import, GetString(Resource.String.Menu_FileImport_Text), isEnabled: enabled(Resource.Id.file_import));
+		kifu.Add(Resource.Id.game_info_edit, GetString(Resource.String.GameInfoEdit_Text), isEnabled: () => true);
+		kifu.Add(Resource.Id.comment_edit, GetString(Resource.String.CommentMenuEdit_Text), isEnabled: enabled(Resource.Id.comment_edit));
+		kifu.Add(Resource.Id.comment_info_select, GetString(Resource.String.CommentInfoSelect_Text), isEnabled: enabled(Resource.Id.comment_info_select));
+		kifu.Add(Resource.Id.clear_all_comments, GetString(Resource.String.ClearAllComments_Text), isEnabled: () => true);
 		sections.Add(kifu);
 
 		// 4. 定跡
@@ -227,6 +234,8 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		board.Add(Resource.Id.camera_read, GetString(Resource.String.Menu_CameraRead_Text), isEnabled: enabled(Resource.Id.camera_read));
 		board.Add(Resource.Id.cmd_reverse, GetString(Resource.String.MenuReverse_Text), isEnabled: enabled(Resource.Id.cmd_reverse));
 		board.Add(Resource.Id.menu_board_edit, GetString(Resource.String.Menu_EditBoard_Text), isEnabled: enabled(Resource.Id.menu_board_edit));
+		board.Add(Resource.Id.cmd_kyokumen, GetString(Resource.String.MenuKyokumen_Text), isEnabled: enabled(Resource.Id.cmd_kyokumen));
+		board.Add(Resource.Id.cmd_auto_play, GetString(Resource.String.MenuAutoPlay_Text), isEnabled: enabled(Resource.Id.cmd_auto_play));
 		sections.Add(board);
 
 		// 6. エンジン
@@ -234,6 +243,9 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		engine.Add(Resource.Id.engine_select, GetString(Resource.String.Menu_EngineSelect_Text), isEnabled: enabled(Resource.Id.engine_select));
 		engine.Add(Resource.Id.engine_settings_wrapper, GetString(Resource.String.Menu_EngineSettings_Text), isEnabled: enabled(Resource.Id.engine_settings_wrapper));
 		engine.Add(Resource.Id.engine_options, GetString(Resource.String.EngineSettingsAllOptions_Text), isEnabled: enabled(Resource.Id.engine_options));
+		engine.Add(Resource.Id.engine_connection_settings, GetString(Resource.String.Menu_RemoteConnectionSettings_Text), isEnabled: enabled(Resource.Id.engine_connection_settings));
+		engine.Add(Resource.Id.engine_install, GetString(Resource.String.Menu_EngineInstall_Text), isEnabled: enabled(Resource.Id.engine_install));
+		engine.Add(Resource.Id.engine_folder, GetString(Resource.String.Menu_EngineFolder_Text), isEnabled: enabled(Resource.Id.engine_folder));
 		sections.Add(engine);
 
 		// 7. 対局
@@ -244,27 +256,11 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		game.Add(Resource.Id.game_resign, GetString(Resource.String.Menu_ResignGame_Text), isEnabled: enabled(Resource.Id.game_resign));
 		sections.Add(game);
 
-		// 8. アプリ設定（子項目1つ = グループクリックで直接遷移）
+		// 8. アプリ設定
 		var settings = new DrawerSectionModel("アプリ設定");
 		settings.Add(Resource.Id.action_settings, GetString(Resource.String.action_settings), isEnabled: enabled(Resource.Id.action_settings));
+		settings.Add(Resource.Id.menu_about, GetString(Resource.String.Menu_About_Text), isEnabled: enabled(Resource.Id.menu_about));
 		sections.Add(settings);
-
-		// 9. 詳細操作
-		var detail = new DrawerSectionModel("詳細操作");
-		detail.Add(Resource.Id.file_load_last, GetString(Resource.String.Menu_FileLoadLast_Text), isEnabled: enabled(Resource.Id.file_load_last));
-		detail.Add(Resource.Id.file_send, GetString(Resource.String.Menu_FileSend_Text), isEnabled: enabled(Resource.Id.file_send));
-		detail.Add(Resource.Id.file_import, GetString(Resource.String.Menu_FileImport_Text), isEnabled: enabled(Resource.Id.file_import));
-		detail.Add(Resource.Id.comment_edit, GetString(Resource.String.CommentMenuEdit_Text), isEnabled: enabled(Resource.Id.comment_edit));
-		detail.Add(Resource.Id.comment_info_select, GetString(Resource.String.CommentInfoSelect_Text), isEnabled: enabled(Resource.Id.comment_info_select));
-		detail.Add(Resource.Id.game_info_edit, GetString(Resource.String.GameInfoEdit_Text), isEnabled: () => true);
-		detail.Add(Resource.Id.clear_all_comments, GetString(Resource.String.ClearAllComments_Text), isEnabled: () => true);
-		detail.Add(Resource.Id.cmd_kyokumen, GetString(Resource.String.MenuKyokumen_Text), isEnabled: enabled(Resource.Id.cmd_kyokumen));
-		detail.Add(Resource.Id.cmd_auto_play, GetString(Resource.String.MenuAutoPlay_Text), isEnabled: enabled(Resource.Id.cmd_auto_play));
-		detail.Add(Resource.Id.engine_connection_settings, GetString(Resource.String.Menu_RemoteConnectionSettings_Text), isEnabled: enabled(Resource.Id.engine_connection_settings));
-		detail.Add(Resource.Id.engine_install, GetString(Resource.String.Menu_EngineInstall_Text), isEnabled: enabled(Resource.Id.engine_install));
-		detail.Add(Resource.Id.engine_folder, GetString(Resource.String.Menu_EngineFolder_Text), isEnabled: enabled(Resource.Id.engine_folder));
-		detail.Add(Resource.Id.menu_about, GetString(Resource.String.Menu_About_Text), isEnabled: enabled(Resource.Id.menu_about));
-		sections.Add(detail);
 
 		return sections;
 	}
