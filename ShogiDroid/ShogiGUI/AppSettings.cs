@@ -80,6 +80,8 @@ public class AppSettings
 
 	public bool HideInternalEngine = false;
 
+	public bool ShowAdvancedMenu = false;
+
 	public AppSettings()
 	{
 	}

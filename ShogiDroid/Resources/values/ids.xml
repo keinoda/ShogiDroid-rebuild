@@ -261,6 +261,10 @@
     <item type="id" name="media_actions" />
     <item type="id" name="media_controller_compat_view_tag" />
     <item type="id" name="menu_about" />
+    <item type="id" name="menu_wars_history" />
+    <item type="id" name="wars_close_button" />
+    <item type="id" name="wars_webview" />
+    <item type="id" name="wars_progress_bar" />
     <item type="id" name="menu_cloud" />
     <item type="id" name="menu_board_edit" />
     <item type="id" name="menu_button" />

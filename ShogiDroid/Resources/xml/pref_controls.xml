@@ -13,4 +13,7 @@
         <shogidroid.controls.ListIntPreference android:entries="@array/SettingsShortcutMenu_Texts" android:title="@string/SettingsShortcutMenu5_Text" android:key="App.ShortcutMenu5" android:entryValues="@array/SettingsShortcutMenu_Values" />
         <shogidroid.controls.ListIntPreference android:entries="@array/SettingsShortcutMenu_Texts" android:title="@string/SettingsShortcutMenu6_Text" android:key="App.ShortcutMenu6" android:entryValues="@array/SettingsShortcutMenu_Values" />
     </PreferenceCategory>
+    <PreferenceCategory android:title="メニュー">
+        <CheckBoxPreference android:key="App.ShowAdvancedMenu" android:title="詳細メニューを表示" android:summary="ドロワーメニューに詳細な操作項目を表示する" android:defaultValue="false" />
+    </PreferenceCategory>
 </PreferenceScreen>

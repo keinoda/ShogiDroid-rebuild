@@ -201,6 +201,7 @@
     <string name="SettingsSshPublicKeySummary_Text">タップしてファイルを選択</string>
     <string name="SettingsVastAi_Text">vast.ai クラウド設定</string>
     <string name="Menu_Cloud_Text">クラウド</string>
+    <string name="Menu_WarsHistory_Text">将棋ウォーズ棋譜一覧</string>
     <string name="SettingsVastAiApiKey_Text">APIキー</string>
     <string name="SettingsVastAiDockerImage_Text">Dockerイメージ</string>
     <string name="SettingsPVDisplay_Text">PV表示設定</string>

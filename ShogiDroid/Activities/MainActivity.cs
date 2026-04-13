@@ -186,6 +186,8 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		var sections = new List<DrawerSectionModel>();
 		Func<int, Func<bool>> enabled = id => () => CanOpenDrawerItem(id);
 
+		bool adv = Settings.AppSettings.ShowAdvancedMenu;
+
 		// 1. クイック操作（常時展開）
 		var quick = new DrawerSectionModel("クイック操作", isQuickAction: true);
 		quick.Add(Resource.Id.notation_analysis, GetString(Resource.String.Menu_Analysis_Text), isEnabled: enabled(Resource.Id.notation_analysis));
@@ -194,31 +196,36 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		quick.Add(Resource.Id.engine_select, GetString(Resource.String.Menu_EngineSelect_Text), isEnabled: enabled(Resource.Id.engine_select));
 		quick.Add(Resource.Id.engine_settings_wrapper, GetString(Resource.String.Menu_EngineSettings_Text), isEnabled: enabled(Resource.Id.engine_settings_wrapper));
 		quick.Add(Resource.Id.menu_cloud, GetString(Resource.String.Menu_Cloud_Text), isEnabled: enabled(Resource.Id.menu_cloud));
+		quick.Add(Resource.Id.menu_wars_history, GetString(Resource.String.Menu_WarsHistory_Text), isEnabled: () => true);
 		sections.Add(quick);
 
-		// 2. 解析
-		var analyze = new DrawerSectionModel("解析");
-		analyze.Add(Resource.Id.analysis_settings, GetString(Resource.String.Menu_AnalysisSettings_Text), isEnabled: enabled(Resource.Id.analysis_settings));
-		analyze.Add(Resource.Id.display_settings, GetString(Resource.String.Menu_DisplaySettings_Text), isEnabled: enabled(Resource.Id.display_settings));
-		analyze.Add(Resource.Id.notation_analysis, GetString(Resource.String.Menu_Analysis_Text), isEnabled: enabled(Resource.Id.notation_analysis));
-		analyze.Add(Resource.Id.consider, GetString(Resource.String.Consider_Text), isEnabled: enabled(Resource.Id.consider));
-		sections.Add(analyze);
+		// 2. 解析（詳細メニューのみ）
+		if (adv)
+		{
+			var analyze = new DrawerSectionModel("解析");
+			analyze.Add(Resource.Id.analysis_settings, GetString(Resource.String.Menu_AnalysisSettings_Text), isEnabled: enabled(Resource.Id.analysis_settings));
+			analyze.Add(Resource.Id.display_settings, GetString(Resource.String.Menu_DisplaySettings_Text), isEnabled: enabled(Resource.Id.display_settings));
+			analyze.Add(Resource.Id.notation_analysis, GetString(Resource.String.Menu_Analysis_Text), isEnabled: enabled(Resource.Id.notation_analysis));
+			analyze.Add(Resource.Id.consider, GetString(Resource.String.Consider_Text), isEnabled: enabled(Resource.Id.consider));
+			sections.Add(analyze);
+		}
 
 		// 3. 棋譜
 		var kifu = new DrawerSectionModel("棋譜");
 		kifu.Add(Resource.Id.file_save, GetString(Resource.String.Menu_FileSave_Text), isEnabled: enabled(Resource.Id.file_save));
 		kifu.Add(Resource.Id.file_save_overwrite, GetString(Resource.String.Menu_FileSaveOverwrite_Text), isEnabled: enabled(Resource.Id.file_save_overwrite));
 		kifu.Add(Resource.Id.notation_paste, GetString(Resource.String.Menu_NotaitonPaste_Text), isEnabled: enabled(Resource.Id.notation_paste));
-		kifu.Add(Resource.Id.file_open_folder, GetString(Resource.String.Menu_OpenKifuFolder_Text), isEnabled: enabled(Resource.Id.file_open_folder));
+		if (adv) kifu.Add(Resource.Id.file_open_folder, GetString(Resource.String.Menu_OpenKifuFolder_Text), isEnabled: enabled(Resource.Id.file_open_folder));
 		kifu.Add(Resource.Id.file_load, GetString(Resource.String.Menu_FileLoad_Text), isEnabled: enabled(Resource.Id.file_load));
 		kifu.Add(Resource.Id.file_web_import, GetString(Resource.String.Menu_FileWebExport_Text), isEnabled: enabled(Resource.Id.file_web_import));
+		kifu.Add(Resource.Id.menu_wars_history, GetString(Resource.String.Menu_WarsHistory_Text), isEnabled: () => true);
 		kifu.Add(Resource.Id.notation_copy, GetString(Resource.String.Menu_NotaitonCopy_Text), isEnabled: enabled(Resource.Id.notation_copy));
-		kifu.Add(Resource.Id.file_load_last, GetString(Resource.String.Menu_FileLoadLast_Text), isEnabled: enabled(Resource.Id.file_load_last));
-		kifu.Add(Resource.Id.file_send, GetString(Resource.String.Menu_FileSend_Text), isEnabled: enabled(Resource.Id.file_send));
-		kifu.Add(Resource.Id.file_import, GetString(Resource.String.Menu_FileImport_Text), isEnabled: enabled(Resource.Id.file_import));
+		if (adv) kifu.Add(Resource.Id.file_load_last, GetString(Resource.String.Menu_FileLoadLast_Text), isEnabled: enabled(Resource.Id.file_load_last));
+		if (adv) kifu.Add(Resource.Id.file_send, GetString(Resource.String.Menu_FileSend_Text), isEnabled: enabled(Resource.Id.file_send));
+		if (adv) kifu.Add(Resource.Id.file_import, GetString(Resource.String.Menu_FileImport_Text), isEnabled: enabled(Resource.Id.file_import));
 		kifu.Add(Resource.Id.game_info_edit, GetString(Resource.String.GameInfoEdit_Text), isEnabled: () => true);
 		kifu.Add(Resource.Id.comment_edit, GetString(Resource.String.CommentMenuEdit_Text), isEnabled: enabled(Resource.Id.comment_edit));
-		kifu.Add(Resource.Id.comment_info_select, GetString(Resource.String.CommentInfoSelect_Text), isEnabled: enabled(Resource.Id.comment_info_select));
+		if (adv) kifu.Add(Resource.Id.comment_info_select, GetString(Resource.String.CommentInfoSelect_Text), isEnabled: enabled(Resource.Id.comment_info_select));
 		kifu.Add(Resource.Id.clear_all_comments, GetString(Resource.String.ClearAllComments_Text), isEnabled: () => true);
 		sections.Add(kifu);
 
@@ -231,21 +238,21 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		// 5. 局面
 		var board = new DrawerSectionModel("局面");
 		board.Add(Resource.Id.position_load, GetString(Resource.String.Menu_PositionLoad_Text), isEnabled: enabled(Resource.Id.position_load));
-		board.Add(Resource.Id.camera_read, GetString(Resource.String.Menu_CameraRead_Text), isEnabled: enabled(Resource.Id.camera_read));
-		board.Add(Resource.Id.cmd_reverse, GetString(Resource.String.MenuReverse_Text), isEnabled: enabled(Resource.Id.cmd_reverse));
+		if (adv) board.Add(Resource.Id.camera_read, GetString(Resource.String.Menu_CameraRead_Text), isEnabled: enabled(Resource.Id.camera_read));
+		if (adv) board.Add(Resource.Id.cmd_reverse, GetString(Resource.String.MenuReverse_Text), isEnabled: enabled(Resource.Id.cmd_reverse));
 		board.Add(Resource.Id.menu_board_edit, GetString(Resource.String.Menu_EditBoard_Text), isEnabled: enabled(Resource.Id.menu_board_edit));
-		board.Add(Resource.Id.cmd_kyokumen, GetString(Resource.String.MenuKyokumen_Text), isEnabled: enabled(Resource.Id.cmd_kyokumen));
-		board.Add(Resource.Id.cmd_auto_play, GetString(Resource.String.MenuAutoPlay_Text), isEnabled: enabled(Resource.Id.cmd_auto_play));
+		if (adv) board.Add(Resource.Id.cmd_kyokumen, GetString(Resource.String.MenuKyokumen_Text), isEnabled: enabled(Resource.Id.cmd_kyokumen));
+		if (adv) board.Add(Resource.Id.cmd_auto_play, GetString(Resource.String.MenuAutoPlay_Text), isEnabled: enabled(Resource.Id.cmd_auto_play));
 		sections.Add(board);
 
 		// 6. エンジン
 		var engine = new DrawerSectionModel("エンジン");
 		engine.Add(Resource.Id.engine_select, GetString(Resource.String.Menu_EngineSelect_Text), isEnabled: enabled(Resource.Id.engine_select));
-		engine.Add(Resource.Id.engine_settings_wrapper, GetString(Resource.String.Menu_EngineSettings_Text), isEnabled: enabled(Resource.Id.engine_settings_wrapper));
+		if (adv) engine.Add(Resource.Id.engine_settings_wrapper, GetString(Resource.String.Menu_EngineSettings_Text), isEnabled: enabled(Resource.Id.engine_settings_wrapper));
 		engine.Add(Resource.Id.engine_options, GetString(Resource.String.EngineSettingsAllOptions_Text), isEnabled: enabled(Resource.Id.engine_options));
 		engine.Add(Resource.Id.engine_connection_settings, GetString(Resource.String.Menu_RemoteConnectionSettings_Text), isEnabled: enabled(Resource.Id.engine_connection_settings));
 		engine.Add(Resource.Id.engine_install, GetString(Resource.String.Menu_EngineInstall_Text), isEnabled: enabled(Resource.Id.engine_install));
-		engine.Add(Resource.Id.engine_folder, GetString(Resource.String.Menu_EngineFolder_Text), isEnabled: enabled(Resource.Id.engine_folder));
+		if (adv) engine.Add(Resource.Id.engine_folder, GetString(Resource.String.Menu_EngineFolder_Text), isEnabled: enabled(Resource.Id.engine_folder));
 		sections.Add(engine);
 
 		// 7. 対局
@@ -259,7 +266,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		// 8. アプリ設定
 		var settings = new DrawerSectionModel("アプリ設定");
 		settings.Add(Resource.Id.action_settings, GetString(Resource.String.action_settings), isEnabled: enabled(Resource.Id.action_settings));
-		settings.Add(Resource.Id.menu_about, GetString(Resource.String.Menu_About_Text), isEnabled: enabled(Resource.Id.menu_about));
+		if (adv) settings.Add(Resource.Id.menu_about, GetString(Resource.String.Menu_About_Text), isEnabled: enabled(Resource.Id.menu_about));
 		sections.Add(settings);
 
 		return sections;
@@ -299,6 +306,10 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 
 	private void InitDrawer()
 	{
+		// リスナーの重複登録を防止（OnResume から呼ばれるため）
+		drawerListView_.ChildClick -= DrawerChildClick;
+		drawerListView_.GroupClick -= DrawerGroupClick;
+
 		var sections = BuildDrawerSections();
 		drawerAdapter_ = new DrawerSectionAdapter(this, sections);
 		drawerListView_.SetAdapter(drawerAdapter_);
@@ -379,6 +390,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		case Resource.Id.action_settings:
 		case Resource.Id.menu_cloud:
 		case Resource.Id.menu_about:
+		case Resource.Id.menu_wars_history:
 			return true;
 		default:
 			return commands.IsEnable(itemId);
@@ -821,14 +833,13 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 
 	private void ShogiWars()
 	{
-		if (Settings.AppSettings.WarsUserName == string.Empty)
+		if (string.IsNullOrEmpty(Settings.AppSettings.WarsUserName))
 		{
 			ShowUserNameDialog();
+			return;
 		}
-		if (Settings.AppSettings.WarsUserName != string.Empty)
-		{
-			ShowWarsGameResult();
-		}
+		StartActivityForResult(new Intent(this, typeof(ShogiWarsActivity)), 108);
+		drawerLayout.CloseDrawers();
 	}
 
 	private void WebImportAs()
@@ -965,8 +976,9 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		drawerListView_ = FindViewById<ExpandableListView>(Resource.Id.main_manu_lsist_view);
 		// ドロワーのアダプター設定はpresenter初期化後にInitDrawer()で行う
 		TextView textView = FindViewById<TextView>(Resource.Id.app_name);
-		AssemblyName name = Assembly.GetExecutingAssembly().GetName();
-		textView.Text = "ShogiDroid ver " + name.Version;
+		string displayVersion = ApplicationContext.PackageManager
+			.GetPackageInfo(ApplicationContext.PackageName, 0)?.VersionName ?? "0.0.0";
+		textView.Text = "ShogiDroid ver " + displayVersion;
 		topName = FindViewById<TextView>(Resource.Id.top_name);
 		topTime = FindViewById<TextView>(Resource.Id.top_time);
 		bottomName = FindViewById<TextView>(Resource.Id.bottom_name);
@@ -1057,6 +1069,7 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		PlaySE.Initialize(this);
 		presenter.Resume();
 		CancelBackgroundAnalysisNotification();
+		InitDrawer();
 		if (notation != null)
 		{
 			UpdateNotation(NotationEventId.OBJECT_CHANGED);
@@ -1204,7 +1217,14 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			_ = -1;
 			break;
 		case 108:
-			ReceiveWarsGameResult();
+			if (resultCode == Result.Ok && data != null)
+			{
+				string kifu = data.GetStringExtra(ShogiWarsActivity.ExtraKifu);
+				if (!string.IsNullOrEmpty(kifu) && presenter.LoadNotationFromString("将棋ウォーズ", kifu))
+				{
+					PopupNotationInfo();
+				}
+			}
 			break;
 		case CAMERA_READ_CODE:
 			if (resultCode == Result.Ok && data != null)
@@ -1476,6 +1496,9 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			StartActivityForResult(new Intent(this, typeof(CloudActivity)), CLOUD_ACTIVITY_CODE);
 			drawerLayout.CloseDrawers();
 			break;
+		case Resource.Id.menu_wars_history:
+			ShogiWars();
+			break;
 		case Resource.Id.analysis_settings:
 			OpenSettingsSection(SettingActivity.SectionAnalyze);
 			break;
@@ -1529,8 +1552,12 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 			drawerLayout.CloseDrawers();
 			break;
 		case Resource.Id.menu_about:
-			MessagePopup(GetString(Resource.String.app_name) + " ver " + Assembly.GetExecutingAssembly().GetName().Version, lengthShort: true);
+		{
+			string aboutVersion = ApplicationContext.PackageManager
+				.GetPackageInfo(ApplicationContext.PackageName, 0)?.VersionName ?? "0.0.0";
+			MessagePopup(GetString(Resource.String.app_name) + " ver " + aboutVersion, lengthShort: true);
 			break;
+		}
 		case Resource.Id.clear_all_comments:
 			ConfirmClearAllComments();
 			break;
@@ -2439,7 +2466,11 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		userNameDialog.OKClick = (EventHandler<EventArgs>)Delegate.Combine(userNameDialog.OKClick, (EventHandler<EventArgs>)delegate
 		{
 			Settings.AppSettings.WarsUserName = dialog.UserName;
-			ShowWarsGameResult();
+			if (!string.IsNullOrEmpty(dialog.UserName))
+			{
+				StartActivityForResult(new Intent(this, typeof(ShogiWarsActivity)), 108);
+				drawerLayout.CloseDrawers();
+			}
 		});
 		dialog.Show(FragmentManager, "UserNameDialog");
 	}
