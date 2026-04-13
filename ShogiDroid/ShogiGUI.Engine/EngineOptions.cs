@@ -53,8 +53,9 @@ public class EngineOptions
 			using FileStream stream = new FileStream(filename, FileMode.Create);
 			xmlSerializer.Serialize(stream, engineInfo);
 		}
-		catch (Exception)
+		catch (Exception ex)
 		{
+			AppDebug.Log.Error($"EngineOptions.Save に失敗 ({filename}): {ex.Message}");
 		}
 	}
 
@@ -67,8 +68,9 @@ public class EngineOptions
 			using FileStream stream = new FileStream(filename, FileMode.Open);
 			engineOptions = (EngineOptions)xmlSerializer.Deserialize(stream);
 		}
-		catch (Exception)
+		catch (Exception ex)
 		{
+			AppDebug.Log.Info($"EngineOptions.Load に失敗（新規扱い） ({filename}): {ex.Message}");
 			engineOptions = new EngineOptions();
 		}
 		engineOptions.All = true;

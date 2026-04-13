@@ -42,20 +42,6 @@ public static class MoveEvalExtension
 		return ToString(GetMoveEval(move, prev));
 	}
 
-	public static int GetMoveValuel(MoveDataEx move, MoveDataEx prev)
-	{
-		int num = 0;
-		if (prev != null && move.HasScore && prev.HasScore)
-		{
-			num = move.Score - prev.Score;
-			if (move.Turn == PlayerColor.White)
-			{
-				num = -num;
-			}
-		}
-		return num;
-	}
-
 	public static MoveEval GetMoveEval(MoveDataEx move, MoveDataEx prev)
 	{
 		MoveEval result = MoveEval.None;

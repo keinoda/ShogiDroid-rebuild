@@ -487,7 +487,10 @@ public class USIEngine : IDisposable
 				return header[0] == '#' && header[1] == '!';
 			}
 		}
-		catch { }
+		catch (Exception ex)
+		{
+			AppDebug.Log.Info($"IsShellScript: ヘッダ確認失敗 ({filename}): {ex.Message}");
+		}
 		return false;
 	}
 }

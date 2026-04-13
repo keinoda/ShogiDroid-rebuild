@@ -533,8 +533,9 @@ shutdown -h +{autoShutdownMinutes} &
             ssh.Disconnect();
             return Task.FromResult(cmd.Result.Trim() == "SHOGIDROID_READY");
         }
-        catch
+        catch (Exception ex)
         {
+            AppDebug.Log.Info($"GcpSpot: SSH到達確認失敗 ({host}): {ex.Message}");
             return Task.FromResult(false);
         }
     }
@@ -678,8 +679,9 @@ shutdown -h +{autoShutdownMinutes} &
             int nanos = unitPrice.TryGetProperty("nanos", out var na) ? na.GetInt32() : 0;
             return units + nanos / 1_000_000_000.0;
         }
-        catch
+        catch (Exception ex)
         {
+            AppDebug.Log.Info($"GcpSpot: SKU価格パース失敗: {ex.Message}");
             return 0;
         }
     }
