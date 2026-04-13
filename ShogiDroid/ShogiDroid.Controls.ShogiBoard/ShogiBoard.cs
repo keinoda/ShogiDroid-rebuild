@@ -656,6 +656,16 @@ public class ShogiBoard : View
 
 	public event EventHandler AnimationEnd;
 
+	/// <summary>
+	/// 盤面の右半分をタップした時に発火（次の手に進む）
+	/// </summary>
+	public event EventHandler TapNext;
+
+	/// <summary>
+	/// 盤面の左半分をタップした時に発火（前の手に戻る）
+	/// </summary>
+	public event EventHandler TapPrev;
+
 	protected ShogiBoard(IntPtr javaReference, JniHandleOwnership transfer)
 		: base(javaReference, transfer)
 	{
@@ -2615,12 +2625,37 @@ public class ShogiBoard : View
 
 	private void ShogiBan_MouseClick(MotionEvent e)
 	{
+		int num = (int)e.GetX() - screenOfsX;
+		int num2 = (int)e.GetY() - screenOfsY;
+
+		// 盤面タップナビゲーション: 駒を操作中でなく、盤面上のタップなら左右で前/次の手
+		// 盤面タップナビゲーション: 3等分して左1/3→前の手、右1/3→次の手、中央1/3→無視
+		if (!op.IsMoving() && !op.Choices)
+		{
+			BoardArea tapArea = GetBoardArea(num, num2);
+			if (tapArea == BoardArea.BOARD)
+			{
+				int thirdWidth = boardRect.Width / 3;
+				int leftThreshold = boardRect.X + thirdWidth;
+				int rightThreshold = boardRect.X + thirdWidth * 2;
+				if (num < leftThreshold)
+				{
+					TapPrev?.Invoke(this, EventArgs.Empty);
+					return;
+				}
+				else if (num > rightThreshold)
+				{
+					TapNext?.Invoke(this, EventArgs.Empty);
+					return;
+				}
+				// 中央1/3は何もしない（通常の操作にフォールスルー）
+			}
+		}
+
 		if (!CanOperation() || op.Choices)
 		{
 			return;
 		}
-		int num = (int)e.GetX() - screenOfsX;
-		int num2 = (int)e.GetY() - screenOfsY;
 		BoardArea boardArea = GetBoardArea(num, num2);
 		if (boardArea == BoardArea.NONE)
 		{

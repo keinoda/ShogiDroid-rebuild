@@ -906,6 +906,8 @@ public class MainActivity : ThemedActivity, IMainView, ActivityCompat.IOnRequest
 		shogiBoard = FindViewById<ShogiBoard>(Resource.Id.shogiboard);
 		shogiBoard.MakeMoveEvent += ShogiBoard_MakeMoveEvent;
 		shogiBoard.AnimationEnd += ShogiBoard_AnimationEnd;
+		shogiBoard.TapNext += (s, e) => presenter.Next();
+		shogiBoard.TapPrev += (s, e) => presenter.Prev();
 		prevButton = FindViewById<ImageButton>(Resource.Id.prev_button);
 		prevButton.Click += PrevButton_Click;
 		nextButton = FindViewById<ImageButton>(Resource.Id.next_button);
