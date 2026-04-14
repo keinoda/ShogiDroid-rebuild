@@ -9,7 +9,7 @@ namespace ShogiGUI.Engine;
 /// <summary>
 /// クラウドインスタンスのアイドル自動終了を管理するシングルトン。
 /// vast.ai / GCP のいずれかを扱える汎用 Watchdog（AWS は対象外）。
-/// 解析終了後に一定時間（デフォルト5分）新しい解析が開始されなければ
+/// 解析終了後に一定時間（デフォルト15分）新しい解析が開始されなければ
 /// インスタンスを停止する。
 /// </summary>
 public sealed class CloudInstanceWatchdog : IDisposable
@@ -18,7 +18,7 @@ public sealed class CloudInstanceWatchdog : IDisposable
 	private static readonly object lockObj_ = new object();
 
 	/// <summary>解析終了後、自動終了までのデフォルト待機時間（分）</summary>
-	public const int DefaultIdleMinutes = 5;
+	public const int DefaultIdleMinutes = 15;
 
 	private Timer shutdownTimer_;
 	private int idleTimeoutMinutes_;
